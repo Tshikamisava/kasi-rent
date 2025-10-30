@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -5,10 +7,95 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { Mail, Lock, User, Phone } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { authApi } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 
 const GetStarted = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { setUser } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    userType: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.id]: e.target.value,
+    }));
+  };
+
+  const handleSelectChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      userType: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validation
+    if (!agreedToTerms) {
+      toast({
+        variant: "destructive",
+        title: "Agreement Required",
+        description: "Please agree to the Terms of Service and Privacy Policy",
+      });
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Password Mismatch",
+        description: "Passwords do not match. Please try again.",
+      });
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Weak Password",
+        description: "Password must be at least 6 characters long.",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { confirmPassword, ...registrationData } = formData;
+      const user = await authApi.register(registrationData);
+      setUser(user);
+      toast({
+        title: "Welcome to KasiRent!",
+        description: "Your account has been created successfully.",
+      });
+      navigate("/");
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error instanceof Error ? error.message : "Failed to create account",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -26,45 +113,54 @@ const GetStarted = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input 
-                      id="name" 
-                      type="text" 
-                      placeholder="John Doe"
-                      className="pl-10"
-                    />
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input 
+                        id="name" 
+                        type="text" 
+                        placeholder="John Doe"
+                        className="pl-10"
+                        value={formData.name}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="your.email@example.com"
-                      className="pl-10"
-                    />
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        placeholder="your.email@example.com"
+                        className="pl-10"
+                        value={formData.email}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input 
-                      id="phone" 
-                      type="tel" 
-                      placeholder="+27 11 123 4567"
-                      className="pl-10"
-                    />
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input 
+                        id="phone" 
+                        type="tel" 
+                        placeholder="+27 11 123 4567"
+                        className="pl-10"
+                        value={formData.phone}
+                        onChange={handleChange}
+                      />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="user-type">I am a...</Label>
-                  <Select>
+                  <Select onValueChange={handleSelectChange} value={formData.userType}>
                     <SelectTrigger id="user-type">
                       <SelectValue placeholder="Select your role" />
                     </SelectTrigger>
@@ -84,33 +180,49 @@ const GetStarted = () => {
                       type="password" 
                       placeholder="••••••••"
                       className="pl-10"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input 
-                      id="confirm-password" 
+                      id="confirmPassword" 
                       type="password" 
                       placeholder="••••••••"
                       className="pl-10"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      required
                     />
                   </div>
                 </div>
                 <div className="flex items-start gap-2 text-sm">
-                  <input type="checkbox" className="rounded mt-1" />
-                  <span className="text-muted-foreground">
+                  <Checkbox 
+                    id="terms"
+                    checked={agreedToTerms}
+                    onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                  />
+                  <label htmlFor="terms" className="text-muted-foreground cursor-pointer">
                     I agree to the{" "}
                     <a href="#" className="text-primary hover:underline">Terms of Service</a>
                     {" "}and{" "}
                     <a href="#" className="text-primary hover:underline">Privacy Policy</a>
-                  </span>
+                  </label>
                 </div>
-                <Button className="w-full" size="lg">
-                  Create Account
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  size="lg"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Creating Account..." : "Create Account"}
                 </Button>
+              </form>
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-border" />
