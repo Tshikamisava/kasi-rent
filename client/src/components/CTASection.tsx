@@ -1,6 +1,5 @@
-import { ArrowRight } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 
 export const CTASection = () => {
   return (
@@ -16,11 +15,11 @@ export const CTASection = () => {
             Join thousands of happy tenants, landlords, and agents who trust KasiRent for their rental needs
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="secondary" className="text-lg px-8 py-6 bg-white text-primary hover:bg-white/90">
+            <Button size="lg" variant="secondary" className="text-lg px-8 py-6 bg-white text-primary hover:bg-white/90">
               Get Started Now
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-            <Button variant="outline" className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white/10">
+            <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white/10">
               Learn More
             </Button>
           </div>

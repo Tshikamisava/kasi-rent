@@ -1,0 +1,19 @@
+[build]
+  # Directory to change to before starting a build
+  base = "client"
+  
+  # Directory that contains the deploy-ready HTML files and assets
+  publish = "client/dist"
+  
+  # Default build command
+  command = "npm run build"
+
+[[redirects]]
+  # Handle client-side routing
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  # Netlify will use Node.js 18 or later
+  NODE_VERSION = "18"

@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -7,19 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Phone } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { register } from "@/lib/auth";
 import { useAuth } from "@/hooks/use-auth";
-import { authApi } from "@/lib/auth";
-import { useToast } from "@/hooks/use-toast";
 
 const GetStarted = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { setUser } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  // Form state
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -27,75 +25,71 @@ const GetStarted = () => {
     userType: "",
     password: "",
     confirmPassword: "",
+    agreeToTerms: false,
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
+  const handleInputChange = (field: string, value: string | boolean) => {
+    setFormData(prev => ({
       ...prev,
-      [e.target.id]: e.target.value,
-    }));
-  };
-
-  const handleSelectChange = (value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      userType: value,
+      [field]: value
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validation
-    if (!agreedToTerms) {
-      toast({
-        variant: "destructive",
-        title: "Agreement Required",
-        description: "Please agree to the Terms of Service and Privacy Policy",
-      });
+    
+    // Basic validation
+    if (!formData.name || !formData.email || !formData.phone || !formData.userType || !formData.password || !formData.confirmPassword) {
+      toast.error("Please fill in all fields");
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Password Mismatch",
-        description: "Passwords do not match. Please try again.",
-      });
+      toast.error("Passwords do not match");
       return;
     }
 
     if (formData.password.length < 6) {
-      toast({
-        variant: "destructive",
-        title: "Weak Password",
-        description: "Password must be at least 6 characters long.",
-      });
+      toast.error("Password must be at least 6 characters long");
       return;
     }
 
-    setIsLoading(true);
+    if (!formData.agreeToTerms) {
+      toast.error("Please agree to the Terms of Service and Privacy Policy");
+      return;
+    }
 
+    setLoading(true);
+    
     try {
-      const { confirmPassword, ...registrationData } = formData;
-      const user = await authApi.register(registrationData);
-      setUser(user);
-      toast({
-        title: "Welcome to KasiRent!",
-        description: "Your account has been created successfully.",
-      });
-      navigate("/");
+      const result = await register(
+        formData.email,
+        formData.password,
+        formData.name,
+        formData.phone,
+        formData.userType
+      );
+      
+      if (result.error) {
+        toast.error(result.error || "Failed to create account");
+      } else if (result.user) {
+        setUser({
+          _id: result.user.id,
+          name: formData.name,
+          email: result.user.email || "",
+          token: result.session?.access_token || "",
+          userType: formData.userType
+        });
+        toast.success(`Account created successfully! Welcome to KasiRent as a ${formData.userType}!`);
+        // Redirect to home page first, then user can navigate to dashboard
+        navigate("/");
+      }
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Registration Failed",
-        description: error instanceof Error ? error.message : "Failed to create account",
-      });
+      toast.error("An error occurred during registration");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -112,7 +106,7 @@ const GetStarted = () => {
                   Create your KasiRent account in minutes
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
@@ -124,7 +118,7 @@ const GetStarted = () => {
                         placeholder="John Doe"
                         className="pl-10"
                         value={formData.name}
-                        onChange={handleChange}
+                        onChange={(e) => handleInputChange("name", e.target.value)}
                         required
                       />
                     </div>
@@ -139,7 +133,7 @@ const GetStarted = () => {
                         placeholder="your.email@example.com"
                         className="pl-10"
                         value={formData.email}
-                        onChange={handleChange}
+                        onChange={(e) => handleInputChange("email", e.target.value)}
                         required
                       />
                     </div>
@@ -154,88 +148,93 @@ const GetStarted = () => {
                         placeholder="+27 11 123 4567"
                         className="pl-10"
                         value={formData.phone}
-                        onChange={handleChange}
+                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        required
                       />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="user-type">I am a...</Label>
-                  <Select onValueChange={handleSelectChange} value={formData.userType}>
-                    <SelectTrigger id="user-type">
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="tenant">Tenant (Looking for property)</SelectItem>
-                      <SelectItem value="landlord">Landlord (Property owner)</SelectItem>
-                      <SelectItem value="agent">Agent (Property professional)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input 
-                      id="password" 
-                      type="password" 
-                      placeholder="••••••••"
-                      className="pl-10"
-                      value={formData.password}
-                      onChange={handleChange}
+                  <div className="space-y-2">
+                    <Label htmlFor="user-type">I am a...</Label>
+                    <Select value={formData.userType} onValueChange={(value) => handleInputChange("userType", value)}>
+                      <SelectTrigger id="user-type">
+                        <SelectValue placeholder="Select your role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="tenant">Tenant (Looking for property)</SelectItem>
+                        <SelectItem value="landlord">Landlord (Property owner)</SelectItem>
+                        <SelectItem value="agent">Agent (Property professional)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input 
+                        id="password" 
+                        type="password" 
+                        placeholder="••••••••"
+                        className="pl-10"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange("password", e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirm Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input 
+                        id="confirm-password" 
+                        type="password" 
+                        placeholder="••••••••"
+                        className="pl-10"
+                        value={formData.confirmPassword}
+                        onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 text-sm">
+                    <input 
+                      type="checkbox" 
+                      className="rounded mt-1" 
+                      checked={formData.agreeToTerms}
+                      onChange={(e) => handleInputChange("agreeToTerms", e.target.checked)}
                       required
                     />
+                    <span className="text-muted-foreground">
+                      I agree to the{" "}
+                      <a href="#" className="text-primary hover:underline">Terms of Service</a>
+                      {" "}and{" "}
+                      <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+                    </span>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    size="lg"
+                    disabled={loading}
+                  >
+                    {loading ? "Creating Account..." : "Create Account"}
+                  </Button>
+                </form>
+                <div className="mt-4">
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input 
-                      id="confirmPassword" 
-                      type="password" 
-                      placeholder="••••••••"
-                      className="pl-10"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      required
-                    />
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">Or</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-2 text-sm">
-                  <Checkbox 
-                    id="terms"
-                    checked={agreedToTerms}
-                    onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
-                  />
-                  <label htmlFor="terms" className="text-muted-foreground cursor-pointer">
-                    I agree to the{" "}
-                    <a href="#" className="text-primary hover:underline">Terms of Service</a>
-                    {" "}and{" "}
-                    <a href="#" className="text-primary hover:underline">Privacy Policy</a>
-                  </label>
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  size="lg"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Creating Account..." : "Create Account"}
-                </Button>
-              </form>
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border" />
+                  <div className="mt-4 text-center text-sm text-muted-foreground">
+                    Already have an account?{" "}
+                    <Link to="/signin" className="text-primary hover:underline font-semibold">
+                      Sign In
+                    </Link>
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Or</span>
-                  </div>
-                </div>
-                <div className="text-center text-sm text-muted-foreground">
-                  Already have an account?{" "}
-                  <Link to="/signin" className="text-primary hover:underline font-semibold">
-                    Sign In
-                  </Link>
                 </div>
               </CardContent>
             </Card>

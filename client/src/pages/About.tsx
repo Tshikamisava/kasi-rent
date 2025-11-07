@@ -1,7 +1,6 @@
-import { Shield, Users, Heart, TrendingUp } from "lucide-react";
-
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { Shield, Users, Heart, TrendingUp } from "lucide-react";
 
 const values = [
   {

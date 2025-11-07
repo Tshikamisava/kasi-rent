@@ -1,150 +1,134 @@
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Navbar } from "@/components/Navbar"
-import { Footer } from "@/components/Footer"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Link } from "react-router-dom"
-import { Mail, Lock } from "lucide-react"
-import { useAuth } from "@/hooks/use-auth"
-import { authApi } from "@/lib/auth"
-import { useToast } from "@/hooks/use-toast"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { useAuth } from "@/hooks/use-auth";
+import { login } from "@/lib/auth";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 const SignIn = () => {
-  const navigate = useNavigate()
-  const { toast } = useToast()
-  const { setUser } = useAuth()
-  const [isLoading, setIsLoading] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  })
+  const { user, setUser } = useAuth();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.id]: e.target.value,
-    }))
-  }
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
-    try {
-      const user = await authApi.login(formData)
-      setUser(user)
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully signed in.",
-      })
-      navigate("/")
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to sign in",
-      })
-    } finally {
-      setIsLoading(false)
+    e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error("Please fill in all fields");
+      return;
     }
-  }
+
+    setLoading(true);
+    
+    try {
+      const result = await login(email, password);
+      
+      if (result.error) {
+        toast.error(result.error || "Failed to sign in");
+      } else if (result.user) {
+        const userRole = result.user.user_metadata?.userType;
+        setUser({
+          _id: result.user.id,
+          name: result.user.user_metadata?.name || result.user.email || "",
+          email: result.user.email || "",
+          token: result.session?.access_token || "",
+          userType: userRole
+        });
+        toast.success("Signed in successfully!");
+        // Redirect to role-specific dashboard if userType exists, otherwise home
+        if (userRole && ['tenant', 'landlord', 'agent'].includes(userRole)) {
+          navigate(`/dashboard/${userRole}`);
+        } else {
+          navigate("/");
+        }
+      }
+    } catch (error) {
+      toast.error("An error occurred during sign in");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <Navbar />
-      <main className="pt-24 pb-12">
-        <div className="container mx-auto px-6">
-          <div className="max-w-md mx-auto">
-            <Card className="shadow-xl">
-              <CardHeader className="space-y-1 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                  <span className="text-white font-bold text-2xl">K</span>
-                </div>
-                <CardTitle className="text-3xl font-bold">Welcome Back</CardTitle>
-                <CardDescription>
-                  Sign in to your KasiRent account
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input 
-                        id="email" 
-                        type="email" 
-                        placeholder="your.email@example.com"
-                        className="pl-10"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input 
-                        id="password" 
-                        type="password" 
-                        placeholder="••••••••"
-                        className="pl-10"
-                        value={formData.password}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between space-y-0">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="remember"
-                        checked={rememberMe}
-                        onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                      />
-                      <label
-                        htmlFor="remember"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Remember me
-                      </label>
-                    </div>
-                    <Link 
-                      to="/forgot-password" 
-                      className="text-sm text-primary hover:underline"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Signing in..." : "Sign In"}
-                  </Button>
-                </form>
-                <div className="text-center text-sm">
-                  Don't have an account?{" "}
-                  <Link to="/get-started" className="text-primary hover:underline">
-                    Get Started
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </main>
+      
+      <div className="flex items-center justify-center px-4 py-12">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-center">
+              Sign In
+            </CardTitle>
+            <CardDescription className="text-center">
+              Enter your credentials to access your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={loading}
+              >
+                {loading ? "Signing in..." : "Sign In"}
+              </Button>
+            </form>
+            
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                Don't have an account?{" "}
+                <Link 
+                  to="/get-started" 
+                  className="font-medium text-blue-600 hover:text-blue-500"
+                >
+                  Sign up here
+                </Link>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
       <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default SignIn
+export default SignIn;

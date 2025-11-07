@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000/api';
+import { supabase } from './supabase'
 
 interface LoginData {
   email: string;
@@ -14,49 +14,107 @@ interface RegisterData extends LoginData {
 export const authApi = {
   async login(data: LoginData) {
     try {
-      const response = await fetch(`${API_URL}/users/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      })
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Login failed');
+      if (error) {
+        throw new Error(error.message)
       }
 
-      return response.json();
+      return {
+        _id: authData.user?.id,
+        name: authData.user?.user_metadata?.name || authData.user?.email,
+        email: authData.user?.email,
+        phone: authData.user?.user_metadata?.phone,
+        userType: authData.user?.user_metadata?.userType,
+        token: authData.session?.access_token,
+      }
     } catch (error) {
       if (error instanceof TypeError) {
-        throw new Error('Cannot connect to server. Please make sure the server is running on port 5000.');
+        throw new Error('Cannot connect to authentication service.')
       }
-      throw error;
+      throw error
     }
   },
 
   async register(data: RegisterData) {
     try {
-      const response = await fetch(`${API_URL}/users/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            name: data.name,
+            phone: data.phone,
+            userType: data.userType,
+          }
+        }
+      })
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Registration failed');
+      if (error) {
+        throw new Error(error.message)
       }
 
-      return response.json();
+      if (!authData.user) {
+        throw new Error('Registration failed')
+      }
+
+      return {
+        _id: authData.user.id,
+        name: data.name,
+        email: authData.user.email,
+        phone: data.phone,
+        userType: data.userType,
+        token: authData.session?.access_token,
+      }
     } catch (error) {
       if (error instanceof TypeError) {
-        throw new Error('Cannot connect to server. Please make sure the server is running on port 5000.');
+        throw new Error('Cannot connect to authentication service.')
       }
-      throw error;
+      throw error
     }
   },
-};
+
+  async logout() {
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      throw new Error(error.message)
+    }
+  },
+}
+
+// Export individual functions for convenience
+export const login = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  return {
+    user: data.user,
+    session: data.session,
+    error: error?.message,
+  }
+}
+
+export const register = async (email: string, password: string, name: string, phone?: string, userType?: string) => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        name,
+        phone,
+        userType,
+      }
+    }
+  })
+
+  return {
+    user: data.user,
+    session: data.session,
+    error: error?.message,
+  }
+}
