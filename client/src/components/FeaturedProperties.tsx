@@ -1,7 +1,7 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, BedDouble, Bath } from "lucide-react";
+import { MapPin, BedDouble, Bath, Building } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
@@ -63,6 +63,10 @@ export const FeaturedProperties = () => {
                     src={property.image_url} 
                     alt={property.title}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/property-placeholder.png';
+                    }}
                   />
                 </div>
               ) : (

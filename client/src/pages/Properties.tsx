@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, BedDouble, Bath, Search } from "lucide-react";
+import { MapPin, BedDouble, Bath, Search, Building } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -102,6 +102,10 @@ const Properties = () => {
                         src={property.image_url} 
                         alt={property.title}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/property-placeholder.png';
+                        }}
                       />
                     </div>
                   ) : (

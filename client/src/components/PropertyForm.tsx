@@ -164,8 +164,11 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
               type="url"
               value={formData.image_url}
               onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-              placeholder="https://example.com/image.jpg"
+              placeholder="/riverside-apartment-1.jpg (or your own image URL)"
             />
+            <p className="text-sm text-muted-foreground mt-1">
+              Try: /riverside-house-1.jpg, /riverside-apartment-1.jpg, /riverside-studio-1.jpg, or /riverside-townhouse-1.jpg
+            </p>
           </div>
 
           <div>
