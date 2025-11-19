@@ -4,11 +4,6 @@
   "installCommand": "cd client && npm install",
   "devCommand": "cd client && npm run dev",
   "framework": "vite",
-  "functions": {
-    "client/src/**": {
-      "maxDuration": 10
-    }
-  },
   "rewrites": [
     {
       "source": "/(.*)",
