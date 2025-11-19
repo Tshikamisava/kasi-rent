@@ -4,10 +4,26 @@
   "installCommand": "cd client && npm install",
   "devCommand": "cd client && npm run dev",
   "framework": "vite",
+  "functions": {
+    "client/src/**": {
+      "maxDuration": 10
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
       "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
     }
   ]
 }
