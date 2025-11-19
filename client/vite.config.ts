@@ -14,36 +14,45 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks(id) {
           // Vendor chunks
-          'react-vendor': ['react', 'react-dom'],
-          'router-vendor': ['react-router-dom'],
-          'ui-vendor': ['lucide-react'],
-          'supabase-vendor': ['@supabase/supabase-js'],
-          'state-vendor': ['zustand'],
-          'utils-vendor': ['clsx', 'tailwind-merge'],
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('react-router')) {
+              return 'router-vendor';
+            }
+            if (id.includes('lucide-react')) {
+              return 'ui-vendor';
+            }
+            if (id.includes('@supabase')) {
+              return 'supabase-vendor';
+            }
+            if (id.includes('zustand')) {
+              return 'state-vendor';
+            }
+            if (id.includes('clsx') || id.includes('tailwind-merge')) {
+              return 'utils-vendor';
+            }
+            // Other vendor packages
+            return 'vendor';
+          }
           
-          // Feature chunks
-          'auth-components': [
-            './src/pages/SignIn.tsx',
-            './src/pages/GetStarted.tsx',
-            './src/hooks/use-auth.ts',
-            './src/lib/auth.ts'
-          ],
-          'dashboard-components': [
-            './src/pages/TenantDashboard.tsx',
-            './src/pages/LandlordDashboard.tsx',
-            './src/components/PropertyForm.tsx'
-          ],
-          'ui-components': [
-            './src/components/ui/button.tsx',
-            './src/components/ui/card.tsx',
-            './src/components/ui/input.tsx',
-            './src/components/ui/label.tsx',
-            './src/components/ui/select.tsx',
-            './src/components/ui/toast.tsx',
-            './src/components/ui/toaster.tsx'
-          ]
+          // Feature-based chunks
+          if (id.includes('/pages/SignIn') || id.includes('/pages/GetStarted') || 
+              id.includes('/hooks/use-auth') || id.includes('/lib/auth')) {
+            return 'auth-components';
+          }
+          
+          if (id.includes('/pages/TenantDashboard') || id.includes('/pages/LandlordDashboard') || 
+              id.includes('/components/PropertyForm')) {
+            return 'dashboard-components';
+          }
+          
+          if (id.includes('/components/ui/')) {
+            return 'ui-components';
+          }
         }
       }
     }
