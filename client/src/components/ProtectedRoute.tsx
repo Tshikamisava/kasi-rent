@@ -1,13 +1,13 @@
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'tenant' | 'landlord' | 'agent' | 'admin';
+  requiredRole?: 'tenant' | 'landlord' | 'admin';
 }
 
 export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
-  const { user, userRole, loading } = useAuth();
+  const { user, userType, loading } = useAuth();
 
   if (loading) {
     return (
@@ -21,9 +21,9 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/signin" replace />;
   }
 
-  if (requiredRole && userRole !== requiredRole) {
+  if (requiredRole && userType !== requiredRole) {
     // Redirect to their own dashboard
-    return <Navigate to={`/dashboard/${userRole}`} replace />;
+    return <Navigate to={`/dashboard/${userType}`} replace />;
   }
 
   return <>{children}</>;

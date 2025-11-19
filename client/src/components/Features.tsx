@@ -1,4 +1,4 @@
-import { Shield, CreditCard, MessageSquare, CheckCircle, Search, TrendingUp } from "lucide-react";
+import { Shield, CreditCard, MessageSquare, CheckCircle, Search, Wallet } from "lucide-react";
 
 const features = [
   {
@@ -13,8 +13,8 @@ const features = [
   },
   {
     icon: MessageSquare,
-    title: "Direct Messaging",
-    description: "Chat directly with landlords and agents through our secure platform",
+    title: "Direct Communication",
+    description: "Chat directly with landlords through our secure platform - no middleman needed",
   },
   {
     icon: CheckCircle,
@@ -27,9 +27,9 @@ const features = [
     description: "Find your perfect home with advanced filters and location-based search",
   },
   {
-    icon: TrendingUp,
-    title: "Agent Network",
-    description: "Connect with trusted local agents who know your community",
+    icon: Wallet,
+    title: "Save Money",
+    description: "No agent fees or commissions - connect directly and keep more in your pocket",
   },
 ];
 

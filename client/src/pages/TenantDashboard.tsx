@@ -22,10 +22,6 @@ const TenantDashboard = () => {
     navigate("/");
   };
 
-  if (!user) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -34,7 +30,7 @@ const TenantDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Tenant Dashboard</h1>
-              <p className="text-muted-foreground mt-2">Welcome back, {user.name}! Find your perfect home.</p>
+              <p className="text-muted-foreground mt-2">Welcome back! Find your perfect home.</p>
             </div>
             <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
           </div>

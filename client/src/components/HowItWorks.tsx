@@ -10,7 +10,7 @@ const steps = [
   {
     icon: Calendar,
     title: "Book Instantly",
-    description: "Connect with landlords or agents, schedule viewings, and submit your booking request",
+    description: "Connect directly with landlords, schedule viewings, and submit your booking request",
     step: "02",
   },
   {

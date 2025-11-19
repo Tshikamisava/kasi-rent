@@ -11,16 +11,22 @@ interface User {
 
 interface AuthState {
   user: User | null;
+  userType: string | null;
   setUser: (user: User | null) => void;
+  setUserType: (userType: string | null) => void;
   isAuthenticated: boolean;
+  loading: boolean;
 }
 
 export const useAuth = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
+      userType: null,
       isAuthenticated: false,
+      loading: false,
       setUser: (user) => set({ user, isAuthenticated: !!user }),
+      setUserType: (userType) => set({ userType }),
     }),
     {
       name: 'auth-storage',

@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 const SignIn = () => {
-  const { user, setUser } = useAuth();
+  const { user, setUser, setUserType } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -40,6 +40,7 @@ const SignIn = () => {
         toast.error(result.error || "Failed to sign in");
       } else if (result.user) {
         const userRole = result.user.user_metadata?.userType;
+        
         setUser({
           _id: result.user.id,
           name: result.user.user_metadata?.name || result.user.email || "",
@@ -47,13 +48,17 @@ const SignIn = () => {
           token: result.session?.access_token || "",
           userType: userRole
         });
+        setUserType(userRole);
         toast.success("Signed in successfully!");
-        // Redirect to role-specific dashboard if userType exists, otherwise home
-        if (userRole && ['tenant', 'landlord', 'agent'].includes(userRole)) {
+        
+        // Redirect based on user type
+        if (userRole && ['tenant', 'landlord'].includes(userRole)) {
           navigate(`/dashboard/${userRole}`);
         } else {
           navigate("/");
         }
+      } else {
+        toast.error("Login failed - please check your credentials");
       }
     } catch (error) {
       toast.error("An error occurred during sign in");

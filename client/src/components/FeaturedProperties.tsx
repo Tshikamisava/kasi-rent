@@ -2,41 +2,48 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, BedDouble, Bath } from "lucide-react";
-
-const properties = [
-  {
-    id: 1,
-    title: "Modern 2-Bedroom in Soweto",
-    location: "Orlando East, Soweto",
-    price: "R4,500",
-    bedrooms: 2,
-    bathrooms: 1,
-    type: "Apartment",
-    verified: true,
-  },
-  {
-    id: 2,
-    title: "Spacious Bachelor in Khayelitsha",
-    location: "Site C, Khayelitsha",
-    price: "R2,800",
-    bedrooms: 1,
-    bathrooms: 1,
-    type: "Bachelor",
-    verified: true,
-  },
-  {
-    id: 3,
-    title: "Family Home in Alexandra",
-    location: "East Bank, Alexandra",
-    price: "R6,200",
-    bedrooms: 3,
-    bathrooms: 2,
-    type: "House",
-    verified: true,
-  },
-];
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
 
 export const FeaturedProperties = () => {
+  const [properties, setProperties] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProperties();
+  }, []);
+
+  const fetchProperties = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("properties")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+      setProperties(data || []);
+    } catch (error) {
+      console.error("Error fetching properties:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <section className="py-20 bg-muted/30">
+        <div className="container mx-auto px-6">
+          <p className="text-center text-muted-foreground">Loading properties...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (properties.length === 0) {
+    return null;
+  }
   return (
     <section className="py-20 bg-muted/30">
       <div className="container mx-auto px-6">
@@ -50,13 +57,23 @@ export const FeaturedProperties = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {properties.map((property) => (
             <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-shadow">
-              <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                <Building className="w-20 h-20 text-primary/40" />
-              </div>
+              {property.image_url ? (
+                <div className="h-48 overflow-hidden">
+                  <img 
+                    src={property.image_url} 
+                    alt={property.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                  <Building className="w-20 h-20 text-primary/40" />
+                </div>
+              )}
               <CardHeader>
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="text-xl font-semibold">{property.title}</h3>
-                  {property.verified && (
+                  {property.is_verified && (
                     <Badge variant="default" className="bg-accent">
                       Verified
                     </Badge>
@@ -77,10 +94,10 @@ export const FeaturedProperties = () => {
                     <Bath className="w-4 h-4 mr-1" />
                     {property.bathrooms}
                   </div>
-                  <Badge variant="outline">{property.type}</Badge>
+                  <Badge variant="outline">{property.property_type}</Badge>
                 </div>
                 <div className="flex items-center text-2xl font-bold text-primary">
-                  {property.price}
+                  R{property.price.toLocaleString()}
                   <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
                 </div>
               </CardContent>
@@ -94,9 +111,11 @@ export const FeaturedProperties = () => {
         </div>
 
         <div className="text-center mt-12">
-          <Button variant="outline" size="lg" className="px-8">
-            View All Properties
-          </Button>
+          <Link to="/properties">
+            <Button variant="outline" size="lg" className="px-8">
+              View All Properties
+            </Button>
+          </Link>
         </div>
       </div>
     </section>

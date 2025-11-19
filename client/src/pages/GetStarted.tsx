@@ -8,16 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Phone } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { register } from "@/lib/auth";
 import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 const GetStarted = () => {
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { setUser, setUserType } = useAuth();
   const [loading, setLoading] = useState(false);
-  
-  // Form state
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -25,67 +23,81 @@ const GetStarted = () => {
     userType: "",
     password: "",
     confirmPassword: "",
-    agreeToTerms: false,
+    agreeToTerms: false
   });
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation
-    if (!formData.name || !formData.email || !formData.phone || !formData.userType || !formData.password || !formData.confirmPassword) {
-      toast.error("Please fill in all fields");
+    // Validation
+    if (!formData.name.trim()) {
+      toast.error("Please enter your full name");
       return;
     }
-
-    if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords do not match");
+    if (!formData.email.trim()) {
+      toast.error("Please enter your email");
       return;
     }
-
+    if (!formData.phone.trim()) {
+      toast.error("Please enter your phone number");
+      return;
+    }
+    if (!formData.userType) {
+      toast.error("Please select your role");
+      return;
+    }
     if (formData.password.length < 6) {
       toast.error("Password must be at least 6 characters long");
       return;
     }
-
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
     if (!formData.agreeToTerms) {
       toast.error("Please agree to the Terms of Service and Privacy Policy");
       return;
     }
 
     setLoading(true);
-    
     try {
       const result = await register(
-        formData.email,
-        formData.password,
-        formData.name,
+        formData.email, 
+        formData.password, 
+        formData.name, 
         formData.phone,
         formData.userType
       );
       
       if (result.error) {
-        toast.error(result.error || "Failed to create account");
-      } else if (result.user) {
-        setUser({
-          _id: result.user.id,
-          name: formData.name,
-          email: result.user.email || "",
-          token: result.session?.access_token || "",
-          userType: formData.userType
-        });
-        toast.success(`Account created successfully! Welcome to KasiRent as a ${formData.userType}!`);
-        // Redirect to home page first, then user can navigate to dashboard
-        navigate("/");
+        throw new Error(result.error);
       }
-    } catch (error) {
-      toast.error("An error occurred during registration");
+
+      if (!result.user) {
+        throw new Error("Registration failed - no user returned");
+      }
+
+      // Create user object in our format
+      const user = {
+        _id: result.user.id,
+        name: formData.name,
+        email: result.user.email || formData.email,
+        token: result.session?.access_token || "",
+        userType: formData.userType
+      };
+      
+      setUser(user);
+      setUserType(formData.userType);
+      toast.success("Account created successfully!");
+      
+      // Redirect based on user type
+      navigate(`/dashboard/${formData.userType}`);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create account");
     } finally {
       setLoading(false);
     }
@@ -106,7 +118,7 @@ const GetStarted = () => {
                   Create your KasiRent account in minutes
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
@@ -118,7 +130,7 @@ const GetStarted = () => {
                         placeholder="John Doe"
                         className="pl-10"
                         value={formData.name}
-                        onChange={(e) => handleInputChange("name", e.target.value)}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
                         required
                       />
                     </div>
@@ -133,7 +145,7 @@ const GetStarted = () => {
                         placeholder="your.email@example.com"
                         className="pl-10"
                         value={formData.email}
-                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
                         required
                       />
                     </div>
@@ -148,21 +160,20 @@ const GetStarted = () => {
                         placeholder="+27 11 123 4567"
                         className="pl-10"
                         value={formData.phone}
-                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
                         required
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="user-type">I am a...</Label>
-                    <Select value={formData.userType} onValueChange={(value) => handleInputChange("userType", value)}>
+                    <Select value={formData.userType} onValueChange={(value) => handleInputChange('userType', value)}>
                       <SelectTrigger id="user-type">
                         <SelectValue placeholder="Select your role" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="tenant">Tenant (Looking for property)</SelectItem>
                         <SelectItem value="landlord">Landlord (Property owner)</SelectItem>
-                        <SelectItem value="agent">Agent (Property professional)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -176,7 +187,7 @@ const GetStarted = () => {
                         placeholder="••••••••"
                         className="pl-10"
                         value={formData.password}
-                        onChange={(e) => handleInputChange("password", e.target.value)}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
                         required
                       />
                     </div>
@@ -191,7 +202,7 @@ const GetStarted = () => {
                         placeholder="••••••••"
                         className="pl-10"
                         value={formData.confirmPassword}
-                        onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                         required
                       />
                     </div>
@@ -201,7 +212,7 @@ const GetStarted = () => {
                       type="checkbox" 
                       className="rounded mt-1" 
                       checked={formData.agreeToTerms}
-                      onChange={(e) => handleInputChange("agreeToTerms", e.target.checked)}
+                      onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
                       required
                     />
                     <span className="text-muted-foreground">
@@ -211,30 +222,23 @@ const GetStarted = () => {
                       <a href="#" className="text-primary hover:underline">Privacy Policy</a>
                     </span>
                   </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    size="lg"
-                    disabled={loading}
-                  >
+                  <Button type="submit" className="w-full" size="lg" disabled={loading}>
                     {loading ? "Creating Account..." : "Create Account"}
                   </Button>
                 </form>
-                <div className="mt-4">
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-border" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">Or</span>
-                    </div>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
                   </div>
-                  <div className="mt-4 text-center text-sm text-muted-foreground">
-                    Already have an account?{" "}
-                    <Link to="/signin" className="text-primary hover:underline font-semibold">
-                      Sign In
-                    </Link>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or</span>
                   </div>
+                </div>
+                <div className="text-center text-sm text-muted-foreground">
+                  Already have an account?{" "}
+                  <Link to="/signin" className="text-primary hover:underline font-semibold">
+                    Sign In
+                  </Link>
                 </div>
               </CardContent>
             </Card>

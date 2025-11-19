@@ -6,71 +6,32 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, BedDouble, Bath, Search } from "lucide-react";
-
-const allProperties = [
-  {
-    id: 1,
-    title: "Modern 2-Bedroom in Soweto",
-    location: "Orlando East, Soweto",
-    price: "R4,500",
-    bedrooms: 2,
-    bathrooms: 1,
-    type: "Apartment",
-    verified: true,
-  },
-  {
-    id: 2,
-    title: "Spacious Bachelor in Khayelitsha",
-    location: "Site C, Khayelitsha",
-    price: "R2,800",
-    bedrooms: 1,
-    bathrooms: 1,
-    type: "Bachelor",
-    verified: true,
-  },
-  {
-    id: 3,
-    title: "Family Home in Alexandra",
-    location: "East Bank, Alexandra",
-    price: "R6,200",
-    bedrooms: 3,
-    bathrooms: 2,
-    type: "House",
-    verified: true,
-  },
-  {
-    id: 4,
-    title: "Cozy Room in Diepsloot",
-    location: "Extension 7, Diepsloot",
-    price: "R1,800",
-    bedrooms: 1,
-    bathrooms: 1,
-    type: "Room",
-    verified: true,
-  },
-  {
-    id: 5,
-    title: "3-Bedroom in Mamelodi",
-    location: "West, Mamelodi",
-    price: "R5,500",
-    bedrooms: 3,
-    bathrooms: 2,
-    type: "House",
-    verified: true,
-  },
-  {
-    id: 6,
-    title: "Studio in Tembisa",
-    location: "Hospital View, Tembisa",
-    price: "R3,200",
-    bedrooms: 1,
-    bathrooms: 1,
-    type: "Studio",
-    verified: true,
-  },
-];
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Properties = () => {
+  const [properties, setProperties] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProperties();
+  }, []);
+
+  const fetchProperties = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("properties")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setProperties(data || []);
+    } catch (error) {
+      console.error("Error fetching properties:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -123,51 +84,71 @@ const Properties = () => {
           </div>
 
           {/* Property Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {allProperties.map((property) => (
-              <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                  <Building className="w-20 h-20 text-primary/40" />
-                </div>
-                <CardHeader>
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-xl font-semibold">{property.title}</h3>
-                    {property.verified && (
-                      <Badge variant="default" className="bg-accent">
-                        Verified
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center text-muted-foreground">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    <span className="text-sm">{property.location}</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                    <div className="flex items-center">
-                      <BedDouble className="w-4 h-4 mr-1" />
-                      {property.bedrooms}
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading properties...</p>
+            </div>
+          ) : properties.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No properties available yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {properties.map((property) => (
+                <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-shadow">
+                  {property.image_url ? (
+                    <div className="h-48 overflow-hidden">
+                      <img 
+                        src={property.image_url} 
+                        alt={property.title}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <div className="flex items-center">
-                      <Bath className="w-4 h-4 mr-1" />
-                      {property.bathrooms}
+                  ) : (
+                    <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                      <Building className="w-20 h-20 text-primary/40" />
                     </div>
-                    <Badge variant="outline">{property.type}</Badge>
-                  </div>
-                  <div className="flex items-center text-2xl font-bold text-primary">
-                    {property.price}
-                    <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button className="w-full" size="lg">
-                    View Details
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                  )}
+                  <CardHeader>
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="text-xl font-semibold">{property.title}</h3>
+                      {property.is_verified && (
+                        <Badge variant="default" className="bg-accent">
+                          Verified
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center text-muted-foreground">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      <span className="text-sm">{property.location}</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                      <div className="flex items-center">
+                        <BedDouble className="w-4 h-4 mr-1" />
+                        {property.bedrooms}
+                      </div>
+                      <div className="flex items-center">
+                        <Bath className="w-4 h-4 mr-1" />
+                        {property.bathrooms}
+                      </div>
+                      <Badge variant="outline">{property.property_type}</Badge>
+                    </div>
+                    <div className="flex items-center text-2xl font-bold text-primary">
+                      R{property.price.toLocaleString()}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button className="w-full" size="lg">
+                      View Details
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </main>
       <Footer />

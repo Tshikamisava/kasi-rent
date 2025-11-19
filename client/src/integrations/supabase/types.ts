@@ -41,6 +41,54 @@ export type Database = {
         }
         Relationships: []
       }
+      properties: {
+        Row: {
+          bathrooms: number
+          bedrooms: number
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_verified: boolean | null
+          landlord_id: string
+          location: string
+          price: number
+          property_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          bathrooms: number
+          bedrooms: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_verified?: boolean | null
+          landlord_id: string
+          location: string
+          price: number
+          property_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          bathrooms?: number
+          bedrooms?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_verified?: boolean | null
+          landlord_id?: string
+          location?: string
+          price?: number
+          property_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

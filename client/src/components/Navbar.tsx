@@ -2,16 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/hooks/use-auth";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, setUser } = useAuth();
-
-  const handleSignOut = () => {
-    setUser(null);
-    setIsOpen(false);
-  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
@@ -34,26 +27,12 @@ export const Navbar = () => {
             <Link to="/about" className="text-foreground hover:text-primary transition-colors">
               About
             </Link>
-            {user ? (
-              <>
-                {user.userType && (
-                  <Link to={`/dashboard/${user.userType}`} className="text-foreground hover:text-primary transition-colors">
-                    Dashboard
-                  </Link>
-                )}
-                <span className="text-sm text-muted-foreground">Welcome, {user.name}</span>
-                <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
-              </>
-            ) : (
-              <>
-                <Link to="/signin">
-                  <Button variant="outline">Sign In</Button>
-                </Link>
-                <Link to="/get-started">
-                  <Button>Get Started</Button>
-                </Link>
-              </>
-            )}
+            <Link to="/signin">
+              <Button variant="outline">Sign In</Button>
+            </Link>
+            <Link to="/get-started">
+              <Button>Get Started</Button>
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -70,32 +49,18 @@ export const Navbar = () => {
         {isOpen && (
           <div className="md:hidden py-4 border-t border-border">
             <div className="flex flex-col gap-4">
-              <Link to="/properties" className="text-foreground hover:text-primary transition-colors py-2" onClick={() => setIsOpen(false)}>
+              <Link to="/properties" className="text-foreground hover:text-primary transition-colors py-2">
                 Properties
               </Link>
-              <Link to="/about" className="text-foreground hover:text-primary transition-colors py-2" onClick={() => setIsOpen(false)}>
+              <Link to="/about" className="text-foreground hover:text-primary transition-colors py-2">
                 About
               </Link>
-              {user ? (
-                <>
-                  {user.userType && (
-                    <Link to={`/dashboard/${user.userType}`} className="text-foreground hover:text-primary transition-colors py-2" onClick={() => setIsOpen(false)}>
-                      Dashboard
-                    </Link>
-                  )}
-                  <span className="text-sm text-muted-foreground py-2">Welcome, {user.name}</span>
-                  <Button variant="outline" className="w-full" onClick={handleSignOut}>Sign Out</Button>
-                </>
-              ) : (
-                <>
-                  <Link to="/signin" onClick={() => setIsOpen(false)}>
-                    <Button variant="outline" className="w-full">Sign In</Button>
-                  </Link>
-                  <Link to="/get-started" onClick={() => setIsOpen(false)}>
-                    <Button className="w-full">Get Started</Button>
-                  </Link>
-                </>
-              )}
+              <Link to="/signin">
+                <Button variant="outline" className="w-full">Sign In</Button>
+              </Link>
+              <Link to="/get-started">
+                <Button className="w-full">Get Started</Button>
+              </Link>
             </div>
           </div>
         )}

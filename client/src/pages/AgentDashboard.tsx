@@ -22,10 +22,6 @@ const AgentDashboard = () => {
     navigate("/");
   };
 
-  if (!user) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
