@@ -2,14 +2,28 @@ import { Button } from "@/components/ui/button";
 import { Home, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
+
+// Import images with fallbacks
 import communityImage from "@/assets/township-community.jpg";
 import happyTenantsImage from "@/assets/happy-tenants.jpg";
 import landlordImage from "@/assets/landlord-property.jpg";
 
 const heroSlides = [
-  { image: communityImage, alt: "Vibrant township community" },
-  { image: happyTenantsImage, alt: "Happy family moving in" },
-  { image: landlordImage, alt: "Professional landlord" },
+  { 
+    image: communityImage, 
+    fallback: "/township-community.jpg",
+    alt: "Vibrant township community" 
+  },
+  { 
+    image: happyTenantsImage, 
+    fallback: "/happy-tenants.jpg",
+    alt: "Happy family moving in" 
+  },
+  { 
+    image: landlordImage, 
+    fallback: "/landlord-property.jpg",
+    alt: "Professional landlord" 
+  },
 ];
 
 export const Hero = () => {
@@ -36,6 +50,10 @@ export const Hero = () => {
             src={slide.image}
             alt={slide.alt}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = slide.fallback;
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-secondary/85 to-accent/90" />
         </div>

@@ -2,6 +2,12 @@ import communityImage from "@/assets/township-community.jpg";
 import happyTenantsImage from "@/assets/happy-tenants.jpg";
 import landlordImage from "@/assets/landlord-property.jpg";
 
+const images = [
+  { src: communityImage, fallback: "/township-community.jpg", alt: "Township community" },
+  { src: happyTenantsImage, fallback: "/happy-tenants.jpg", alt: "Happy tenants" },
+  { src: landlordImage, fallback: "/landlord-property.jpg", alt: "Property management" }
+];
+
 export const VisualShowcase = () => {
   return (
     <section className="py-20 bg-background">
@@ -17,25 +23,37 @@ export const VisualShowcase = () => {
           {/* Large featured image */}
           <div className="lg:col-span-2 rounded-3xl overflow-hidden shadow-2xl">
             <img 
-              src={communityImage} 
+              src={images[0].src} 
               alt="Vibrant South African township community with colorful houses" 
               className="w-full h-[400px] lg:h-[500px] object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = images[0].fallback;
+              }}
             />
           </div>
 
           {/* Two smaller images side by side */}
           <div className="rounded-3xl overflow-hidden shadow-xl">
             <img 
-              src={happyTenantsImage} 
+              src={images[1].src} 
               alt="Happy family moving into their new rental home" 
               className="w-full h-[350px] object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = images[1].fallback;
+              }}
             />
           </div>
           <div className="rounded-3xl overflow-hidden shadow-xl">
             <img 
-              src={landlordImage} 
+              src={images[2].src} 
               alt="Professional landlord managing rental property" 
               className="w-full h-[350px] object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = images[2].fallback;
+              }}
             />
           </div>
         </div>
