@@ -6,19 +6,26 @@ import { Footer } from "@/components/Footer";
 import { Home, Search, MessageSquare, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const TenantDashboard = () => {
-  const { user, setUser } = useAuth();
+  const { user, userType, setUser, setUserType } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!user) {
       navigate("/signin");
+      return;
     }
-  }, [user, navigate]);
+    if (userType !== 'tenant') {
+      navigate(`/dashboard/${userType || 'tenant'}`);
+    }
+  }, [user, userType, navigate]);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
     setUser(null);
+    setUserType(null);
     navigate("/");
   };
 

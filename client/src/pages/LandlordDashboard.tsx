@@ -11,23 +11,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const LandlordDashboard = () => {
-  const { user, setUser } = useAuth();
+  const { user, userType, setUser, setUserType } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!user) {
-      navigate("/signin");
-    }
-  }, [user, navigate]);
-
-  const handleSignOut = () => {
-    setUser(null);
-    navigate("/");
-  };
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      navigate("/signin");
+      return;
+    }
+    if (userType !== 'landlord') {
+      navigate(`/dashboard/${userType || 'landlord'}`);
+    }
+  }, [user, userType, navigate]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setUserType(null);
+    navigate("/");
+  };
 
   const fetchProperties = async () => {
     if (!user) return;
