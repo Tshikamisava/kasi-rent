@@ -42,7 +42,22 @@ export const FeaturedProperties = () => {
   }
 
   if (properties.length === 0) {
-    return null;
+    return (
+      <section className="py-20 bg-muted/30">
+        <div className="container mx-auto px-6">
+          <div className="text-center max-w-2xl mx-auto">
+            <Building className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+            <h3 className="text-2xl font-bold mb-2">No Properties Listed Yet</h3>
+            <p className="text-muted-foreground mb-6">
+              Be the first landlord to list your property and connect with tenants in your community!
+            </p>
+            <Link to="/get-started">
+              <Button size="lg">Get Started as Landlord</Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
   }
   return (
     <section className="py-20 bg-muted/30">

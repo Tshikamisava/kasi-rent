@@ -89,8 +89,17 @@ const Properties = () => {
               <p className="text-muted-foreground">Loading properties...</p>
             </div>
           ) : properties.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No properties available yet.</p>
+            <div className="text-center py-20 max-w-2xl mx-auto">
+              <Building className="w-20 h-20 mx-auto mb-6 text-muted-foreground/50" />
+              <h2 className="text-3xl font-bold mb-4">No Properties Available Yet</h2>
+              <p className="text-lg text-muted-foreground mb-8">
+                Are you a landlord? Be the first to list your property and reach thousands of potential tenants!
+              </p>
+              <a href="/get-started">
+                <Button size="lg" className="px-8">
+                  List Your Property
+                </Button>
+              </a>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
