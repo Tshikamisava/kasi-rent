@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { login } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const SignIn = () => {
   const { user, setUser, setUserType } = useAuth();
@@ -18,6 +19,15 @@ const SignIn = () => {
   const [password, setPassword] = useState("");
 
   useEffect(() => {
+    // Check Supabase configuration
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey || supabaseUrl === 'your_supabase_project_url') {
+      console.error("Supabase not configured. Please set up your .env file with valid credentials.");
+      toast.error("Authentication service not configured. Please contact support.");
+    }
+
     if (user) {
       navigate("/");
     }
@@ -28,6 +38,16 @@ const SignIn = () => {
     
     console.log("Sign in form submitted");
     
+    // Validate Supabase configuration
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey || supabaseUrl === 'your_supabase_project_url') {
+      toast.error("Authentication service not configured. Please set up Supabase credentials.");
+      console.error("Missing Supabase configuration");
+      return;
+    }
+    
     if (!email || !password) {
       toast.error("Please fill in all fields");
       return;
@@ -36,9 +56,14 @@ const SignIn = () => {
     setLoading(true);
     
     try {
-      console.log("Attempting login...");
+      console.log("Attempting login with:", { email });
+      
       const result = await login(email, password);
-      console.log("Login result:", result);
+      console.log("Login result:", { 
+        hasUser: !!result.user, 
+        hasSession: !!result.session, 
+        error: result.error 
+      });
       
       if (result.error) {
         console.error("Login error:", result.error);
@@ -47,39 +72,41 @@ const SignIn = () => {
         return;
       } 
       
-      if (result.user) {
-        const userRole = result.user.user_metadata?.userType;
-        console.log("User role:", userRole);
+      if (result.user && result.session) {
+        const userRole = result.user.user_metadata?.userType || 'tenant';
+        console.log("User authenticated. Role:", userRole);
         
-        // Set user type first to ensure Zustand store is updated
-        setUserType(userRole);
-        
-        setUser({
+        const userData = {
           _id: result.user.id,
           name: result.user.user_metadata?.name || result.user.email || "",
           email: result.user.email || "",
-          token: result.session?.access_token || "",
+          token: result.session.access_token || "",
           userType: userRole
-        });
+        };
         
+        // Set user type first
+        setUserType(userRole);
+        setUser(userData);
+        
+        console.log("User state updated, navigating to dashboard");
         toast.success("Signed in successfully!");
         
-        // Small delay to ensure state is updated before navigation
+        // Navigate based on role
         setTimeout(() => {
-          if (userRole && ['tenant', 'landlord'].includes(userRole)) {
-            navigate(`/dashboard/${userRole}`);
-          } else {
-            navigate("/");
-          }
+          const targetPath = ['tenant', 'landlord'].includes(userRole) 
+            ? `/dashboard/${userRole}` 
+            : "/";
+          console.log("Navigating to:", targetPath);
+          navigate(targetPath);
         }, 100);
       } else {
-        console.error("No user in result");
+        console.error("No user or session in result");
         toast.error("Login failed - please check your credentials");
         setLoading(false);
       }
-    } catch (error) {
-      console.error("Sign in error:", error);
-      toast.error("An error occurred during sign in");
+    } catch (error: any) {
+      console.error("Sign in exception:", error);
+      toast.error(error.message || "An error occurred during sign in");
       setLoading(false);
     }
   };
