@@ -1,7 +1,7 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, BedDouble, Bath, Building } from "lucide-react";
+import { MapPin, BedDouble, Bath, Building2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
@@ -46,7 +46,7 @@ export const FeaturedProperties = () => {
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-2xl mx-auto">
-            <Building className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+            <Building2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
             <h3 className="text-2xl font-bold mb-2">No Properties Listed Yet</h3>
             <p className="text-muted-foreground mb-6">
               Be the first landlord to list your property and connect with tenants in your community!
@@ -86,7 +86,7 @@ export const FeaturedProperties = () => {
                 </div>
               ) : (
                 <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                  <Building className="w-20 h-20 text-primary/40" />
+                  <Building2 className="w-20 h-20 text-primary/40" />
                 </div>
               )}
               <CardHeader>

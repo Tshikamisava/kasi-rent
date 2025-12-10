@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, BedDouble, Bath, Search, Building } from "lucide-react";
+import { MapPin, BedDouble, Bath, Search, Building2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -90,7 +90,7 @@ const Properties = () => {
             </div>
           ) : properties.length === 0 ? (
             <div className="text-center py-20 max-w-2xl mx-auto">
-              <Building className="w-20 h-20 mx-auto mb-6 text-muted-foreground/50" />
+              <Building2 className="w-20 h-20 mx-auto mb-6 text-muted-foreground/50" />
               <h2 className="text-3xl font-bold mb-4">No Properties Available Yet</h2>
               <p className="text-lg text-muted-foreground mb-8">
                 Are you a landlord? Be the first to list your property and reach thousands of potential tenants!
@@ -119,7 +119,7 @@ const Properties = () => {
                     </div>
                   ) : (
                     <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                      <Building className="w-20 h-20 text-primary/40" />
+                      <Building2 className="w-20 h-20 text-primary/40" />
                     </div>
                   )}
                   <CardHeader>
@@ -168,12 +168,5 @@ const Properties = () => {
     </div>
   );
 };
-
-const Building = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
 
 export default Properties;
