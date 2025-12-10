@@ -1,39 +1,30 @@
-import Property from "../models/Property.js";
-import cloudinary from "../config/cloudinary.js";
+import Property from '../models/Property.js';
 
-// Get all properties
 export const getProperties = async (req, res) => {
   try {
-    const properties = await Property.find();
+    const properties = await Property.findAll({
+      order: [['created_at', 'DESC']]
+    });
     res.json(properties);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Create property with Cloudinary upload
 export const createProperty = async (req, res) => {
   try {
     const { title, description, price, location } = req.body;
-    const imageFile = req.file;
-
-    let imageUrl = "";
-    if (imageFile) {
-      const result = await cloudinary.uploader.upload(imageFile.path, { folder: "kasirent" });
-      imageUrl = result.secure_url;
-    }
-
-    const property = new Property({
+    
+    const property = await Property.create({
       title,
       description,
       price,
       location,
-      images: [imageUrl],
-      user: req.user._id
+      landlord_id: req.user?.id || 'temp-id',
+      images: req.file ? [req.file.path] : []
     });
-
-    const saved = await property.save();
-    res.status(201).json(saved);
+    
+    res.status(201).json(property);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

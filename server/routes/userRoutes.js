@@ -1,9 +1,12 @@
 import express from "express";
-import { registerUser, loginUser } from "../controllers/userController.js";
+import multer from "multer";
+import { getProperties, createProperty } from "../controllers/propertyController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+const upload = multer({ dest: "uploads/" });
 
-router.post("/register", registerUser);
-router.post("/login", loginUser);
+router.get("/", getProperties);
+router.post("/", protect, upload.single("image"), createProperty);
 
 export default router;

@@ -13,7 +13,12 @@
     "type": "git",
     "url": "git+https://github.com/Tshikamisava/kasi-rent.git"
   },
-  "keywords": ["kasirent", "express", "mongodb", "backend"],
+  "keywords": [
+    "kasirent",
+    "express",
+    "mongodb",
+    "backend"
+  ],
   "author": "Clarence Sithole",
   "license": "ISC",
   "bugs": {
@@ -24,7 +29,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^5.1.0",
-    "mongoose": "^8.5.1"
+    "mysql2": "^3.15.3",
+    "sequelize": "^6.37.7"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
