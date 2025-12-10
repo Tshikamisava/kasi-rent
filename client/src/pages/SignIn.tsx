@@ -41,6 +41,9 @@ const SignIn = () => {
       } else if (result.user) {
         const userRole = result.user.user_metadata?.userType;
         
+        // Set user type first to ensure Zustand store is updated
+        setUserType(userRole);
+        
         setUser({
           _id: result.user.id,
           name: result.user.user_metadata?.name || result.user.email || "",
@@ -48,15 +51,17 @@ const SignIn = () => {
           token: result.session?.access_token || "",
           userType: userRole
         });
-        setUserType(userRole);
+        
         toast.success("Signed in successfully!");
         
-        // Redirect based on user type
-        if (userRole && ['tenant', 'landlord'].includes(userRole)) {
-          navigate(`/dashboard/${userRole}`);
-        } else {
-          navigate("/");
-        }
+        // Small delay to ensure state is updated before navigation
+        setTimeout(() => {
+          if (userRole && ['tenant', 'landlord'].includes(userRole)) {
+            navigate(`/dashboard/${userRole}`);
+          } else {
+            navigate("/");
+          }
+        }, 100);
       } else {
         toast.error("Login failed - please check your credentials");
       }
