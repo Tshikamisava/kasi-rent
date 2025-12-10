@@ -109,6 +109,7 @@ const SignIn = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="email"
                 />
               </div>
               
@@ -121,6 +122,7 @@ const SignIn = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                 />
               </div>
               
@@ -128,6 +130,9 @@ const SignIn = () => {
                 type="submit" 
                 className="w-full" 
                 disabled={loading}
+                onClick={(e) => {
+                  console.log("Button clicked!");
+                }}
               >
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
