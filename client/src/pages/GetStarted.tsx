@@ -90,12 +90,16 @@ const GetStarted = () => {
         userType: formData.userType
       };
       
-      setUser(user);
+      // Set user type first to ensure Zustand store is updated
       setUserType(formData.userType);
+      setUser(user);
+      
       toast.success("Account created successfully!");
       
-      // Redirect based on user type
-      navigate(`/dashboard/${formData.userType}`);
+      // Small delay to ensure state is updated before navigation
+      setTimeout(() => {
+        navigate(`/dashboard/${formData.userType}`);
+      }, 100);
     } catch (error: any) {
       toast.error(error.message || "Failed to create account");
     } finally {

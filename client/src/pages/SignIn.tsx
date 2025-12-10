@@ -26,6 +26,8 @@ const SignIn = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log("Sign in form submitted");
+    
     if (!email || !password) {
       toast.error("Please fill in all fields");
       return;
@@ -34,12 +36,23 @@ const SignIn = () => {
     setLoading(true);
     
     try {
+      console.log("Attempting login...");
       const result = await login(email, password);
+      console.log("Login result:", result);
       
       if (result.error) {
+        console.error("Login error:", result.error);
         toast.error(result.error || "Failed to sign in");
-      } else if (result.user) {
+        setLoading(false);
+        return;
+      } 
+      
+      if (result.user) {
         const userRole = result.user.user_metadata?.userType;
+        console.log("User role:", userRole);
+        
+        // Set user type first to ensure Zustand store is updated
+        setUserType(userRole);
         
         setUser({
           _id: result.user.id,
@@ -48,21 +61,25 @@ const SignIn = () => {
           token: result.session?.access_token || "",
           userType: userRole
         });
-        setUserType(userRole);
+        
         toast.success("Signed in successfully!");
         
-        // Redirect based on user type
-        if (userRole && ['tenant', 'landlord'].includes(userRole)) {
-          navigate(`/dashboard/${userRole}`);
-        } else {
-          navigate("/");
-        }
+        // Small delay to ensure state is updated before navigation
+        setTimeout(() => {
+          if (userRole && ['tenant', 'landlord'].includes(userRole)) {
+            navigate(`/dashboard/${userRole}`);
+          } else {
+            navigate("/");
+          }
+        }, 100);
       } else {
+        console.error("No user in result");
         toast.error("Login failed - please check your credentials");
+        setLoading(false);
       }
     } catch (error) {
+      console.error("Sign in error:", error);
       toast.error("An error occurred during sign in");
-    } finally {
       setLoading(false);
     }
   };
@@ -92,6 +109,7 @@ const SignIn = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="email"
                 />
               </div>
               
@@ -104,6 +122,7 @@ const SignIn = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                 />
               </div>
               
@@ -111,6 +130,9 @@ const SignIn = () => {
                 type="submit" 
                 className="w-full" 
                 disabled={loading}
+                onClick={(e) => {
+                  console.log("Button clicked!");
+                }}
               >
                 {loading ? "Signing in..." : "Sign In"}
               </Button>

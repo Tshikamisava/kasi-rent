@@ -1,4 +1,5 @@
 import { Shield, CreditCard, MessageSquare, CheckCircle, Search, Wallet } from "lucide-react";
+import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 
 const features = [
   {
@@ -46,19 +47,30 @@ export const Features = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <div
-              key={index}
-              className="p-6 rounded-2xl border border-border hover:border-primary/50 hover:shadow-lg transition-all group"
-            >
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <feature.icon className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-              <p className="text-muted-foreground">{feature.description}</p>
-            </div>
+            <FeatureCard key={index} feature={feature} index={index} />
           ))}
         </div>
       </div>
     </section>
+  );
+};
+
+const FeatureCard = ({ feature, index }: { feature: any; index: number }) => {
+  const { ref, isVisible } = useScrollAnimation();
+  
+  return (
+    <div
+      ref={ref}
+      className={`p-6 rounded-2xl border border-border hover:border-primary/50 hover:shadow-lg transition-all group ${
+        isVisible ? 'animate-in fade-in slide-in-from-bottom-4' : 'opacity-0'
+      }`}
+      style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'both' }}
+    >
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <feature.icon className="w-7 h-7 text-white" />
+              </div>
+      <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+      <p className="text-muted-foreground">{feature.description}</p>
+    </div>
   );
 };

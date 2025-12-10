@@ -9,6 +9,7 @@ import { PropertyForm } from "@/components/PropertyForm";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 
 const LandlordDashboard = () => {
   const { user, userType, setUser, setUserType } = useAuth();
@@ -17,6 +18,10 @@ const LandlordDashboard = () => {
   const [showForm, setShowForm] = useState(false);
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { ref: card1Ref, isVisible: card1Visible } = useScrollAnimation();
+  const { ref: card2Ref, isVisible: card2Visible } = useScrollAnimation();
+  const { ref: card3Ref, isVisible: card3Visible } = useScrollAnimation();
+  const { ref: card4Ref, isVisible: card4Visible } = useScrollAnimation();
 
   useEffect(() => {
     if (!user) {
@@ -96,7 +101,13 @@ const LandlordDashboard = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card 
+              ref={card1Ref}
+              className={`hover:shadow-lg transition-all ${
+                card1Visible ? 'animate-in fade-in slide-in-from-bottom-4' : 'opacity-0'
+              }`}
+              style={{ animationDelay: '0ms', animationFillMode: 'both' }}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">My Properties</CardTitle>
                 <Home className="h-4 w-4 text-muted-foreground" />
@@ -107,7 +118,13 @@ const LandlordDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card 
+              ref={card2Ref}
+              className={`hover:shadow-lg transition-all ${
+                card2Visible ? 'animate-in fade-in slide-in-from-bottom-4' : 'opacity-0'
+              }`}
+              style={{ animationDelay: '100ms', animationFillMode: 'both' }}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Active Tenants</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
@@ -118,7 +135,13 @@ const LandlordDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card 
+              ref={card3Ref}
+              className={`hover:shadow-lg transition-all ${
+                card3Visible ? 'animate-in fade-in slide-in-from-bottom-4' : 'opacity-0'
+              }`}
+              style={{ animationDelay: '200ms', animationFillMode: 'both' }}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -129,7 +152,13 @@ const LandlordDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card 
+              ref={card4Ref}
+              className={`hover:shadow-lg transition-all ${
+                card4Visible ? 'animate-in fade-in slide-in-from-bottom-4' : 'opacity-0'
+              }`}
+              style={{ animationDelay: '300ms', animationFillMode: 'both' }}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
                 <Plus className="h-4 w-4 text-muted-foreground" />

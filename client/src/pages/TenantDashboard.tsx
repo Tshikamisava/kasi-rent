@@ -7,10 +7,15 @@ import { Home, Search, MessageSquare, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 
 const TenantDashboard = () => {
   const { user, userType, setUser, setUserType } = useAuth();
   const navigate = useNavigate();
+  const { ref: card1Ref, isVisible: card1Visible } = useScrollAnimation();
+  const { ref: card2Ref, isVisible: card2Visible } = useScrollAnimation();
+  const { ref: card3Ref, isVisible: card3Visible } = useScrollAnimation();
+  const { ref: card4Ref, isVisible: card4Visible } = useScrollAnimation();
 
   useEffect(() => {
     if (!user) {
@@ -43,7 +48,13 @@ const TenantDashboard = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card 
+              ref={card1Ref}
+              className={`hover:shadow-lg transition-all ${
+                card1Visible ? 'animate-in fade-in slide-in-from-bottom-4' : 'opacity-0'
+              }`}
+              style={{ animationDelay: '0ms', animationFillMode: 'both' }}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Browse Properties</CardTitle>
                 <Search className="h-4 w-4 text-muted-foreground" />
@@ -54,7 +65,13 @@ const TenantDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card 
+              ref={card2Ref}
+              className={`hover:shadow-lg transition-all ${
+                card2Visible ? 'animate-in fade-in slide-in-from-bottom-4' : 'opacity-0'
+              }`}
+              style={{ animationDelay: '100ms', animationFillMode: 'both' }}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">My Bookings</CardTitle>
                 <Home className="h-4 w-4 text-muted-foreground" />
@@ -65,7 +82,13 @@ const TenantDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card 
+              ref={card3Ref}
+              className={`hover:shadow-lg transition-all ${
+                card3Visible ? 'animate-in fade-in slide-in-from-bottom-4' : 'opacity-0'
+              }`}
+              style={{ animationDelay: '200ms', animationFillMode: 'both' }}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Messages</CardTitle>
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -76,7 +99,13 @@ const TenantDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card 
+              ref={card4Ref}
+              className={`hover:shadow-lg transition-all ${
+                card4Visible ? 'animate-in fade-in slide-in-from-bottom-4' : 'opacity-0'
+              }`}
+              style={{ animationDelay: '300ms', animationFillMode: 'both' }}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Applications</CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
