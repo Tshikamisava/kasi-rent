@@ -4,6 +4,8 @@ import cors from "cors";
 import { connectDB } from "./config/mysql.js";
 import propertyRoutes from "./routes/propertyRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -12,10 +14,16 @@ app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true
 }));
+
+// Webhook route needs raw body - must be before express.json()
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json());
 
 app.use("/api/properties", propertyRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/payments", paymentRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

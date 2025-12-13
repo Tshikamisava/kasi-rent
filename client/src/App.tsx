@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import AIAssistant from "./components/AIAssistant";
 
 // Lazy load components for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -15,6 +16,7 @@ const GetStarted = lazy(() => import("./pages/GetStarted"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TenantDashboard = lazy(() => import("./pages/TenantDashboard"));
 const LandlordDashboard = lazy(() => import("./pages/LandlordDashboard"));
+const Payments = lazy(() => import("./pages/Payments"));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -38,6 +40,7 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/get-started" element={<GetStarted />} />
+            <Route path="/payments" element={<Payments />} />
             
             {/* Protected Dashboard Routes */}
             <Route 
@@ -61,6 +64,8 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
+        {/* AI Assistant - Available on all pages */}
+        <AIAssistant />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

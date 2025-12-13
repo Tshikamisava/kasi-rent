@@ -8,10 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapPin, BedDouble, Bath, Search, Building2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { PropertyDetailModal } from "@/components/PropertyDetailModal";
 
 const Properties = () => {
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProperty, setSelectedProperty] = useState<any>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     fetchProperties();
@@ -19,13 +22,32 @@ const Properties = () => {
 
   const fetchProperties = async () => {
     try {
+      // Fetch properties with landlord information if available
       const { data, error } = await supabase
         .from("properties")
-        .select("*")
+        .select(`
+          *,
+          landlord:landlord_id (
+            id,
+            name,
+            email,
+            phone
+          )
+        `)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setProperties(data || []);
+      if (error) {
+        // If join fails, just get properties without landlord info
+        const { data: propertiesData, error: propertiesError } = await supabase
+          .from("properties")
+          .select("*")
+          .order("created_at", { ascending: false });
+        
+        if (propertiesError) throw propertiesError;
+        setProperties(propertiesData || []);
+      } else {
+        setProperties(data || []);
+      }
     } catch (error) {
       console.error("Error fetching properties:", error);
     } finally {
@@ -154,7 +176,14 @@ const Properties = () => {
                     </div>
                   </CardContent>
                   <CardFooter>
-                    <Button className="w-full" size="lg">
+                    <Button 
+                      className="w-full" 
+                      size="lg"
+                      onClick={() => {
+                        setSelectedProperty(property);
+                        setModalOpen(true);
+                      }}
+                    >
                       View Details
                     </Button>
                   </CardFooter>
@@ -165,6 +194,15 @@ const Properties = () => {
         </div>
       </main>
       <Footer />
+      
+      {/* Property Detail Modal */}
+      {selectedProperty && (
+        <PropertyDetailModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          property={selectedProperty}
+        />
+      )}
     </div>
   );
 };

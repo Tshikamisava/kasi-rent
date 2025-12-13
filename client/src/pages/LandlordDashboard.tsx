@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { Home, Plus, Users, DollarSign, Edit, Trash } from "lucide-react";
+import { Home, Plus, Users, DollarSign, Edit, Trash, MapPin, BedDouble, Bath } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PropertyForm } from "@/components/PropertyForm";
 import { useState, useEffect } from "react";
@@ -230,33 +230,95 @@ const LandlordDashboard = () => {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <p className="text-center text-muted-foreground">Loading...</p>
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading properties...</p>
+                </div>
               ) : properties.length === 0 ? (
-                <p className="text-center text-muted-foreground">
-                  No properties listed yet. Click "Add New Property" to get started.
-                </p>
+                <div className="text-center py-12">
+                  <Home className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">
+                    No properties listed yet. Click "Add New Property" to get started.
+                  </p>
+                  <Button onClick={() => setShowForm(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Your First Property
+                  </Button>
+                </div>
               ) : (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {properties.map((property) => (
-                    <div key={property.id} className="border rounded-lg p-4 flex justify-between items-center">
-                      <div>
-                        <h3 className="font-semibold">{property.title}</h3>
-                        <p className="text-sm text-muted-foreground">{property.location}</p>
-                        <p className="text-sm font-medium mt-1">R{property.price.toLocaleString()}/month</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => handleDelete(property.id)}
-                        >
-                          <Trash className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
+                    <Card key={property.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                      {property.image_url ? (
+                        <div className="h-48 overflow-hidden">
+                          <img
+                            src={property.image_url}
+                            alt={property.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = '/property-placeholder.png';
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                          <Home className="w-16 h-16 text-primary/40" />
+                        </div>
+                      )}
+                      <CardHeader>
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="text-lg font-semibold line-clamp-1">{property.title}</h3>
+                        </div>
+                        <div className="flex items-center text-muted-foreground text-sm">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          <span className="line-clamp-1">{property.location}</span>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                          <div className="flex items-center">
+                            <BedDouble className="w-4 h-4 mr-1" />
+                            {property.bedrooms}
+                          </div>
+                          <div className="flex items-center">
+                            <Bath className="w-4 h-4 mr-1" />
+                            {property.bathrooms}
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {property.property_type}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center text-xl font-bold text-primary mb-4">
+                          R{property.price?.toLocaleString()}
+                          <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1"
+                            onClick={() => {
+                              // TODO: Implement edit functionality
+                              toast({
+                                title: "Edit Property",
+                                description: "Edit functionality coming soon!",
+                              });
+                            }}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDelete(property.id)}
+                          >
+                            <Trash className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               )}
