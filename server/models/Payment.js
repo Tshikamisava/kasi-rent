@@ -8,7 +8,7 @@ const Payment = sequelize.define('Payment', {
     primaryKey: true
   },
   user_id: {
-    type: DataTypes.STRING,
+    type: DataTypes.UUID,
     allowNull: false,
     references: {
       model: 'users',
@@ -16,7 +16,7 @@ const Payment = sequelize.define('Payment', {
     }
   },
   property_id: {
-    type: DataTypes.STRING,
+    type: DataTypes.UUID,
     allowNull: true,
     references: {
       model: 'properties',
