@@ -3,6 +3,7 @@ import { Home, Building2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 
 // Import images with fallbacks
 import communityImage from "@/assets/township-community.jpg";
