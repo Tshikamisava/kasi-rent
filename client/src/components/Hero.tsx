@@ -39,16 +39,26 @@ export const Hero = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const { toast } = useToast();
+
   const handleLandlordClick = () => {
     if (!user) {
       navigate('/signin?redirect=/dashboard/landlord');
       return;
     }
 
-    if (userType === 'landlord') {
+    // Only admins are allowed to access the Landlord area
+    if (userType === 'admin') {
       navigate('/dashboard/landlord');
       return;
     }
+
+    // Show an unauthorized toast and guide user to sign up / get started
+    toast({
+      title: 'Unauthorized',
+      description: 'Only administrators can access the Landlord Dashboard. If you need access, contact support or create a landlord profile.',
+      variant: 'destructive'
+    });
 
     navigate('/get-started');
   };

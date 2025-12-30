@@ -28,10 +28,17 @@ const LandlordDashboard = () => {
       navigate("/signin");
       return;
     }
-    if (userType !== 'landlord') {
-      navigate(`/dashboard/${userType || 'landlord'}`);
+
+    // This dashboard is restricted to admins only
+    if (userType !== 'admin') {
+      toast({
+        title: 'Unauthorized',
+        description: 'Only administrators can access the Landlord Dashboard.',
+        variant: 'destructive'
+      });
+      navigate('/');
     }
-  }, [user, userType, navigate]);
+  }, [user, userType, navigate, toast]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();

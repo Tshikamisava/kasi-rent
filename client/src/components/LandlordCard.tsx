@@ -27,12 +27,13 @@ export const LandlordCard = () => {
       return;
     }
 
-    if (userType === 'landlord') {
+    // Only admins can access the landlord dashboard
+    if (userType === 'admin') {
       navigate('/dashboard/landlord');
       return;
     }
 
-    // Show modal offering upgrade or redirect
+    // Show modal offering upgrade or redirect / explain restriction
     setOpen(true);
   };
 
@@ -43,7 +44,9 @@ export const LandlordCard = () => {
 
   const handleGoToDashboard = () => {
     setOpen(false);
-    navigate(`/dashboard/${userType}`);
+    // Non-admins don't have access to landlord dashboard; route them safely
+    toast({ title: 'Access denied', description: 'You do not have admin access to the Landlord Dashboard.', variant: 'destructive' });
+    navigate('/');
   };
 
   return (
