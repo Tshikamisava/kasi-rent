@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,9 @@ import { toast } from "sonner";
 const SignIn = () => {
   const { user, setUser, setUserType } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const redirectTo = params.get('redirect') || null;
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,6 +69,12 @@ const SignIn = () => {
         
         // Small delay to ensure state is updated before navigation
         setTimeout(() => {
+          // Navigate to redirect if provided (e.g., ?redirect=/dashboard/landlord)
+          if (redirectTo) {
+            navigate(redirectTo);
+            return;
+          }
+
           if (userRole && ['tenant', 'landlord'].includes(userRole)) {
             navigate(`/dashboard/${userRole}`);
           } else {

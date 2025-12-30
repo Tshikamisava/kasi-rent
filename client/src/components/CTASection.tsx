@@ -1,7 +1,36 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 export const CTASection = () => {
+  const { user, userType } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleLandlordClick = () => {
+    // If not logged in, redirect to sign-in with redirect back to landlord dashboard
+    if (!user) {
+      navigate('/signin?redirect=/dashboard/landlord');
+      return;
+    }
+
+    // If logged in as landlord, go to landlord dashboard
+    if (userType === 'landlord') {
+      navigate('/dashboard/landlord');
+      return;
+    }
+
+    // If logged in but not a landlord, show informative toast and navigate to their dashboard
+    toast({
+      title: 'Access restricted',
+      description: `You are signed in as ${userType}. If you need a landlord account, please sign up or switch roles.`,
+      variant: 'destructive'
+    });
+    navigate(`/dashboard/${userType}`);
+  };
+
   return (
     <section className="py-20 bg-gradient-to-br from-primary via-secondary to-accent relative overflow-hidden">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNnoiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLW9wYWNpdHk9Ii4xIi8+PC9nPjwvc3ZnPg==')] opacity-20" />
@@ -21,6 +50,9 @@ export const CTASection = () => {
             </Button>
             <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white/10">
               Learn More
+            </Button>
+            <Button size="lg" variant="ghost" className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white/10" onClick={handleLandlordClick}>
+              Landlord Dashboard
             </Button>
           </div>
         </div>

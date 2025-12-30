@@ -248,7 +248,15 @@ How can I assist you today?`,
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get AI response");
+        // Try to surface server-provided error message
+        let errMsg = "Failed to get AI response";
+        try {
+          const errJson = await response.json();
+          errMsg = errJson?.error || errJson?.message || errJson?.response || errMsg;
+        } catch (e) {
+          // ignore JSON parse errors
+        }
+        throw new Error(errMsg);
       }
 
       const data = await response.json();
@@ -265,11 +273,11 @@ How can I assist you today?`,
         saveConversation(updated);
         return updated;
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error regenerating response:", error);
       toast({
         title: "Error",
-        description: "Failed to regenerate response. Please try again.",
+        description: error?.message || "Failed to regenerate response. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -317,7 +325,14 @@ How can I assist you today?`,
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get AI response");
+        let errMsg = "Failed to get AI response";
+        try {
+          const errJson = await response.json();
+          errMsg = errJson?.error || errJson?.message || errJson?.response || errMsg;
+        } catch (e) {
+          // ignore JSON parse errors
+        }
+        throw new Error(errMsg);
       }
 
       const data = await response.json();
@@ -331,12 +346,13 @@ How can I assist you today?`,
       const finalMessages = [...updatedMessages, assistantMessage];
       setMessages(finalMessages);
       saveConversation(finalMessages);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending message:", error);
+      const errorContent = error?.message || "I'm sorry, I'm having trouble connecting right now. Please check your internet connection and try again.";
       const errorMessage: Message = {
         id: `msg-${Date.now()}`,
         role: "assistant",
-        content: "I'm sorry, I'm having trouble connecting right now. Please check your internet connection and try again.",
+        content: errorContent,
         timestamp: new Date(),
         error: true,
       };
@@ -345,7 +361,7 @@ How can I assist you today?`,
       saveConversation(finalMessages);
       toast({
         title: "Connection error",
-        description: "Unable to reach the AI service. Please try again.",
+        description: errorContent,
         variant: "destructive",
       });
     } finally {

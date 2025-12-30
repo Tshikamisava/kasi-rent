@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Home, Building2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 // Import images with fallbacks
 import communityImage from "@/assets/township-community.jpg";
@@ -28,6 +29,8 @@ const heroSlides = [
 
 export const Hero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const navigate = useNavigate();
+  const { user, userType } = useAuth();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -35,6 +38,20 @@ export const Hero = () => {
     }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleLandlordClick = () => {
+    if (!user) {
+      navigate('/signin?redirect=/dashboard/landlord');
+      return;
+    }
+
+    if (userType === 'landlord') {
+      navigate('/dashboard/landlord');
+      return;
+    }
+
+    navigate('/get-started');
+  };
 
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
@@ -100,16 +117,29 @@ export const Hero = () => {
           </div>
 
           <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all">
+            <button
+              type="button"
+              onClick={() => navigate('/properties')}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/properties'); }}
+              className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all text-left cursor-pointer"
+              aria-label="For Tenants - Find verified properties"
+            >
               <Home className="w-12 h-12 mb-4 mx-auto" />
               <h3 className="text-xl font-semibold mb-2">For Tenants</h3>
               <p className="text-white/80">Find verified properties, book securely, and pay safely without agent fees</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all">
+            </button>
+
+            <button
+              type="button"
+              onClick={handleLandlordClick}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleLandlordClick(); }}
+              className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all text-left cursor-pointer"
+              aria-label="For Landlords - List properties"
+            >
               <Building2 className="w-12 h-12 mb-4 mx-auto" />
               <h3 className="text-xl font-semibold mb-2">For Landlords</h3>
               <p className="text-white/80">List properties, connect directly with tenants, and receive payments instantly</p>
-            </div>
+            </button>
           </div>
         </div>
       </div>
