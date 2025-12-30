@@ -27,8 +27,8 @@ export const LandlordCard = () => {
       return;
     }
 
-    // Only admins can access the landlord dashboard
-    if (userType === 'admin') {
+    // Allow landlords or admins to access the landlord dashboard
+    if (userType === 'landlord' || userType === 'admin') {
       navigate('/dashboard/landlord');
       return;
     }

@@ -48,8 +48,8 @@ export const Hero = () => {
       return;
     }
 
-    // Only admins are allowed to access the Landlord area
-    if (userType === 'admin') {
+    // Allow landlords or admins to access the Landlord area
+    if (userType === 'landlord' || userType === 'admin') {
       navigate('/dashboard/landlord');
       return;
     }
@@ -57,7 +57,7 @@ export const Hero = () => {
     // Show an unauthorized toast and guide user to sign up / get started
     toast({
       title: 'Unauthorized',
-      description: 'Only administrators can access the Landlord Dashboard. If you need access, contact support or create a landlord profile.',
+      description: 'Only landlords or administrators can access the Landlord Dashboard. If you need access, create a landlord profile or contact support.',
       variant: 'destructive'
     });
 

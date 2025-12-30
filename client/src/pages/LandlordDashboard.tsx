@@ -29,11 +29,11 @@ const LandlordDashboard = () => {
       return;
     }
 
-    // This dashboard is restricted to admins only
-    if (userType !== 'admin') {
+    // Allow landlords or admins to access the dashboard
+    if (userType !== 'landlord' && userType !== 'admin') {
       toast({
         title: 'Unauthorized',
-        description: 'Only administrators can access the Landlord Dashboard.',
+        description: 'Only landlords or administrators can access the Landlord Dashboard.',
         variant: 'destructive'
       });
       navigate('/');
