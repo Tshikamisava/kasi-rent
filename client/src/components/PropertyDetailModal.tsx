@@ -16,6 +16,7 @@ import { MapPin, BedDouble, Bath, Phone, Mail, User, Building2, Copy, Calendar }
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { RecommendedProperties } from "@/components/RecommendedProperties";
 
 interface PropertyDetailModalProps {
   open: boolean;
@@ -471,6 +472,20 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
               </Button>
             </div>
           )}
+
+          {/* Similar Properties Section */}
+          <RecommendedProperties
+            title="Similar Properties"
+            subtitle="Other great options in the same area"
+            type="similar"
+            referencePropertyId={property.id}
+            limit={3}
+            onPropertyClick={(propertyId) => {
+              // Reload modal with new property
+              window.location.hash = `property=${propertyId}`;
+              onOpenChange(false);
+            }}
+          />
         </div>
       </DialogContent>
     </Dialog>

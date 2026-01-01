@@ -10,6 +10,7 @@ import { ConnectWithUs } from "@/components/ConnectWithUs";
 import { LandlordCard } from "@/components/LandlordCard";
 import { CTASection } from "@/components/CTASection";
 import { Footer } from "@/components/Footer";
+import { RecommendedProperties } from "@/components/RecommendedProperties";
 
 const Index = () => {
   return (
@@ -20,6 +21,12 @@ const Index = () => {
         <Features />
         <VisualShowcase />
         <FeaturedProperties />
+        <RecommendedProperties
+          title="Trending Now"
+          subtitle="Most viewed properties in your area"
+          type="trending"
+          limit={6}
+        />
         <HowItWorks />
         <OurPartners />
         <OurTeam />

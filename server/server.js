@@ -9,6 +9,7 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import chatRoutes, { messageRouter } from "./routes/chatRoutes.js";
 import fraudDetectionRoutes from "./routes/fraudDetectionRoutes.js";
 import descriptionGeneratorRoutes from "./routes/descriptionGeneratorRoutes.js";
+import recommendationsRoutes from "./routes/recommendationsRoutes.js";
 import './models/index.js';
 
 dotenv.config();
@@ -32,6 +33,7 @@ app.use('/api/chats', chatRoutes);
 app.use('/api/messages', messageRouter);
 app.use('/api/fraud-detection', fraudDetectionRoutes);
 app.use('/api/description-generator', descriptionGeneratorRoutes);
+app.use('/api/recommendations', recommendationsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

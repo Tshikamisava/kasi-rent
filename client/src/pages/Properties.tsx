@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PropertyDetailModal } from "@/components/PropertyDetailModal";
+import { RecommendedProperties } from "@/components/RecommendedProperties";
 
 const Properties = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -81,6 +82,27 @@ const Properties = () => {
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate('/');
+  };
+
+  const trackPropertyView = async (propertyId: string) => {
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      await fetch(`${API_BASE}/api/recommendations/track-view`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ propertyId }),
+      });
+
+      // Also store in localStorage for personalized recommendations
+      const viewed = localStorage.getItem("viewedProperties");
+      const viewedList = viewed ? JSON.parse(viewed) : [];
+      if (!viewedList.includes(propertyId)) {
+        viewedList.push(propertyId);
+        localStorage.setItem("viewedProperties", JSON.stringify(viewedList));
+      }
+    } catch (error) {
+      console.error("Error tracking view:", error);
+    }
   };
 
   const filteredProperties = properties.filter((property) => {
@@ -227,7 +249,8 @@ const Properties = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                    <divtrackPropertyView(property.id);
+                         className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center">
                         <BedDouble className="w-4 h-4 mr-1" />
                         {property.bedrooms}
@@ -260,6 +283,28 @@ const Properties = () => {
             </div>
           )}
         </div>
+
+        {/* Recommendations Section */}
+        {!loading && filteredProperties.length > 0 && (
+          <>
+            <div className="mb-12 mt-20">
+              <RecommendedProperties
+                title="Trending Properties"
+                subtitle="Most viewed and popular listings"
+                type="trending"
+                limit={6}
+                onPropertyClick={(propertyId) => {
+                  trackPropertyView(propertyId);
+                  const property = properties.find(p => p.id === propertyId);
+                  if (property) {
+                    setSelectedProperty(property);
+                    setModalOpen(true);
+                  }
+                }}
+              />
+            </div>
+          </>
+        )}
       </main>
       <Footer />
       
