@@ -28,6 +28,10 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  avatar_url: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   role: {
     type: DataTypes.ENUM('landlord', 'tenant', 'agent'),
     defaultValue: 'tenant'

@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, BedDouble, Bath, Search, Building2 } from "lucide-react";
+import { MapPin, BedDouble, Bath, Search, Building2, ArrowLeft } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PropertyDetailModal } from "@/components/PropertyDetailModal";
 
@@ -15,15 +16,25 @@ const Properties = () => {
   const [loading, setLoading] = useState(true);
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [onlyVerified, setOnlyVerified] = useState(false);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [propertyTypeFilter, setPropertyTypeFilter] = useState("all");
+  const [priceRangeFilter, setPriceRangeFilter] = useState("all");
 
   useEffect(() => {
-    fetchProperties();
-  }, []);
+    const verifiedParam = searchParams.get("verified");
+    const isVerifiedFilter = verifiedParam === "true" || verifiedParam === "1";
+    setOnlyVerified(isVerifiedFilter);
+    fetchProperties(isVerifiedFilter);
+  }, [searchParams]);
 
-  const fetchProperties = async () => {
+  const fetchProperties = async (verifiedOnly: boolean) => {
     try {
       // Fetch properties with landlord information if available
-      const { data, error } = await supabase
+      let query = supabase
         .from("properties")
         .select(`
           *,
@@ -36,12 +47,24 @@ const Properties = () => {
         `)
         .order("created_at", { ascending: false });
 
+      if (verifiedOnly) {
+        query = query.eq("is_verified", true);
+      }
+
+      const { data, error } = await query;
+
       if (error) {
         // If join fails, just get properties without landlord info
-        const { data: propertiesData, error: propertiesError } = await supabase
+        let fallbackQuery = supabase
           .from("properties")
           .select("*")
           .order("created_at", { ascending: false });
+
+        if (verifiedOnly) {
+          fallbackQuery = fallbackQuery.eq("is_verified", true);
+        }
+
+        const { data: propertiesData, error: propertiesError } = await fallbackQuery;
         
         if (propertiesError) throw propertiesError;
         setProperties(propertiesData || []);
@@ -54,16 +77,55 @@ const Properties = () => {
       setLoading(false);
     }
   };
+
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate('/');
+  };
+
+  const filteredProperties = properties.filter((property) => {
+    // Search filter
+    const matchesSearch = searchQuery === "" || 
+      property.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      property.location?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Property type filter
+    const matchesType = propertyTypeFilter === "all" || 
+      property.property_type?.toLowerCase() === propertyTypeFilter.toLowerCase();
+
+    // Price range filter
+    let matchesPrice = true;
+    if (priceRangeFilter !== "all") {
+      const price = property.price || 0;
+      if (priceRangeFilter === "0-2000") matchesPrice = price <= 2000;
+      else if (priceRangeFilter === "2000-4000") matchesPrice = price > 2000 && price <= 4000;
+      else if (priceRangeFilter === "4000-6000") matchesPrice = price > 4000 && price <= 6000;
+      else if (priceRangeFilter === "6000+") matchesPrice = price > 6000;
+    }
+
+    return matchesSearch && matchesType && matchesPrice;
+  });
+
   return (
     <div className="min-h-screen">
       <Navbar />
       <main className="pt-24 pb-12">
         <div className="container mx-auto px-6">
+          <div className="mb-4">
+            <button type="button" onClick={handleBack} className="p-2 rounded-lg hover:bg-muted flex items-center gap-2 text-sm font-medium">
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+          </div>
           <div className="mb-12">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Find Your Perfect Home</h1>
             <p className="text-xl text-muted-foreground">
               Browse verified properties across South African townships
             </p>
+            {onlyVerified && (
+              <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm border border-emerald-200">
+                Showing verified listings only
+              </div>
+            )}
           </div>
 
           {/* Search & Filters */}
@@ -75,10 +137,12 @@ const Properties = () => {
                   <Input 
                     placeholder="Search by location or property name..." 
                     className="pl-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
               </div>
-              <Select>
+              <Select value={propertyTypeFilter} onValueChange={setPropertyTypeFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Property Type" />
                 </SelectTrigger>
@@ -90,7 +154,7 @@ const Properties = () => {
                   <SelectItem value="room">Room</SelectItem>
                 </SelectContent>
               </Select>
-              <Select>
+              <Select value={priceRangeFilter} onValueChange={setPriceRangeFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Price Range" />
                 </SelectTrigger>
@@ -110,22 +174,26 @@ const Properties = () => {
             <div className="text-center py-12">
               <p className="text-muted-foreground">Loading properties...</p>
             </div>
-          ) : properties.length === 0 ? (
+          ) : filteredProperties.length === 0 ? (
             <div className="text-center py-20 max-w-2xl mx-auto">
               <Building2 className="w-20 h-20 mx-auto mb-6 text-muted-foreground/50" />
-              <h2 className="text-3xl font-bold mb-4">No Properties Available Yet</h2>
+              <h2 className="text-3xl font-bold mb-4">{properties.length === 0 ? 'No Properties Available Yet' : 'No Properties Match Your Filters'}</h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Are you a landlord? Be the first to list your property and reach thousands of potential tenants!
+                {properties.length === 0 
+                  ? 'Are you a landlord? Be the first to list your property and reach thousands of potential tenants!'
+                  : 'Try adjusting your search filters to find more properties.'}
               </p>
-              <a href="/get-started">
-                <Button size="lg" className="px-8">
-                  List Your Property
-                </Button>
-              </a>
+              {properties.length === 0 && (
+                <a href="/get-started">
+                  <Button size="lg" className="px-8">
+                    List Your Property
+                  </Button>
+                </a>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {properties.map((property) => (
+              {filteredProperties.map((property) => (
                 <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-shadow">
                   {property.image_url ? (
                     <div className="h-48 overflow-hidden">

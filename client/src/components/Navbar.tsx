@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Calendar } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useAuth();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
@@ -27,6 +29,12 @@ export const Navbar = () => {
             <Link to="/about" className="text-foreground hover:text-primary transition-colors">
               About
             </Link>
+            {user && (
+              <Link to="/bookings" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                Bookings
+              </Link>
+            )}
             <Link to="/signin">
               <Button variant="outline">Sign In</Button>
             </Link>
@@ -55,6 +63,12 @@ export const Navbar = () => {
               <Link to="/about" className="text-foreground hover:text-primary transition-colors py-2">
                 About
               </Link>
+              {user && (
+                <Link to="/bookings" className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  Bookings
+                </Link>
+              )}
               <Link to="/signin">
                 <Button variant="outline" className="w-full">Sign In</Button>
               </Link>

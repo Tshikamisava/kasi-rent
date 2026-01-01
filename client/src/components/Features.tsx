@@ -7,7 +7,7 @@ const features = [
     icon: Shield,
     title: "Verified Properties",
     description: "All listings are verified by our team to ensure authenticity and prevent scams",
-    link: null,
+    link: "/properties?verified=true",
   },
   {
     icon: CreditCard,
@@ -19,13 +19,13 @@ const features = [
     icon: MessageSquare,
     title: "Direct Communication",
     description: "Chat directly with landlords through our secure platform - no middleman needed",
-    link: null,
+    link: "/chat",
   },
   {
     icon: CheckCircle,
     title: "Easy Booking",
     description: "Simple booking process with transparent terms and instant updates",
-    link: null,
+    link: "/bookings",
   },
   {
     icon: Search,

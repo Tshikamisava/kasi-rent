@@ -46,8 +46,84 @@ export const getLandlordContact = async (req, res) => {
 };
 
 /**
- * Get User Profile
+ * Find User by Email
  */
+export const findUserByEmail = async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const user = await User.findOne({
+      where: { email },
+      attributes: ['id', 'name', 'email', 'role'],
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found with that email' });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error('Error finding user by email:', error);
+    res.status(500).json({
+      error: 'Failed to find user',
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * List Users (for starting conversations)
+ */
+export const listUsers = async (req, res) => {
+  try {
+    const { role, search } = req.query;
+    const where = {};
+
+    // Filter by role if specified
+    if (role && ['landlord', 'tenant', 'agent'].includes(role)) {
+      where.role = role;
+    }
+
+    // Search by name or email
+    if (search) {
+      const { Op } = await import('sequelize');
+      where[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    const users = await User.findAll({
+      where,
+      attributes: ['id', 'name', 'email', 'role'],
+      limit: 50,
+      order: [['name', 'ASC']],
+    });
+
+    res.json({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    console.error('Error listing users:', error);
+    res.status(500).json({
+      error: 'Failed to list users',
+      message: error.message,
+    });
+  }
+};
 export const getUserProfile = async (req, res) => {
   try {
     const userId = req.user?.id || req.params.user_id;
@@ -77,3 +153,19 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
+export const updateAvatar = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { avatar_url } = req.body;
+
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!avatar_url) return res.status(400).json({ error: 'avatar_url is required' });
+
+    await User.update({ avatar_url }, { where: { id: userId } });
+    const user = await User.findByPk(userId, { attributes: ['id', 'avatar_url'] });
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('Error updating avatar:', error);
+    res.status(500).json({ error: 'Failed to update avatar', message: error.message });
+  }
+};

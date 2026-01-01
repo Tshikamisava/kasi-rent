@@ -1,9 +1,10 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { Home, Plus, Users, DollarSign, Edit, Trash, MapPin, BedDouble, Bath } from "lucide-react";
+import { Home, Plus, Users, DollarSign, Edit, Trash, MapPin, BedDouble, Bath, ShieldCheck, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PropertyForm } from "@/components/PropertyForm";
 import { useState, useEffect } from "react";
@@ -70,6 +71,11 @@ const LandlordDashboard = () => {
     fetchProperties();
   }, [user]);
 
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate('/');
+  };
+
   const handleDelete = async (id: string) => {
     try {
       const { error } = await supabase
@@ -94,11 +100,40 @@ const LandlordDashboard = () => {
     }
   };
 
+  const handleToggleVerification = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("properties")
+        .update({ is_verified: !currentStatus })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Property ${!currentStatus ? 'verified' : 'unverified'} successfully`,
+      });
+
+      fetchProperties();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update verification status",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1 px-4 py-8 md:px-8 lg:px-12">
         <div className="max-w-7xl mx-auto space-y-8">
+          <div className="mb-4">
+            <button type="button" onClick={handleBack} className="p-2 rounded-lg hover:bg-muted flex items-center gap-2 text-sm font-medium">
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+          </div>
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Landlord Dashboard</h1>
@@ -276,6 +311,15 @@ const LandlordDashboard = () => {
                       <CardHeader>
                         <div className="flex items-start justify-between mb-2">
                           <h3 className="text-lg font-semibold line-clamp-1">{property.title}</h3>
+                          {property.is_verified ? (
+                            <Badge className="bg-emerald-500 hover:bg-emerald-600">
+                              <ShieldCheck className="w-3 h-3 mr-1" /> Verified
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">
+                              Pending
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center text-muted-foreground text-sm">
                           <MapPin className="w-4 h-4 mr-1" />
@@ -300,29 +344,40 @@ const LandlordDashboard = () => {
                           R{property.price?.toLocaleString()}
                           <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
                         </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="flex-1"
-                            onClick={() => {
-                              // TODO: Implement edit functionality
-                              toast({
-                                title: "Edit Property",
-                                description: "Edit functionality coming soon!",
-                              });
-                            }}
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Edit
-                          </Button>
+                        <div className="flex flex-col gap-2">
                           <Button
-                            variant="destructive"
+                            variant={property.is_verified ? "outline" : "default"}
                             size="sm"
-                            onClick={() => handleDelete(property.id)}
+                            className="w-full"
+                            onClick={() => handleToggleVerification(property.id, property.is_verified)}
                           >
-                            <Trash className="w-4 h-4" />
+                            <ShieldCheck className="w-4 h-4 mr-1" />
+                            {property.is_verified ? 'Unverify' : 'Mark as Verified'}
                           </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="flex-1"
+                              onClick={() => {
+                                // TODO: Implement edit functionality
+                                toast({
+                                  title: "Edit Property",
+                                  description: "Edit functionality coming soon!",
+                                });
+                              }}
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(property.id)}
+                            >
+                              <Trash className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

@@ -9,7 +9,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, BedDouble, Bath, Phone, Mail, User, Building2, Copy } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { MapPin, BedDouble, Bath, Phone, Mail, User, Building2, Copy, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +28,13 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
   const { toast } = useToast();
   const [landlord, setLandlord] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [showBookingForm, setShowBookingForm] = useState(false);
+  const [bookingData, setBookingData] = useState({
+    move_in_date: "",
+    move_out_date: "",
+    message: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open && property?.landlord_id) {
@@ -144,6 +154,79 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
       title: "Copied!",
       description: `${label} copied to clipboard`,
     });
+  };
+
+  const handleBookNow = () => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to book a property",
+        variant: "destructive",
+      });
+      window.location.href = "/signin?redirect=/properties";
+      return;
+    }
+    setShowBookingForm(true);
+  };
+
+  const handleSubmitBooking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to book a property",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!bookingData.move_in_date) {
+      toast({
+        title: "Missing information",
+        description: "Please select a move-in date",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase
+        .from("bookings")
+        .insert([
+          {
+            property_id: property.id,
+            tenant_id: user.id,
+            landlord_id: property.landlord_id,
+            move_in_date: bookingData.move_in_date,
+            move_out_date: bookingData.move_out_date || null,
+            message: bookingData.message,
+            status: "pending",
+          },
+        ])
+        .select();
+
+      if (error) throw error;
+
+      toast({
+        title: "Booking request sent!",
+        description: "The landlord will review your request and get back to you.",
+      });
+
+      setShowBookingForm(false);
+      setBookingData({ move_in_date: "", move_out_date: "", message: "" });
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit booking request. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!property) return null;
@@ -325,6 +408,68 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                 </p>
               </CardContent>
             </Card>
+          )}
+
+          {/* Booking Form or Button */}
+          {showBookingForm ? (
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Book This Property
+                </h3>
+                <form onSubmit={handleSubmitBooking} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="move_in_date">Move-in Date *</Label>
+                      <Input
+                        id="move_in_date"
+                        type="date"
+                        value={bookingData.move_in_date}
+                        onChange={(e) => setBookingData({ ...bookingData, move_in_date: e.target.value })}
+                        required
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="move_out_date">Move-out Date (Optional)</Label>
+                      <Input
+                        id="move_out_date"
+                        type="date"
+                        value={bookingData.move_out_date}
+                        onChange={(e) => setBookingData({ ...bookingData, move_out_date: e.target.value })}
+                        min={bookingData.move_in_date || new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="message">Message to Landlord (Optional)</Label>
+                    <Textarea
+                      id="message"
+                      placeholder="Add any questions or special requests..."
+                      value={bookingData.message}
+                      onChange={(e) => setBookingData({ ...bookingData, message: e.target.value })}
+                      rows={4}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={submitting} className="flex-1">
+                      {submitting ? "Submitting..." : "Submit Booking Request"}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setShowBookingForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="flex justify-center">
+              <Button size="lg" onClick={handleBookNow} className="px-12">
+                <Calendar className="mr-2 h-5 w-5" />
+                Book Now
+              </Button>
+            </div>
           )}
         </div>
       </DialogContent>

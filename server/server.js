@@ -6,6 +6,8 @@ import propertyRoutes from "./routes/propertyRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import chatRoutes, { messageRouter } from "./routes/chatRoutes.js";
+import './models/index.js';
 
 dotenv.config();
 const app = express();
@@ -24,6 +26,8 @@ app.use("/api/properties", propertyRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use('/api/chats', chatRoutes);
+app.use('/api/messages', messageRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -39,9 +43,14 @@ app.get("/", (req, res) => res.send("Kasirent API running 🚀"));
 const PORT = process.env.PORT || 5000;
 
 // Start server and connect to MySQL
+import http from 'http';
+import { initSocket } from './socket.js';
+
 const startServer = async () => {
   await connectDB();
-  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+  const server = http.createServer(app);
+  initSocket(server);
+  server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 };
 
 startServer();
