@@ -7,6 +7,7 @@ import userRoutes from "./routes/userRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import chatRoutes, { messageRouter } from "./routes/chatRoutes.js";
+import fraudDetectionRoutes from "./routes/fraudDetectionRoutes.js";
 import './models/index.js';
 
 dotenv.config();
@@ -28,6 +29,7 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/messages', messageRouter);
+app.use('/api/fraud-detection', fraudDetectionRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
