@@ -249,8 +249,7 @@ const Properties = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <divtrackPropertyView(property.id);
-                         className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center">
                         <BedDouble className="w-4 h-4 mr-1" />
                         {property.bedrooms}

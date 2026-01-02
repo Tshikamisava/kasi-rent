@@ -7,6 +7,7 @@ import Attachment from './Attachment.js';
 import Reaction from './Reaction.js';
 import Property from './Property.js';
 import Booking from './Booking.js';
+import Review from './Review.js';
 
 // Associations
 Conversation.hasMany(Message, { foreignKey: 'conversation_id', as: 'messages' });
@@ -31,11 +32,16 @@ Message.belongsTo(User, { foreignKey: 'sender_id', as: 'sender' });
 Property.hasMany(Booking, { foreignKey: 'property_id', as: 'bookings' });
 Booking.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
 
+// Review associations
+Property.hasMany(Review, { foreignKey: 'property_id', as: 'reviews' });
+Review.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
+
 export {
   User,
   Conversation,
   ConversationParticipant,
   Message,
+  Review,
   Attachment,
   Reaction,
   Property,

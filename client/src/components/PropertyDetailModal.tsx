@@ -17,6 +17,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { RecommendedProperties } from "@/components/RecommendedProperties";
+import { PropertyReviews } from "@/components/PropertyReviews";
+import { FraudDetector } from "@/components/FraudDetector";
 
 interface PropertyDetailModalProps {
   open: boolean;
@@ -207,6 +209,12 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
           message: bookingData.message,
         }),
       });
+
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Invalid response format from server");
+      }
 
       const data = await response.json();
 
@@ -489,6 +497,22 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
               window.location.hash = `property=${propertyId}`;
               onOpenChange(false);
             }}
+          />
+
+          {/* Reviews Section */}
+          <PropertyReviews
+            propertyId={property.id}
+            reviews={[]}
+            averageRating={4.5}
+            totalReviews={0}
+          />
+
+          {/* Fraud Detector Section */}
+          <FraudDetector
+            propertyId={property.id}
+            propertyTitle={property.title}
+            propertyDescription={property.description}
+            price={property.price}
           />
         </div>
       </DialogContent>
