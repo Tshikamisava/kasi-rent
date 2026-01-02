@@ -171,7 +171,16 @@ export const updateBookingStatus = async (req, res) => {
   }
 };
 
-// Get single booking details, 'property_type', 'bedrooms', 'bathrooms', 'description']
+// Get single booking details
+export const getBookingById = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+
+    const booking = await Booking.findByPk(bookingId, {
+      include: [{
+        model: Property,
+        as: 'property',
+        attributes: ['id', 'title', 'location', 'price', 'images', 'landlord_id', 'property_type', 'bedrooms', 'bathrooms', 'description']
       }]
     });
 
@@ -190,16 +199,7 @@ export const updateBookingStatus = async (req, res) => {
 
     res.json({
       success: true,
-      booking: bookingDataing) {
-      return res.status(404).json({
-        success: false,
-        message: 'Booking not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      booking
+      booking: bookingData
     });
   } catch (error) {
     console.error('Error fetching booking:', error);
