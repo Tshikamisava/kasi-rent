@@ -58,14 +58,23 @@ export const getTenantBookings = async (req, res) => {
       include: [{
         model: Property,
         as: 'property',
-        attributes: ['id', 'title', 'location', 'price', 'images']
+        attributes: ['id', 'title', 'location', 'price', 'images', 'property_type', 'bedrooms', 'bathrooms']
       }],
       order: [['created_at', 'DESC']]
     });
 
+    // Format the response to include image_url
+    const formattedBookings = bookings.map(booking => {
+      const bookingData = booking.toJSON();
+      if (bookingData.property && bookingData.property.images && bookingData.property.images.length > 0) {
+        bookingData.property.image_url = bookingData.property.images[0];
+      }
+      return bookingData;
+    });
+
     res.json({
       success: true,
-      bookings
+      bookings: formattedBookings
     });
   } catch (error) {
     console.error('Error fetching tenant bookings:', error);
@@ -87,14 +96,23 @@ export const getLandlordBookings = async (req, res) => {
       include: [{
         model: Property,
         as: 'property',
-        attributes: ['id', 'title', 'location', 'price', 'images']
+        attributes: ['id', 'title', 'location', 'price', 'images', 'property_type', 'bedrooms', 'bathrooms']
       }],
       order: [['created_at', 'DESC']]
     });
 
+    // Format the response to include image_url
+    const formattedBookings = bookings.map(booking => {
+      const bookingData = booking.toJSON();
+      if (bookingData.property && bookingData.property.images && bookingData.property.images.length > 0) {
+        bookingData.property.image_url = bookingData.property.images[0];
+      }
+      return bookingData;
+    });
+
     res.json({
       success: true,
-      bookings
+      bookings: formattedBookings
     });
   } catch (error) {
     console.error('Error fetching landlord bookings:', error);
@@ -153,20 +171,26 @@ export const updateBookingStatus = async (req, res) => {
   }
 };
 
-// Get single booking details
-export const getBookingById = async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-
-    const booking = await Booking.findByPk(bookingId, {
-      include: [{
-        model: Property,
-        as: 'property',
-        attributes: ['id', 'title', 'location', 'price', 'images', 'landlord_id']
+// Get single booking details, 'property_type', 'bedrooms', 'bathrooms', 'description']
       }]
     });
 
     if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+
+    // Format the response to include image_url
+    const bookingData = booking.toJSON();
+    if (bookingData.property && bookingData.property.images && bookingData.property.images.length > 0) {
+      bookingData.property.image_url = bookingData.property.images[0];
+    }
+
+    res.json({
+      success: true,
+      booking: bookingDataing) {
       return res.status(404).json({
         success: false,
         message: 'Booking not found'

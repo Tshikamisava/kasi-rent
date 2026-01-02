@@ -193,22 +193,26 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase
-        .from("bookings")
-        .insert([
-          {
-            property_id: property.id,
-            tenant_id: user.id,
-            landlord_id: property.landlord_id,
-            move_in_date: bookingData.move_in_date,
-            move_out_date: bookingData.move_out_date || null,
-            message: bookingData.message,
-            status: "pending",
-          },
-        ])
-        .select();
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_BASE}/api/bookings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          property_id: property.id,
+          tenant_id: user.id,
+          move_in_date: bookingData.move_in_date,
+          move_out_date: bookingData.move_out_date || null,
+          message: bookingData.message,
+        }),
+      });
 
-      if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to create booking");
+      }
 
       toast({
         title: "Booking request sent!",
@@ -222,7 +226,7 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
       console.error("Error creating booking:", error);
       toast({
         title: "Error",
-        description: "Failed to submit booking request. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to submit booking request. Please try again.",
         variant: "destructive",
       });
     } finally {

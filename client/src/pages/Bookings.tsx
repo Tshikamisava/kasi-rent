@@ -7,7 +7,6 @@ import { ArrowLeft, Calendar, MapPin, Home, CheckCircle, Clock, X } from "lucide
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const Bookings = () => {
@@ -29,23 +28,15 @@ const Bookings = () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select(`
-          *,
-          property:property_id (
-            id,
-            title,
-            location,
-            price,
-            image_url,
-            property_type
-          )
-        `)
-        .order("created_at", { ascending: false });
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_BASE}/api/bookings/tenant/${user.id}`);
+      const data = await response.json();
 
-      if (error) throw error;
-      setBookings(data || []);
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to fetch bookings");
+      }
+
+      setBookings(data.bookings || []);
     } catch (error) {
       console.error("Error fetching bookings:", error);
       toast({
@@ -129,36 +120,46 @@ const Bookings = () => {
                   )}
                   <CardHeader>
                     <div className="flex items-start justify-between mb-2">
-                      <CardTitle className="text-lg">{booking.property?.title}</CardTitle>
+                      <CardTitle className="text-lg">{booking.property?.title || "Property"}</CardTitle>
                       {getStatusBadge(booking.status)}
                     </div>
-                    <CardDescription className="flex items-center">
-                      <MapPin className="w-4 h-4 mr-1" />
-                      {booking.property?.location}
+                    <CardDescription>
+                      <div className="flex items-start gap-1">
+                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
+                        <span className="text-sm">{booking.property?.location || "Location not available"}</span>
+                      </div>
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      <div className="flex items-center text-sm">
-                        <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span>Move-in: {new Date(booking.move_in_date).toLocaleDateString()}</span>
+                      <div className="flex items-center text-sm bg-muted/50 p-2 rounded">
+                        <Calendar className="w-4 h-4 mr-2 text-primary" />
+                        <span className="font-medium">Move-in: {new Date(booking.move_in_date).toLocaleDateString()}</span>
                       </div>
                       {booking.move_out_date && (
-                        <div className="flex items-center text-sm">
-                          <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
-                          <span>Move-out: {new Date(booking.move_out_date).toLocaleDateString()}</span>
+                        <div className="flex items-center text-sm bg-muted/50 p-2 rounded">
+                          <Calendar className="w-4 h-4 mr-2 text-primary" />
+                          <span className="font-medium">Move-out: {new Date(booking.move_out_date).toLocaleDateString()}</span>
                         </div>
                       )}
-                      <div className="flex items-center text-xl font-bold text-primary">
-                        R{booking.property?.price?.toLocaleString()}
-                        <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
+                      {booking.message && (
+                        <div className="text-xs text-muted-foreground p-2 bg-muted/30 rounded border-l-2 border-primary">
+                          <p className="font-semibold mb-1">Your message:</p>
+                          <p className="line-clamp-2">{booking.message}</p>
+                        </div>
+                      )}
+                      <div className="pt-2 border-t">
+                        <div className="flex items-center text-xl font-bold text-primary">
+                          R{booking.property?.price?.toLocaleString()}
+                          <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
+                        </div>
                       </div>
                       <Button 
                         className="w-full" 
                         variant={booking.status === "confirmed" ? "outline" : "default"}
                         onClick={() => navigate(`/properties`)}
                       >
-                        View Details
+                        View Property Details
                       </Button>
                     </div>
                   </CardContent>
