@@ -36,6 +36,35 @@ export const PropertyReviews = ({
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [reviewsList, setReviewsList] = useState<Review[]>(reviews);
+  const [avgRating, setAvgRating] = useState(averageRating);
+  const [total, setTotal] = useState(totalReviews);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [propertyId]);
+
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_BASE}/api/reviews/property/${propertyId}`);
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch reviews");
+      }
+
+      const data = await response.json();
+      setReviewsList(data.reviews || []);
+      setAvgRating(data.averageRating || 0);
+      setTotal(data.totalReviews || 0);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,10 +159,10 @@ export const PropertyReviews = ({
             <CardTitle>Reviews</CardTitle>
             <div className="flex items-center gap-3 mt-2">
               <div className="flex items-center gap-1">
-                {renderStars(averageRating)}
-                <span className="text-sm font-semibold ml-2">{averageRating.toFixed(1)}</span>
+                {renderStars(avgRating)}
+                <span className="text-sm font-semibold ml-2">{avgRating.toFixed(1)}</span>
               </div>
-              <span className="text-sm text-muted-foreground">({totalReviews} reviews)</span>
+              <span className="text-sm text-muted-foreground">({total} reviews)</span>
             </div>
           </div>
           {user && !showForm && (
@@ -150,8 +179,10 @@ export const PropertyReviews = ({
             <Loader className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
-        {showForm && (
-          <div className="p-4 bg-muted/50 rounded-lg space-y-3 border">
+          <>
+            {/* Review Form */}
+            {showForm && (
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3 border">
             <div>
               <label className="text-sm font-semibold block mb-2">Rating</label>
               <div className="flex gap-2">
@@ -198,14 +229,15 @@ export const PropertyReviews = ({
                 disabled={submitting}
               >
                 Cancel
-        )}
+              </Button>
+            </div>
           </div>
         )}
 
         {/* Reviews List */}
-        {reviews.length > 0 ? (
+        {reviewsList.length > 0 ? (
           <div className="space-y-3">
-            {reviews.map((review) => (
+            {reviewsList.map((review) => (
               <div key={review.id} className="p-3 border rounded-lg">
                 <div className="flex items-start justify-between mb-2">
                   <div>
@@ -232,6 +264,8 @@ export const PropertyReviews = ({
               </Button>
             )}
           </div>
+        )}
+          </>
         )}
       </CardContent>
     </Card>

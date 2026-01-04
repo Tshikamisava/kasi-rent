@@ -5,10 +5,13 @@ import { MapPin, BedDouble, Bath, Building2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
+import { PropertyDetailModal } from "@/components/PropertyDetailModal";
 
 export const FeaturedProperties = () => {
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProperty, setSelectedProperty] = useState<any>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     fetchProperties();
@@ -121,7 +124,14 @@ export const FeaturedProperties = () => {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" size="lg">
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={() => {
+                    setSelectedProperty(property);
+                    setModalOpen(true);
+                  }}
+                >
                   View Details
                 </Button>
               </CardFooter>
@@ -130,6 +140,15 @@ export const FeaturedProperties = () => {
         </div>
 
         <div className="text-center mt-12">
+
+      {/* Property Detail Modal */}
+      {selectedProperty && (
+        <PropertyDetailModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          property={selectedProperty}
+        />
+      )}
           <Link to="/properties">
             <Button variant="outline" size="lg" className="px-8">
               View All Properties

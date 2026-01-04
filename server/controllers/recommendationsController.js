@@ -274,9 +274,19 @@ export const getSimilarProperties = async (req, res) => {
  */
 async function getAllProperties() {
   try {
-    // This would normally query your database
-    // For now, return empty array - will be populated from actual API calls
-    return [];
+    // Import models
+    const { Property } = await import("../models/index.js");
+    
+    // Fetch all properties from database
+    const properties = await Property.findAll({
+      attributes: [
+        'id', 'title', 'description', 'price', 'location', 
+        'bedrooms', 'bathrooms', 'property_type', 'image_url',
+        'is_verified', 'created_at', 'view_count', 'landlord_id'
+      ]
+    });
+    
+    return properties.map(p => p.toJSON()) || [];
   } catch (error) {
     console.error("Error fetching properties:", error);
     return [];

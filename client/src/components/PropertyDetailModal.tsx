@@ -39,6 +39,11 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
   });
   const [submitting, setSubmitting] = useState(false);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('PropertyDetailModal - open:', open, 'property:', property);
+  }, [open, property]);
+
   useEffect(() => {
     if (open && property?.landlord_id) {
       fetchLandlordInfo();
@@ -248,10 +253,10 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl">{property.title}</DialogTitle>
+          <DialogTitle className="text-2xl">{property.title || "Property Details"}</DialogTitle>
           <DialogDescription className="flex items-center gap-1">
             <MapPin className="h-4 w-4" />
-            {property.location}
+            {property.location || "Location not specified"}
           </DialogDescription>
         </DialogHeader>
 
@@ -287,18 +292,18 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                   </div>
                   <div className="flex items-center gap-2">
                     <BedDouble className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{property.bedrooms} Bedrooms</span>
+                    <span className="text-sm">{property.bedrooms || 'N/A'} Bedrooms</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Bath className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{property.bathrooms} Bathrooms</span>
+                    <span className="text-sm">{property.bathrooms || 'N/A'} Bathrooms</span>
                   </div>
                   <div>
-                    <Badge variant="outline">{property.property_type}</Badge>
+                    <Badge variant="outline">{property.property_type || 'Property'}</Badge>
                   </div>
                   <div className="pt-2 border-t">
                     <p className="text-2xl font-bold text-primary">
-                      R{property.price?.toLocaleString()}
+                      R{property.price?.toLocaleString() || '0'}
                       <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
                     </p>
                   </div>
