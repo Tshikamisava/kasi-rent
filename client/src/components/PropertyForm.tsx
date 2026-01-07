@@ -290,10 +290,16 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
         if (bucketError) {
           console.error('Storage bucket check failed:', bucketError);
           toast({
-            title: "Storage Error",
-            description: "Unable to access image storage. Please contact support.",
+            title: "⚠️ Storage Connection Error",
+            description: "Cannot connect to Supabase Storage. Make sure you have a .env file in the client folder with VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY. See SETUP-STORAGE-NOW.md for help.",
             variant: "destructive",
+            duration: 10000,
           });
+          console.error('❌ Supabase Storage Error:', bucketError);
+          console.log('📝 Check:');
+          console.log('1. Do you have client/.env file?');
+          console.log('2. Is VITE_SUPABASE_URL set correctly?');
+          console.log('3. Is VITE_SUPABASE_PUBLISHABLE_KEY set correctly?');
           setUploading(false);
           setLoading(false);
           return;
@@ -302,10 +308,17 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
         const imagesBucket = buckets?.find(b => b.name === 'images');
         if (!imagesBucket) {
           toast({
-            title: "Storage Not Ready",
-            description: "Image storage bucket is not set up. Please contact support.",
+            title: "⚠️ Storage Not Ready",
+            description: "Please set up the storage bucket. Check SETUP-STORAGE-NOW.md file in the project folder for step-by-step instructions.",
             variant: "destructive",
+            duration: 10000, // Show for 10 seconds
           });
+          console.error('❌ Storage bucket "images" not found.');
+          console.log('📝 Setup Instructions:');
+          console.log('1. Go to your Supabase dashboard');
+          console.log('2. Open SQL Editor');
+          console.log('3. Run the SQL from: setup-supabase-storage.sql');
+          console.log('4. Or see SETUP-STORAGE-NOW.md for detailed guide');
           setUploading(false);
           setLoading(false);
           return;
