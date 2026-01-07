@@ -9,11 +9,7 @@ const Booking = sequelize.define('Booking', {
   },
   property_id: {
     type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'properties',
-      key: 'id'
-    }
+    allowNull: false
   },
   tenant_id: {
     type: DataTypes.STRING,

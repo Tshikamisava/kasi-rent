@@ -4,7 +4,9 @@ import Property from '../models/Property.js';
 // Create a new booking
 export const createBooking = async (req, res) => {
   try {
-    const { property_id, tenant_id, move_in_date, move_out_date, message } = req.body;
+    const { property_id, tenant_id, move_in_date, move_out_date, message, landlord_id } = req.body;
+
+    console.log('Booking request received:', { property_id, tenant_id, move_in_date, landlord_id });
 
     if (!property_id || !tenant_id || !move_in_date) {
       return res.status(400).json({
@@ -13,25 +15,36 @@ export const createBooking = async (req, res) => {
       });
     }
 
-    // Get property details to find landlord
-    const property = await Property.findByPk(property_id);
-    if (!property) {
-      return res.status(404).json({
-        success: false,
-        message: 'Property not found'
-      });
+    // Try to get property details from MySQL, but don't fail if it doesn't exist
+    // Properties might be in Supabase only
+    let propertyLandlordId = landlord_id;
+    try {
+      const property = await Property.findByPk(property_id);
+      if (property && property.landlord_id) {
+        propertyLandlordId = property.landlord_id;
+      }
+    } catch (error) {
+      console.log('Property not found in MySQL, using provided landlord_id or default');
+    }
+
+    // If no landlord_id provided or found, use a placeholder
+    // The landlord will need to be notified through another mechanism
+    if (!propertyLandlordId) {
+      propertyLandlordId = 'pending-landlord-assignment';
     }
 
     // Create booking
     const booking = await Booking.create({
       property_id,
       tenant_id,
-      landlord_id: property.landlord_id,
+      landlord_id: propertyLandlordId,
       move_in_date,
       move_out_date,
       message,
       status: 'pending'
     });
+
+    console.log('Booking created successfully:', booking.id);
 
     res.status(201).json({
       success: true,
@@ -55,26 +68,12 @@ export const getTenantBookings = async (req, res) => {
 
     const bookings = await Booking.findAll({
       where: { tenant_id: tenantId },
-      include: [{
-        model: Property,
-        as: 'property',
-        attributes: ['id', 'title', 'location', 'price', 'images', 'property_type', 'bedrooms', 'bathrooms']
-      }],
       order: [['created_at', 'DESC']]
-    });
-
-    // Format the response to include image_url
-    const formattedBookings = bookings.map(booking => {
-      const bookingData = booking.toJSON();
-      if (bookingData.property && bookingData.property.images && bookingData.property.images.length > 0) {
-        bookingData.property.image_url = bookingData.property.images[0];
-      }
-      return bookingData;
     });
 
     res.json({
       success: true,
-      bookings: formattedBookings
+      bookings: bookings
     });
   } catch (error) {
     console.error('Error fetching tenant bookings:', error);
@@ -93,26 +92,12 @@ export const getLandlordBookings = async (req, res) => {
 
     const bookings = await Booking.findAll({
       where: { landlord_id: landlordId },
-      include: [{
-        model: Property,
-        as: 'property',
-        attributes: ['id', 'title', 'location', 'price', 'images', 'property_type', 'bedrooms', 'bathrooms']
-      }],
       order: [['created_at', 'DESC']]
-    });
-
-    // Format the response to include image_url
-    const formattedBookings = bookings.map(booking => {
-      const bookingData = booking.toJSON();
-      if (bookingData.property && bookingData.property.images && bookingData.property.images.length > 0) {
-        bookingData.property.image_url = bookingData.property.images[0];
-      }
-      return bookingData;
     });
 
     res.json({
       success: true,
-      bookings: formattedBookings
+      bookings: bookings
     });
   } catch (error) {
     console.error('Error fetching landlord bookings:', error);
@@ -176,13 +161,7 @@ export const getBookingById = async (req, res) => {
   try {
     const { bookingId } = req.params;
 
-    const booking = await Booking.findByPk(bookingId, {
-      include: [{
-        model: Property,
-        as: 'property',
-        attributes: ['id', 'title', 'location', 'price', 'images', 'landlord_id', 'property_type', 'bedrooms', 'bathrooms', 'description']
-      }]
-    });
+    const booking = await Booking.findByPk(bookingId);
 
     if (!booking) {
       return res.status(404).json({
@@ -191,15 +170,9 @@ export const getBookingById = async (req, res) => {
       });
     }
 
-    // Format the response to include image_url
-    const bookingData = booking.toJSON();
-    if (bookingData.property && bookingData.property.images && bookingData.property.images.length > 0) {
-      bookingData.property.image_url = bookingData.property.images[0];
-    }
-
     res.json({
       success: true,
-      booking: bookingData
+      booking: booking
     });
   } catch (error) {
     console.error('Error fetching booking:', error);

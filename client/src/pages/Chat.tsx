@@ -3,14 +3,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { connectSocket, getSocket } from '@/lib/socket';
 import { supabase } from '@/lib/supabase';
-import EmojiPicker from 'emoji-picker-react';
 import { Smile, Paperclip, Mic, Send, X, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-// Fix emoji-picker-react expecting global in browser
-if (typeof window !== 'undefined' && typeof (window as any).global === 'undefined') {
-  (window as any).global = window;
-}
 
 // Backend base URL (set VITE_API_URL in client/.env; falls back to localhost:5000)
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -32,6 +26,7 @@ const Chat = () => {
   const { user } = useAuth();
   const token = user?.token || '';
   const toast = useToast().toast;
+  const navigate = useNavigate();
 
   const [conversations, setConversations] = useState<any[]>([]);
   const [selected, setSelected] = useState<any | null>(null);
@@ -61,12 +56,20 @@ const Chat = () => {
   useEffect(() => {
     if (!token) return;
 
+    // Sync user to MySQL first (for chat functionality)
+    api('/api/users/sync', token, { method: 'POST' }).then(() => {
+      console.log('User synced to database');
+    }).catch((err) => {
+      console.log('User sync skipped or failed:', err.message);
+    });
+
     // fetch convos
     api('/api/chats', token).then((data) => {
+      console.log('Conversations loaded:', data);
       if (Array.isArray(data)) setConversations(data);
     }).catch((err) => {
-      console.error(err);
-      toast({ title: 'Failed to load conversations', variant: 'destructive' });
+      console.error('Failed to load conversations:', err);
+      toast({ title: 'Failed to load conversations', description: err.message || 'Please ensure you are logged in', variant: 'destructive' });
     });
 
     const socket = getSocket();
@@ -140,17 +143,41 @@ const Chat = () => {
 
   const handleSend = () => {
     if (!messageText.trim() || !selected) return;
+    
     const socket = getSocket();
-    socket?.emit('send_message', { conversationId: selected.id, content: messageText, contentType: 'text' }, (ack: any) => {
+    if (!socket) {
+      toast({ title: 'Connection error', description: 'Socket not connected', variant: 'destructive' });
+      return;
+    }
+
+    const tempMessage = {
+      id: Date.now(),
+      content: messageText,
+      contentType: 'text',
+      sender_id: user?._id || user?.id,
+      conversation_id: selected.id,
+      created_at: new Date().toISOString(),
+    };
+
+    // Optimistically add message
+    setMessages((prev) => [...prev, tempMessage]);
+    const sentText = messageText;
+    setMessageText('');
+    scrollToBottom();
+
+    socket.emit('send_message', { conversationId: selected.id, content: sentText, contentType: 'text' }, (ack: any) => {
       if (ack?.error) {
+        // Remove temp message on error
+        setMessages((prev) => prev.filter(m => m.id !== tempMessage.id));
+        setMessageText(sentText); // Restore text
         toast({ title: 'Send failed', description: ack.error, variant: 'destructive' });
         return;
       }
 
-      // append message from ack
-      if (ack.message) setMessages((prev) => [...prev, ack.message]);
-      setMessageText('');
-      scrollToBottom();
+      // Replace temp message with real one from server
+      if (ack.message) {
+        setMessages((prev) => prev.map(m => m.id === tempMessage.id ? ack.message : m));
+      }
     });
   };
 
@@ -168,29 +195,48 @@ const Chat = () => {
       }
 
       // Create conversation with that user
+      const otherUserId = userRes.user.id || userRes.user._id;
       const createRes = await api('/api/chats', token, { 
         method: 'POST', 
-        body: JSON.stringify({ participantIds: [userRes.user.id], type: 'private' }) 
+        body: JSON.stringify({ participantIds: [otherUserId], type: 'private' }) 
       });
       
       toast({ title: 'Conversation created', description: `Chat started with ${userRes.user.name || userRes.user.email}` });
       setConversations((prev) => [createRes, ...prev]);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast({ title: 'Failed to create conversation', description: err.message || 'An error occurred', variant: 'destructive' });
+      // Check if it's a "user not found" error (404)
+      if (err.message && err.message.includes('User not found')) {
+        toast({ 
+          title: 'User not found', 
+          description: `No user registered with email: ${participantEmail}`, 
+          variant: 'destructive' 
+        });
+      } else {
+        toast({ 
+          title: 'Failed to create conversation', 
+          description: err.message || 'An error occurred', 
+          variant: 'destructive' 
+        });
+      }
     }
   };
 
   const handleBrowseUsers = async () => {
     setShowUserBrowser(true);
+    console.log('Searching users with query:', searchQuery);
     try {
       const res = await api(`/api/users/list?search=${encodeURIComponent(searchQuery)}`, token);
+      console.log('User search results:', res);
       if (res.success) {
         setAvailableUsers(res.users || []);
+        if (res.users.length === 0) {
+          toast({ title: 'No users found', description: 'Try a different search term' });
+        }
       }
     } catch (err) {
-      console.error(err);
-      toast({ title: 'Failed to load users', variant: 'destructive' });
+      console.error('User search error:', err);
+      toast({ title: 'Failed to load users', description: err.message || 'An error occurred', variant: 'destructive' });
     }
   };
 
@@ -340,7 +386,11 @@ const Chat = () => {
       
       setMessages((prev) => prev.map((msg) => msg.id === editingMessageId ? { ...msg, content: editText, edited: true } : msg));
       cancelEdit();
-      toast({ title: 'Message edited' });
+      toast({ 
+        title: '✓ Message edited', 
+        description: 'Your changes have been saved successfully',
+        className: 'bg-green-50 border-green-200 text-green-900'
+      });
     } catch (err) {
       console.error(err);
       toast({ title: 'Edit failed', variant: 'destructive' });
@@ -349,7 +399,7 @@ const Chat = () => {
 
   const deleteMessage = async (messageId: string) => {
     if (!selected) return;
-    if (!confirm('Delete this message?')) return;
+    if (!confirm('🗑️ Are you sure you want to delete this message?\n\nThis action cannot be undone.')) return;
 
     try {
       const res = await fetch(`${API_BASE}/api/messages/${messageId}`, {
@@ -363,7 +413,11 @@ const Chat = () => {
       socket?.emit('delete_message', { messageId, conversationId: selected.id });
       
       setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
-      toast({ title: 'Message deleted' });
+      toast({ 
+        title: '✓ Message deleted', 
+        description: 'The message has been removed from the conversation',
+        className: 'bg-orange-50 border-orange-200 text-orange-900'
+      });
     } catch (err) {
       console.error(err);
       toast({ title: 'Delete failed', variant: 'destructive' });
@@ -375,27 +429,47 @@ const Chat = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-12">
-        <div className="mb-4 flex items-center gap-2">
-          <button type="button" onClick={handleBack} className="p-2 rounded-lg hover:bg-muted flex items-center gap-2 text-sm font-medium">
-            <ArrowLeft className="w-4 h-4" /> Back
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <button type="button" onClick={handleBack} className="mb-2 p-2 rounded-lg hover:bg-muted flex items-center gap-2 text-sm font-medium transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+            <h1 className="text-3xl sm:text-4xl font-bold">Messages</h1>
+            <p className="text-muted-foreground mt-1">Connect with property owners and tenants</p>
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="md:col-span-1 bg-card rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Conversations</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-1 bg-card rounded-2xl shadow-lg border border-border p-4 h-[calc(100vh-240px)] flex flex-col">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                Conversations
+              </h3>
               <div className="flex gap-2">
-                <button onClick={handleBrowseUsers} className="text-sm text-primary hover:underline">Browse</button>
-                <button onClick={handleCreate} className="text-sm text-primary hover:underline">Email</button>
+                <button onClick={handleBrowseUsers} className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium">
+                  Browse
+                </button>
+                <button onClick={handleCreate} className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium">
+                  New
+                </button>
               </div>
             </div>
             <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-              {conversations.length === 0 && <p className="text-sm text-muted-foreground">No conversations yet</p>}
+              {conversations.length === 0 && (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
+                    <Send className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium">No conversations yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">Start chatting to connect with others</p>
+                </div>
+              )}
               {conversations.map((c) => {
                 // Get other participants (not current user) to check online status
-                const otherParticipants = c.participants?.filter((p: any) => p.user_id !== user?.id) || [];
+                const currentUserId = user?.id || user?._id;
+                const otherParticipants = c.participants?.filter((p: any) => p.user_id !== currentUserId) || [];
                 const hasOnlineUser = otherParticipants.some((p: any) => onlineUsers.has(p.user_id));
                 
                 return (
@@ -411,47 +485,86 @@ const Chat = () => {
             </div>
           </div>
 
-          <div className="md:col-span-3 bg-card rounded-2xl p-4 flex flex-col">
+          <div className="lg:col-span-2 bg-card rounded-2xl shadow-lg border border-border h-[calc(100vh-240px)] flex flex-col">
             {!selected && (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground">Select a conversation to start chatting</div>
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Send className="w-10 h-10 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Select a conversation</h3>
+                <p className="text-muted-foreground text-sm">Choose a conversation from the left to start chatting</p>
+              </div>
             )}
 
             {selected && (
               <>
-                <div className="flex-1 overflow-y-auto p-2 space-y-4">
+                {/* Chat Header */}
+                <div className="p-4 border-b border-border bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-semibold">
+                        {selected.title?.[0] || 'C'}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{selected.title || 'Chat'}</h3>
+                        <p className="text-xs text-muted-foreground">{selected.participants?.length || 0} participants</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/5">
                   {messages.map((m) => {
                     const isOnline = m.sender_id && onlineUsers.has(m.sender_id);
-                    const isMine = m.sender_id === user?.id;
+                    const currentUserId = user?.id || user?._id;
+                    const isMine = m.sender_id === currentUserId;
                     const isEditing = editingMessageId === m.id;
                     
                     return (
-                      <div key={m.id} className={`flex gap-2 ${isMine ? 'flex-row-reverse' : ''} group`}>
+                      <div key={m.id} className={`flex gap-2 ${isMine ? 'flex-row-reverse' : ''} group animate-in slide-in-from-bottom duration-300`}>
                         <div className="relative flex-shrink-0">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-sm font-semibold">
-                            {m.sender?.name?.[0] || 'U'}
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-sm font-semibold shadow-md">
+                            {m.sender?.name?.[0]?.toUpperCase() || 'U'}
                           </div>
                           {!isMine && isOnline && (
-                            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
+                            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse"></span>
                           )}
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <div className={`max-w-[70%] p-3 rounded-xl ${isMine ? 'bg-primary text-white' : 'bg-gray-100 text-gray-800'}`}>
+                        <div className="flex flex-col gap-1 max-w-[75%]">
+                          <div className={`p-3 rounded-2xl shadow-sm ${
+                            isMine 
+                              ? 'bg-gradient-to-br from-primary to-primary/90 text-white rounded-br-sm' 
+                              : 'bg-card border border-border text-foreground rounded-bl-sm'
+                          }`}>
                             {!isMine && <div className="text-xs font-semibold mb-1">{m.sender?.name || 'Unknown'}</div>}
                             {isEditing ? (
-                              <div className="space-y-2">
+                              <div className="space-y-3 bg-white dark:bg-gray-900 p-3 rounded-lg border-2 border-primary/30">
+                                <div className="flex items-center gap-2 text-xs font-medium text-primary mb-2">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                  </svg>
+                                  <span>Editing message</span>
+                                </div>
                                 <input
                                   type="text"
                                   value={editText}
                                   onChange={(e) => setEditText(e.target.value)}
-                                  className="w-full px-2 py-1 border rounded text-black"
+                                  className="w-full px-3 py-2 border-2 border-primary/20 rounded-lg text-black dark:text-white dark:bg-gray-800 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                                   autoFocus
                                   onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
                                 />
                                 <div className="flex gap-2">
-                                  <button onClick={saveEdit} className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600">
+                                  <button onClick={saveEdit} className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all shadow-sm hover:shadow">
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
                                     Save
                                   </button>
-                                  <button onClick={cancelEdit} className="px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500">
+                                  <button onClick={cancelEdit} className="flex items-center gap-1.5 px-4 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium hover:bg-gray-600 transition-all shadow-sm">
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
                                     Cancel
                                   </button>
                                 </div>
@@ -473,17 +586,34 @@ const Chat = () => {
                                   </div>
                                 )}
                                 {m.edited && (
-                                  <div className="text-xs opacity-70 italic mt-1">edited</div>
+                                  <div className="flex items-center gap-1 text-xs opacity-60 mt-2">
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                    </svg>
+                                    <span className="italic">Edited</span>
+                                  </div>
                                 )}
                               </>
                             )}
                           </div>
                           {isMine && !isEditing && m.content_type === 'text' && (
-                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => startEdit(m)} className="text-xs text-blue-500 hover:text-blue-700">
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                              <button 
+                                onClick={() => startEdit(m)} 
+                                className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-md transition-all font-medium shadow-sm hover:shadow"
+                              >
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                </svg>
                                 Edit
                               </button>
-                              <button onClick={() => deleteMessage(m.id)} className="text-xs text-red-500 hover:text-red-700">
+                              <button 
+                                onClick={() => deleteMessage(m.id)} 
+                                className="flex items-center gap-1 px-2 py-1 text-xs bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-md transition-all font-medium shadow-sm hover:shadow"
+                              >
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
                                 Delete
                               </button>
                             </div>
@@ -510,11 +640,27 @@ const Chat = () => {
                         <Smile className="w-5 h-5" />
                       </button>
                       {showEmojiPicker && (
-                        <div className="absolute bottom-12 left-0 z-50">
-                          <EmojiPicker onEmojiClick={(emoji) => {
-                            setMessageText((prev) => prev + emoji.emoji);
-                            setShowEmojiPicker(false);
-                          }} />
+                        <div className="absolute bottom-14 left-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-4 w-80">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Pick an emoji</span>
+                            <button onClick={() => setShowEmojiPicker(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-8 gap-2 max-h-64 overflow-y-auto">
+                            {['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '👍', '👎', '👏', '🙌', '👌', '🤝', '❤️', '💕', '💖', '💗', '✨', '🎉', '🎊', '🔥', '💯'].map((emoji) => (
+                              <button
+                                key={emoji}
+                                onClick={() => {
+                                  setMessageText((prev) => prev + emoji);
+                                  setShowEmojiPicker(false);
+                                }}
+                                className="text-2xl hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded transition-colors flex items-center justify-center min-w-[2.5rem] min-h-[2.5rem]"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -536,10 +682,14 @@ const Chat = () => {
                       onChange={(e) => setMessageText(e.target.value)} 
                       onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
                       placeholder="Write a message..." 
-                      className="flex-1 px-4 py-2 border rounded-lg" 
+                      className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" 
                       disabled={uploading}
                     />
-                    <button onClick={handleSend} disabled={uploading} className="p-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                    <button 
+                      onClick={handleSend} 
+                      disabled={uploading || !messageText.trim()} 
+                      className="p-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
                       <Send className="w-5 h-5" />
                     </button>
                   </div>

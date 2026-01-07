@@ -386,10 +386,10 @@ How can I assist you today?`,
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 hover:scale-110 transition-transform animate-pulse"
+          className="fixed bottom-4 right-4 h-12 w-12 rounded-full shadow-lg z-50 hover:scale-110 transition-transform animate-pulse"
           size="icon"
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className="h-5 w-5" />
           <span className="sr-only">Open AI Assistant</span>
         </Button>
       )}
@@ -398,10 +398,10 @@ How can I assist you today?`,
       {isOpen && (
         <Card
           className={cn(
-            "fixed right-6 shadow-2xl z-50 flex flex-col transition-all duration-300",
+            "fixed right-4 shadow-2xl z-50 flex flex-col transition-all duration-300",
             isMinimized
-              ? "bottom-6 w-96 h-16"
-              : "bottom-6 w-96 h-[700px] md:h-[600px]"
+              ? "bottom-4 w-80 h-14"
+              : "bottom-4 w-80 h-[520px] md:h-[480px]"
           )}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b">

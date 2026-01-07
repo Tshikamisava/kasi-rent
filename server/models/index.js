@@ -28,13 +28,13 @@ Reaction.belongsTo(Message, { foreignKey: 'message_id' });
 User.hasMany(Message, { foreignKey: 'sender_id', as: 'messages' });
 Message.belongsTo(User, { foreignKey: 'sender_id', as: 'sender' });
 
-// Booking associations
-Property.hasMany(Booking, { foreignKey: 'property_id', as: 'bookings' });
-Booking.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
+// Booking associations - Property is in Supabase, so we don't enforce FK constraints
+// Property.hasMany(Booking, { foreignKey: 'property_id', as: 'bookings' });
+// Booking.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
 
-// Review associations
-Property.hasMany(Review, { foreignKey: 'property_id', as: 'reviews' });
-Review.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
+// Review associations - Property is in Supabase, so we don't enforce FK constraints
+// Property.hasMany(Review, { foreignKey: 'property_id', as: 'reviews' });
+// Review.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
 
 export {
   User,

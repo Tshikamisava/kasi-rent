@@ -6,6 +6,8 @@ export const submitReview = async (req, res) => {
   try {
     const { property_id, rating, comment, user_id, author_name } = req.body;
 
+    console.log('Review submission received:', { property_id, rating, user_id, author_name });
+
     if (!property_id || !rating || !comment) {
       return res.status(400).json({
         success: false,
@@ -13,13 +15,27 @@ export const submitReview = async (req, res) => {
       });
     }
 
-    // Verify property exists
-    const property = await Property.findByPk(property_id);
-    if (!property) {
-      return res.status(404).json({
+    // Validate property_id format (should be UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(property_id)) {
+      console.error('Invalid property ID format:', property_id);
+      return res.status(400).json({
         success: false,
-        message: 'Property not found'
+        message: `Invalid property ID format: ${property_id}`
       });
+    }
+
+    // Try to verify property exists in MySQL, but don't fail if it doesn't
+    // Properties might be stored in Supabase only
+    try {
+      const property = await Property.findByPk(property_id);
+      if (property) {
+        console.log('Property found in MySQL:', property.id);
+      } else {
+        console.log('Property not found in MySQL, but continuing (may be in Supabase)');
+      }
+    } catch (error) {
+      console.log('Property lookup error (non-fatal):', error.message);
     }
 
     const review = await Review.create({
@@ -29,6 +45,8 @@ export const submitReview = async (req, res) => {
       comment,
       author_name: author_name || 'Anonymous'
     });
+
+    console.log('Review created successfully:', review.id);
 
     res.status(201).json({
       success: true,

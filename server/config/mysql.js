@@ -24,8 +24,9 @@ const connectDB = async () => {
   try {
     await sequelize.authenticate();
     console.log('✅ MySQL Connected successfully');
-    await sequelize.sync({ alter: true });
-    console.log('✅ Database synced');
+    // Don't sync/alter schema to preserve manual FK changes
+    // await sequelize.sync({ alter: true });
+    console.log('✅ Database ready');
   } catch (error) {
     console.error('❌ MySQL Connection Error:', error.message);
   }

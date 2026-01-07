@@ -198,21 +198,49 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
       return;
     }
 
+    // Validate all required fields before submission
+    if (!property?.id) {
+      console.error('Property ID missing:', property);
+      toast({
+        title: "Error",
+        description: "Property information is missing. Please refresh and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check both id and _id fields for user
+    const userId = user?.id || user?._id;
+    if (!userId) {
+      console.error('User ID missing:', user);
+      toast({
+        title: "Error",
+        description: "User information is missing. Please sign in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSubmitting(true);
     try {
+      const bookingPayload = {
+        property_id: property.id,
+        tenant_id: userId,
+        landlord_id: property.landlord_id || property.landlord?.id || null,
+        move_in_date: bookingData.move_in_date,
+        move_out_date: bookingData.move_out_date || null,
+        message: bookingData.message,
+      };
+
+      console.log('Submitting booking with payload:', bookingPayload);
+
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
       const response = await fetch(`${API_BASE}/api/bookings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          property_id: property.id,
-          tenant_id: user.id,
-          move_in_date: bookingData.move_in_date,
-          move_out_date: bookingData.move_out_date || null,
-          message: bookingData.message,
-        }),
+        body: JSON.stringify(bookingPayload),
       });
 
       // Check if response is JSON
@@ -518,6 +546,10 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
             propertyTitle={property.title}
             propertyDescription={property.description}
             price={property.price}
+            location={property.location}
+            propertyType={property.property_type}
+            bedrooms={property.bedrooms}
+            bathrooms={property.bathrooms}
           />
         </div>
       </DialogContent>

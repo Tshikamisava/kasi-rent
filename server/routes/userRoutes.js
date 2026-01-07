@@ -1,5 +1,5 @@
 import express from "express";
-import { getLandlordContact, getUserProfile, findUserByEmail, listUsers } from "../controllers/userController.js";
+import { getLandlordContact, getUserProfile, findUserByEmail, listUsers, syncUser } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -10,6 +10,9 @@ router.get("/landlord/:landlord_id/contact", protect, getLandlordContact);
 // Get user profile
 router.get("/profile/:user_id", protect, getUserProfile);
 router.get("/profile", protect, getUserProfile);
+
+// Sync Supabase user to MySQL (for chat)
+router.post("/sync", protect, syncUser);
 
 // Find user by email (public for chat discovery)
 router.get("/find", findUserByEmail);

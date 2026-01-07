@@ -9,11 +9,7 @@ const Review = sequelize.define('Review', {
   },
   property_id: {
     type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'properties',
-      key: 'id'
-    }
+    allowNull: false
   },
   user_id: {
     type: DataTypes.STRING,

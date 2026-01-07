@@ -19,6 +19,10 @@ interface FraudDetectorProps {
   propertyTitle: string;
   propertyDescription?: string;
   price?: number;
+  location?: string;
+  propertyType?: string;
+  bedrooms?: number;
+  bathrooms?: number;
 }
 
 export const FraudDetector = ({
@@ -26,6 +30,10 @@ export const FraudDetector = ({
   propertyTitle,
   propertyDescription,
   price,
+  location,
+  propertyType,
+  bedrooms,
+  bathrooms,
 }: FraudDetectorProps) => {
   const { toast } = useToast();
   const [analyzing, setAnalyzing] = useState(false);
@@ -39,6 +47,10 @@ export const FraudDetector = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          location,
+          property_type: propertyType,
+          bedrooms,
+          bathrooms,
           propertyId,
           title: propertyTitle,
           description: propertyDescription,
@@ -52,12 +64,17 @@ export const FraudDetector = ({
         throw new Error(data.message || "Failed to analyze property");
       }
 
-      setResult(data);
+      // API sometimes nests the result under `analysis`; handle both shapes safely
+      const analysis = data.analysis ?? data;
+
+      setResult(analysis);
+
+      const riskLabel = analysis.riskLevel?.toUpperCase?.() || "UNKNOWN";
 
       toast({
-        title: data.isSuspicious ? "⚠️ Suspicious Activity Detected" : "✅ Property Verified",
-        description: `Risk Level: ${data.riskLevel.toUpperCase()}`,
-        variant: data.isSuspicious ? "destructive" : "default",
+        title: analysis.isSuspicious ? "⚠️ Suspicious Activity Detected" : "✅ Property Verified",
+        description: `Risk Level: ${riskLabel}`,
+        variant: analysis.isSuspicious ? "destructive" : "default",
       });
     } catch (error) {
       toast({
@@ -129,9 +146,9 @@ export const FraudDetector = ({
             <div className="p-3 bg-muted rounded-lg">
               <p className="text-xs text-muted-foreground mb-2">Fraud Risk Score</p>
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-2 bg-gray-300 rounded-full overflow-hidden">
+                <div className="flex-1 h-4 bg-gray-300 rounded-full overflow-hidden relative">
                   <div
-                    className={`h-full transition-all ${
+                    className={`h-full transition-all flex items-center justify-center text-xs font-semibold text-white ${
                       result.score < 33
                         ? "bg-green-500"
                         : result.score < 66
@@ -139,9 +156,15 @@ export const FraudDetector = ({
                         : "bg-red-500"
                     }`}
                     style={{ width: `${result.score}%` }}
-                  />
+                  >
+                    {result.score > 20 && `${Math.round(result.score)}%`}
+                  </div>
+                  {result.score <= 20 && (
+                    <span className="absolute left-2 text-xs font-semibold text-gray-700">
+                      {Math.round(result.score)}%
+                    </span>
+                  )}
                 </div>
-                <span className="font-bold">{Math.round(result.score)}%</span>
               </div>
             </div>
 

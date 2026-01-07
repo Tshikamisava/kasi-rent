@@ -87,17 +87,36 @@ export const PropertyReviews = ({
       return;
     }
 
+    if (!propertyId) {
+      console.error('Property ID missing for review');
+      toast({
+        title: "Error",
+        description: "Property ID not found. Please refresh and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSubmitting(true);
     try {
+      // Support both id and _id fields for user
+      const userId = user?.id || user?._id;
+      
+      const reviewPayload = {
+        property_id: propertyId,
+        rating,
+        comment,
+        user_id: userId,
+        author_name: user.name || user.email || 'Anonymous',
+      };
+
+      console.log('Submitting review with payload:', reviewPayload);
+
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
       const response = await fetch(`${API_BASE}/api/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          property_id: propertyId,
-          rating,
-          comment,
-        }),
+        body: JSON.stringify(reviewPayload),
       });
 
       const data = await response.json();

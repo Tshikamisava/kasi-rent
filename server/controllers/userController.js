@@ -89,6 +89,8 @@ export const findUserByEmail = async (req, res) => {
 export const listUsers = async (req, res) => {
   try {
     const { role, search } = req.query;
+    console.log('Listing users with search:', search, 'role:', role);
+    
     const where = {};
 
     // Filter by role if specified
@@ -111,6 +113,8 @@ export const listUsers = async (req, res) => {
       limit: 50,
       order: [['name', 'ASC']],
     });
+
+    console.log(`Found ${users.length} users`);
 
     res.json({
       success: true,
@@ -167,5 +171,38 @@ export const updateAvatar = async (req, res) => {
   } catch (error) {
     console.error('Error updating avatar:', error);
     res.status(500).json({ error: 'Failed to update avatar', message: error.message });
+  }
+};
+
+/**
+ * Sync Supabase user to MySQL (for chat functionality)
+ */
+export const syncUser = async (req, res) => {
+  try {
+    const user = req.user; // From auth middleware
+    
+    if (!user || !user.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Check if user already exists in MySQL
+    let mysqlUser = await User.findByPk(user.id);
+    
+    if (mysqlUser) {
+      return res.json({ success: true, message: 'User already synced', user: mysqlUser });
+    }
+
+    // Create user in MySQL
+    mysqlUser = await User.create({
+      id: user.id,
+      name: user.name || 'User',
+      email: user.email,
+      role: user.role || 'tenant',
+    });
+
+    res.json({ success: true, message: 'User synced to database', user: mysqlUser });
+  } catch (error) {
+    console.error('Error syncing user:', error);
+    res.status(500).json({ error: 'Failed to sync user', message: error.message });
   }
 };

@@ -8,13 +8,13 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPE
  */
 export const analyzePropertyForFraud = async (req, res) => {
   try {
-    const { title, description, price, location, property_type, bedrooms, bathrooms } = req.body;
+    const { title, description = "", price, location, property_type, bedrooms, bathrooms } = req.body;
 
-    // Validate required fields
-    if (!title || !description || !price || !location) {
+    // Validate required fields (description is optional)
+    if (!title || !price || !location) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields for fraud analysis",
+        message: "Missing required fields: title, price, and location are required",
       });
     }
 

@@ -57,7 +57,12 @@ import http from 'http';
 import { initSocket } from './socket.js';
 
 const startServer = async () => {
-  await connectDB();
+  try {
+    await connectDB();
+  } catch (err) {
+    console.error("⚠️  Database connection failed, starting API in degraded mode:", err.message);
+  }
+
   const server = http.createServer(app);
   initSocket(server);
   server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

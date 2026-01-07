@@ -18,7 +18,7 @@ const User = sequelize.define('User', {
   },
   password: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true  // Made optional for Supabase users
   },
   name: {
     type: DataTypes.STRING,
