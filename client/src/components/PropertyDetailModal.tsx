@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, BedDouble, Bath, Phone, Mail, User, Building2, Copy, Calendar } from "lucide-react";
+import { MapPin, BedDouble, Bath, Phone, Mail, User, Building2, Copy, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +38,22 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
     message: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Get all images from the property
+  const propertyImages = property?.images && Array.isArray(property.images) && property.images.length > 0
+    ? property.images
+    : property?.image_url
+    ? [property.image_url]
+    : [];
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % propertyImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + propertyImages.length) % propertyImages.length);
+  };
 
   // Debug logging
   useEffect(() => {
@@ -289,18 +305,70 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Property Image */}
-          {property.image_url ? (
-            <div className="h-64 w-full rounded-lg overflow-hidden">
-              <img
-                src={property.image_url}
-                alt={property.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = '/property-placeholder.png';
-                }}
-              />
+          {/* Property Image Gallery */}
+          {propertyImages.length > 0 ? (
+            <div className="relative">
+              <div className="h-64 md:h-96 w-full rounded-lg overflow-hidden">
+                <img
+                  src={propertyImages[currentImageIndex]}
+                  alt={`${property.title} - Image ${currentImageIndex + 1}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/property-placeholder.png';
+                  }}
+                />
+              </div>
+              
+              {/* Navigation Arrows */}
+              {propertyImages.length > 1 && (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-80 hover:opacity-100"
+                    onClick={prevImage}
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-80 hover:opacity-100"
+                    onClick={nextImage}
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </Button>
+                  
+                  {/* Image Counter */}
+                  <div className="absolute bottom-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
+                    {currentImageIndex + 1} / {propertyImages.length}
+                  </div>
+                </>
+              )}
+              
+              {/* Thumbnail Navigation */}
+              {propertyImages.length > 1 && (
+                <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
+                  {propertyImages.map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`flex-shrink-0 h-16 w-20 rounded overflow-hidden border-2 transition-all ${
+                        index === currentImageIndex
+                          ? 'border-primary ring-2 ring-primary'
+                          : 'border-transparent opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Thumbnail ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <div className="h-64 w-full rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">

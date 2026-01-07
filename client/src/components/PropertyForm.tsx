@@ -27,12 +27,12 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
     image_url: "",
   });
 
-  // Local file upload + preview state
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // Local file upload + preview state - now supporting multiple files
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  // Debug: store last uploaded image URL for quick verification
-  const [lastUploadedUrl, setLastUploadedUrl] = useState<string | null>(null);
+  // Debug: store last uploaded image URLs for quick verification
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   // Fraud detection state
   const [fraudAnalysis, setFraudAnalysis] = useState<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -45,25 +45,39 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
 
   useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      // Clean up all preview URLs
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
     };
-  }, [previewUrl]);
+  }, [previewUrls]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setSelectedFiles(files);
+      // Create preview URLs for all selected files
+      const newPreviewUrls = files.map(file => URL.createObjectURL(file));
+      // Clean up old preview URLs
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+      setPreviewUrls(newPreviewUrls);
     } else {
-      setSelectedFile(null);
-      setPreviewUrl(null);
+      setSelectedFiles([]);
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+      setPreviewUrls([]);
     }
   };
 
-  const handleCopyUrl = async () => {
-    if (!lastUploadedUrl) return;
+  const removeImage = (index: number) => {
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    const newPreviews = previewUrls.filter((_, i) => i !== index);
+    // Revoke the removed preview URL
+    URL.revokeObjectURL(previewUrls[index]);
+    setSelectedFiles(newFiles);
+    setPreviewUrls(newPreviews);
+  };
+
+  const handleCopyUrl = async (url: string) => {
     try {
-      await navigator.clipboard.writeText(lastUploadedUrl);
+      await navigator.clipboard.writeText(url);
       toast({ title: "Copied!", description: "Image URL copied to clipboard" });
     } catch (err) {
       toast({ title: "Error", description: "Failed to copy URL", variant: "destructive" });
@@ -263,20 +277,36 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
 
     setLoading(true);
     try {
-      // If user selected a file, upload it to Supabase Storage and use its public URL
-      let finalImageUrl = formData.image_url;
+      // Upload multiple images to Supabase Storage
+      const uploadedUrls: string[] = [];
 
-      if (selectedFile) {
+      if (selectedFiles.length > 0) {
         setUploading(true);
-        const fileExt = selectedFile.name.split('.').pop();
-        const filePath = `properties/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+        
+        for (const file of selectedFiles) {
+          const fileExt = file.name.split('.').pop();
+          const filePath = `properties/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage.from('images').upload(filePath, selectedFile);
-        if (uploadError) throw uploadError;
+          const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
+          if (uploadError) {
+            console.error('Upload error for file:', file.name, uploadError);
+            toast({
+              title: "Upload Warning",
+              description: `Failed to upload ${file.name}`,
+              variant: "destructive",
+            });
+            continue; // Skip this file but continue with others
+          }
 
-        const { data: publicData } = supabase.storage.from('images').getPublicUrl(filePath);
-        finalImageUrl = publicData.publicUrl;
+          const { data: publicData } = supabase.storage.from('images').getPublicUrl(filePath);
+          uploadedUrls.push(publicData.publicUrl);
+        }
+
+        setUploading(false);
       }
+
+      // Use the first uploaded image as the primary image, or use the URL field
+      const primaryImageUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : formData.image_url;
 
       const { error } = await supabase.from("properties").insert({
         landlord_id: user._id,
@@ -287,27 +317,24 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
         bathrooms: parseInt(formData.bathrooms),
         property_type: formData.property_type,
         description: formData.description,
-        image_url: finalImageUrl,
+        image_url: primaryImageUrl,
+        images: uploadedUrls.length > 0 ? uploadedUrls : (formData.image_url ? [formData.image_url] : []),
       });
 
       if (error) throw error;
 
       toast({
         title: "Success!",
-        description: "Property listed successfully",
+        description: `Property listed successfully with ${uploadedUrls.length} image(s)`,
       });
 
-      // Debug: show uploaded image URL and log it for verification
-      if (finalImageUrl) {
-        toast({
-          title: "Image uploaded",
-          description: finalImageUrl,
-        });
-        console.log("Uploaded image URL:", finalImageUrl);
-        setLastUploadedUrl(finalImageUrl);
+      // Store uploaded URLs for reference
+      if (uploadedUrls.length > 0) {
+        setUploadedImageUrls(uploadedUrls);
+        console.log("Uploaded image URLs:", uploadedUrls);
       }
 
-      // reset form + uploaded file preview
+      // reset form + uploaded file previews
       setFormData({
         title: "",
         location: "",
@@ -318,8 +345,9 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
         description: "",
         image_url: "",
       });
-      setSelectedFile(null);
-      setPreviewUrl(null);
+      setSelectedFiles([]);
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+      setPreviewUrls([]);
       setUploading(false);
 
       onSuccess();
@@ -469,51 +497,87 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
           </div>
 
           <div>
-            <Label>Image</Label>
+            <Label>Property Images (Multiple)</Label>
             <input
               type="file"
               accept="image/*"
               onChange={handleFileChange}
               className="mt-2"
               disabled={uploading || loading}
+              multiple
             />
+            <p className="text-sm text-muted-foreground mt-1">
+              Select multiple images to showcase different angles and rooms of your property
+            </p>
 
             {uploading && (
               <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" aria-hidden />
-                <span>Uploading image...</span>
+                <span>Uploading {selectedFiles.length} image(s)...</span>
               </div>
             )}
 
-            {previewUrl ? (
-              <img src={previewUrl} alt="preview" className="mt-2 h-40 w-full object-cover rounded" />
-            ) : formData.image_url ? (
-              <img
-                src={formData.image_url}
-                alt="preview"
-                className="mt-2 h-40 w-full object-cover rounded"
-                onError={(e) => {
-                  const t = e.target as HTMLImageElement;
-                  t.src = '/property-placeholder.png';
-                }}
-              />
-            ) : null}
+            {/* Preview Grid */}
+            {previewUrls.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
+                {previewUrls.map((url, index) => (
+                  <div key={index} className="relative group">
+                    <img 
+                      src={url} 
+                      alt={`Preview ${index + 1}`} 
+                      className="h-32 w-full object-cover rounded border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label={`Remove image ${index + 1}`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                    <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                      {index === 0 ? 'Primary' : `Image ${index + 1}`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            {lastUploadedUrl && (
-              <div className="mt-2 text-sm flex items-center gap-3">
-                <div>
-                  Uploaded URL: <a href={lastUploadedUrl} target="_blank" rel="noopener noreferrer" className="underline text-primary">{lastUploadedUrl}</a>
-                </div>
-                <div>
-                  <Button size="sm" onClick={handleCopyUrl} aria-label="Copy uploaded image URL">
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy URL
-                  </Button>
+            {/* Display uploaded URLs */}
+            {uploadedImageUrls.length > 0 && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+                <p className="font-semibold text-sm text-green-900 mb-2">
+                  ✓ {uploadedImageUrls.length} Image(s) Uploaded Successfully
+                </p>
+                <div className="space-y-2">
+                  {uploadedImageUrls.map((url, index) => (
+                    <div key={index} className="flex items-center gap-2 text-xs">
+                      <span className="text-green-700">Image {index + 1}:</span>
+                      <a 
+                        href={url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="underline text-primary truncate flex-1"
+                      >
+                        {url}
+                      </a>
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => handleCopyUrl(url)} 
+                        className="h-6 px-2"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            <Label htmlFor="image_url" className="mt-3">Or Image URL</Label>
+            <Label htmlFor="image_url" className="mt-3">Or Single Image URL (Optional)</Label>
             <Input
               id="image_url"
               type="url"

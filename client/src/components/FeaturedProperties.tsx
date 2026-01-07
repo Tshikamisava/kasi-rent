@@ -1,7 +1,7 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, BedDouble, Bath, Building2 } from "lucide-react";
+import { MapPin, BedDouble, Bath, Building2, Images } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
@@ -73,12 +73,16 @@ export const FeaturedProperties = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {properties.map((property) => (
+          {properties.map((property) => {
+            const imageCount = property.images && Array.isArray(property.images) ? property.images.length : (property.image_url ? 1 : 0);
+            const displayImage = property.images && property.images.length > 0 ? property.images[0] : property.image_url;
+            
+            return (
             <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-shadow">
-              {property.image_url ? (
-                <div className="h-48 overflow-hidden">
+              {displayImage ? (
+                <div className="h-48 overflow-hidden relative">
                   <img 
-                    src={property.image_url} 
+                    src={displayImage} 
                     alt={property.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -86,6 +90,12 @@ export const FeaturedProperties = () => {
                       target.src = '/property-placeholder.png';
                     }}
                   />
+                  {imageCount > 1 && (
+                    <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                      <Images className="w-3 h-3" />
+                      {imageCount}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
@@ -136,7 +146,8 @@ export const FeaturedProperties = () => {
                 </Button>
               </CardFooter>
             </Card>
-          ))}
+            );
+          })}
         </div>
 
         <div className="text-center mt-12">
