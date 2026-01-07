@@ -34,46 +34,19 @@ const Properties = () => {
 
   const fetchProperties = async (verifiedOnly: boolean) => {
     try {
-      // Fetch properties with landlord information if available
-      let query = supabase
-        .from("properties")
-        .select(`
-          *,
-          landlord:landlord_id (
-            id,
-            name,
-            email,
-            phone
-          )
-        `)
-        .order("created_at", { ascending: false });
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const verifiedParam = verifiedOnly ? '?is_verified=true' : '';
+      const response = await fetch(`${API_BASE}/api/properties${verifiedParam}`);
+      const data = await response.json();
 
-      if (verifiedOnly) {
-        query = query.eq("is_verified", true);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        // If join fails, just get properties without landlord info
-        let fallbackQuery = supabase
-          .from("properties")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (verifiedOnly) {
-          fallbackQuery = fallbackQuery.eq("is_verified", true);
-        }
-
-        const { data: propertiesData, error: propertiesError } = await fallbackQuery;
-        
-        if (propertiesError) throw propertiesError;
-        setProperties(propertiesData || []);
-      } else {
-        setProperties(data || []);
-      }
+      if (!response.ok) throw new Error('Failed to fetch properties');
+      
+      setProperties(data || []);
+      setFilteredProperties(data || []);
     } catch (error) {
       console.error("Error fetching properties:", error);
+      setProperties([]);
+      setFilteredProperties([]);
     } finally {
       setLoading(false);
     }

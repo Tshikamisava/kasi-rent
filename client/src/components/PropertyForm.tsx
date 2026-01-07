@@ -277,88 +277,47 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
 
     setLoading(true);
     try {
-      // Upload multiple images to Supabase Storage
+      // Upload multiple images to server
       const uploadedUrls: string[] = [];
       let uploadErrors = 0;
 
       if (selectedFiles.length > 0) {
         setUploading(true);
         
-        // Check if storage bucket exists first
-        const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+        const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
         
-        if (bucketError) {
-          console.error('Storage bucket check failed:', bucketError);
-          toast({
-            title: "⚠️ Storage Connection Error",
-            description: "Cannot connect to Supabase Storage. Make sure you have a .env file in the client folder with VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY. See SETUP-STORAGE-NOW.md for help.",
-            variant: "destructive",
-            duration: 10000,
-          });
-          console.error('❌ Supabase Storage Error:', bucketError);
-          console.log('📝 Check:');
-          console.log('1. Do you have client/.env file?');
-          console.log('2. Is VITE_SUPABASE_URL set correctly?');
-          console.log('3. Is VITE_SUPABASE_PUBLISHABLE_KEY set correctly?');
-          setUploading(false);
-          setLoading(false);
-          return;
-        }
-
-        const imagesBucket = buckets?.find(b => b.name === 'images');
-        if (!imagesBucket) {
-          toast({
-            title: "⚠️ Storage Not Ready",
-            description: "Please set up the storage bucket. Check SETUP-STORAGE-NOW.md file in the project folder for step-by-step instructions.",
-            variant: "destructive",
-            duration: 10000, // Show for 10 seconds
-          });
-          console.error('❌ Storage bucket "images" not found.');
-          console.log('📝 Setup Instructions:');
-          console.log('1. Go to your Supabase dashboard');
-          console.log('2. Open SQL Editor');
-          console.log('3. Run the SQL from: setup-supabase-storage.sql');
-          console.log('4. Or see SETUP-STORAGE-NOW.md for detailed guide');
-          setUploading(false);
-          setLoading(false);
-          return;
-        }
-        
+        // Upload each file to the server
         for (const file of selectedFiles) {
           try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-            const filePath = `properties/${fileName}`;
+            const uploadFormData = new FormData();
+            uploadFormData.append('image', file);
 
-            console.log(`Uploading ${file.name} to ${filePath}...`);
+            console.log(`Uploading ${file.name}...`);
 
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from('images')
-              .upload(filePath, file, {
-                cacheControl: '3600',
-                upsert: false
-              });
+            const response = await fetch(`${API_BASE}/api/upload/single`, {
+              method: 'POST',
+              body: uploadFormData,
+            });
 
-            if (uploadError) {
-              console.error('Upload error for file:', file.name, uploadError);
-              uploadErrors++;
-              toast({
-                title: "Upload Warning",
-                description: `Failed to upload ${file.name}: ${uploadError.message}`,
-                variant: "destructive",
-              });
-              continue;
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+              throw new Error(data.message || 'Upload failed');
             }
 
-            const { data: publicData } = supabase.storage.from('images').getPublicUrl(filePath);
-            
-            if (publicData?.publicUrl) {
-              uploadedUrls.push(publicData.publicUrl);
-              console.log(`Successfully uploaded: ${publicData.publicUrl}`);
-            }
+            // Construct full URL
+            const fullUrl = `${API_BASE}${data.imageUrl}`;
+            uploadedUrls.push(fullUrl);
+            console.log(`Successfully uploaded: ${fullUrl}`);
+
           } catch (fileError) {
-            console.error('Error processing file:', file.name, fileError);
+            console.error('Error uploading file:', file.name, fileError);
             uploadErrors++;
+            toast({
+              title: "Upload Warning",
+              description: `Failed to upload ${file.name}`,
+              variant: "destructive",
+            });
           }
         }
 
@@ -367,7 +326,7 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
         if (uploadErrors > 0 && uploadedUrls.length === 0) {
           toast({
             title: "Upload Failed",
-            description: "All image uploads failed. You can still list the property and add images later.",
+            description: "All image uploads failed. Please try again or use the image URL field.",
           });
         } else if (uploadErrors > 0) {
           toast({
@@ -382,10 +341,17 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
 
       console.log('Submitting property with:', {
         images: uploadedUrls,
-        primaryImage: primaryImageUrl
+        primaryImage: primaryImageUrl,
+        userId: user._id
       });
 
-      const { error } = await supabase.from("properties").insert({
+      // Submit to MySQL API instead of Supabase
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const apiUrl = `${API_BASE}/api/properties`;
+      
+      console.log('Posting to:', apiUrl);
+      
+      const propertyData = {
         landlord_id: user._id,
         title: formData.title,
         location: formData.location,
@@ -396,11 +362,27 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
         description: formData.description,
         image_url: primaryImageUrl,
         images: uploadedUrls.length > 0 ? uploadedUrls : (formData.image_url ? [formData.image_url] : []),
+      };
+      
+      console.log('Property data:', propertyData);
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(propertyData)
       });
 
-      if (error) {
-        console.error('Database insert error:', error);
-        throw error;
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      
+      const result = await response.json();
+      console.log('Response data:', result);
+
+      if (!response.ok || !result.success) {
+        console.error('Database insert error:', result);
+        throw new Error(result.message || 'Failed to create property');
       }
 
       toast({

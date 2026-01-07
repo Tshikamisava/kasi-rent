@@ -19,13 +19,11 @@ export const FeaturedProperties = () => {
 
   const fetchProperties = async () => {
     try {
-      const { data, error } = await supabase
-        .from("properties")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(3);
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_BASE}/api/properties?limit=3`);
+      const data = await response.json();
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to fetch properties');
       setProperties(data || []);
     } catch (error) {
       console.error("Error fetching properties:", error);
