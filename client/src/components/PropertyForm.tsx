@@ -279,34 +279,98 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
     try {
       // Upload multiple images to Supabase Storage
       const uploadedUrls: string[] = [];
+      let uploadErrors = 0;
 
       if (selectedFiles.length > 0) {
         setUploading(true);
         
+        // Check if storage bucket exists first
+        const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+        
+        if (bucketError) {
+          console.error('Storage bucket check failed:', bucketError);
+          toast({
+            title: "Storage Error",
+            description: "Unable to access image storage. Please contact support.",
+            variant: "destructive",
+          });
+          setUploading(false);
+          setLoading(false);
+          return;
+        }
+
+        const imagesBucket = buckets?.find(b => b.name === 'images');
+        if (!imagesBucket) {
+          toast({
+            title: "Storage Not Ready",
+            description: "Image storage bucket is not set up. Please contact support.",
+            variant: "destructive",
+          });
+          setUploading(false);
+          setLoading(false);
+          return;
+        }
+        
         for (const file of selectedFiles) {
-          const fileExt = file.name.split('.').pop();
-          const filePath = `properties/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+          try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+            const filePath = `properties/${fileName}`;
 
-          const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
-          if (uploadError) {
-            console.error('Upload error for file:', file.name, uploadError);
-            toast({
-              title: "Upload Warning",
-              description: `Failed to upload ${file.name}`,
-              variant: "destructive",
-            });
-            continue; // Skip this file but continue with others
+            console.log(`Uploading ${file.name} to ${filePath}...`);
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('images')
+              .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false
+              });
+
+            if (uploadError) {
+              console.error('Upload error for file:', file.name, uploadError);
+              uploadErrors++;
+              toast({
+                title: "Upload Warning",
+                description: `Failed to upload ${file.name}: ${uploadError.message}`,
+                variant: "destructive",
+              });
+              continue;
+            }
+
+            const { data: publicData } = supabase.storage.from('images').getPublicUrl(filePath);
+            
+            if (publicData?.publicUrl) {
+              uploadedUrls.push(publicData.publicUrl);
+              console.log(`Successfully uploaded: ${publicData.publicUrl}`);
+            }
+          } catch (fileError) {
+            console.error('Error processing file:', file.name, fileError);
+            uploadErrors++;
           }
-
-          const { data: publicData } = supabase.storage.from('images').getPublicUrl(filePath);
-          uploadedUrls.push(publicData.publicUrl);
         }
 
         setUploading(false);
+
+        if (uploadErrors > 0 && uploadedUrls.length === 0) {
+          toast({
+            title: "Upload Failed",
+            description: "All image uploads failed. You can still list the property and add images later.",
+          });
+        } else if (uploadErrors > 0) {
+          toast({
+            title: "Partial Upload",
+            description: `${uploadedUrls.length} of ${selectedFiles.length} images uploaded successfully`,
+          });
+        }
       }
 
       // Use the first uploaded image as the primary image, or use the URL field
-      const primaryImageUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : formData.image_url;
+      const primaryImageUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : (formData.image_url || null);
+
+      console.log('Submitting property with:', {
+        images: uploadedUrls,
+        primaryImage: primaryImageUrl
+      });
 
       const { error } = await supabase.from("properties").insert({
         landlord_id: user._id,
@@ -321,11 +385,16 @@ export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
         images: uploadedUrls.length > 0 ? uploadedUrls : (formData.image_url ? [formData.image_url] : []),
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database insert error:', error);
+        throw error;
+      }
 
       toast({
         title: "Success!",
-        description: `Property listed successfully with ${uploadedUrls.length} image(s)`,
+        description: uploadedUrls.length > 0 
+          ? `Property listed successfully with ${uploadedUrls.length} image(s)` 
+          : "Property listed successfully",
       });
 
       // Store uploaded URLs for reference
