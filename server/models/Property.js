@@ -23,6 +23,22 @@ const Property = sequelize.define('Property', {
     type: DataTypes.STRING,
     allowNull: false
   },
+  bedrooms: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  bathrooms: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  property_type: {
+    type: DataTypes.STRING,
+    defaultValue: 'house'
+  },
+  image_url: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   images: {
     type: DataTypes.JSON,
     defaultValue: []
@@ -30,6 +46,10 @@ const Property = sequelize.define('Property', {
   landlord_id: {
     type: DataTypes.STRING,
     allowNull: false
+  },
+  is_verified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
   status: {
     type: DataTypes.ENUM('available', 'rented', 'maintenance'),
