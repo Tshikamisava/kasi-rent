@@ -10,33 +10,65 @@ export const generatePropertyDescription = async (req, res) => {
     const { title, property_type, bedrooms, bathrooms, price, location, amenities } = req.body;
 
     // Validate required fields
-    if (!property_type || !bedrooms || !bathrooms || !price || !location) {
+    if (!property_type) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: property_type, bedrooms, bathrooms, price, location",
+        message: "Property type is required",
       });
     }
 
-    let description;
+    // Use default values for missing fields
+    const propertyData = {
+      title: title || '',
+      property_type: property_type,
+      bedrooms: bedrooms || 1,
+      bathrooms: bathrooms || 1,
+      price: price || 0,
+      location: location || 'Location not specified',
+      amenities: amenities || ''
+    };
 
-    if (openai) {
-      description = await generateWithAI(req.body);
+    let description;
+    let method = 'template';
+
+    // Try AI generation if API key is configured
+    if (openai && process.env.OPENAI_API_KEY) {
+      try {
+        description = await generateWithAI(propertyData);
+        method = 'ai';
+      } catch (aiError) {
+        console.warn("AI generation failed, falling back to template:", aiError.message);
+        description = generateWithTemplate(propertyData);
+      }
     } else {
-      description = generateWithTemplate(req.body);
+      // Use template if no API key
+      console.log("Using template method - OpenAI API key not configured");
+      description = generateWithTemplate(propertyData);
     }
 
     return res.status(200).json({
       success: true,
       description,
-      method: openai ? "ai" : "template",
+      method,
     });
   } catch (error) {
     console.error("Description generation error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to generate description",
-      error: error.message,
-    });
+    
+    // Fallback to template on any error
+    try {
+      const description = generateWithTemplate(req.body);
+      return res.status(200).json({
+        success: true,
+        description,
+        method: 'template-fallback',
+      });
+    } catch (fallbackError) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to generate description",
+        error: error.message,
+      });
+    }
   }
 };
 
@@ -99,45 +131,51 @@ Write only the property description, no titles or additional text.`;
  */
 function generateWithTemplate(propertyData) {
   const { property_type, bedrooms, bathrooms, price, location, amenities } = propertyData;
+  
+  const beds = bedrooms || 1;
+  const baths = bathrooms || 1;
+  const loc = location || 'prime location';
+  const rent = price || 'Competitive';
+  const amenitiesText = amenities ? `Amenities include: ${amenities}.` : "Contact for more details about amenities.";
 
   const templates = {
-    Apartment: `Beautiful ${bedrooms}-bedroom, ${bathrooms}-bathroom apartment in ${location}. 
+    Apartment: `Beautiful ${beds}-bedroom, ${baths}-bathroom apartment in ${loc}. 
 Perfect for modern living with great access to local amenities and transport. 
 This spacious unit features well-designed spaces and plenty of natural light. 
 Located in a secure, family-friendly area with nearby schools, shops, and services.
-Monthly rent: R${price}. ${amenities ? `Amenities include: ${amenities}.` : ""} 
+Monthly rent: R${typeof rent === 'number' ? rent.toLocaleString() : rent}. ${amenitiesText} 
 Don't miss this opportunity - arrange a viewing today!`,
 
-    House: `Stunning ${bedrooms}-bedroom, ${bathrooms}-bathroom house in desirable ${location}. 
+    House: `Stunning ${beds}-bedroom, ${baths}-bathroom house in desirable ${loc}. 
 This well-maintained property offers comfortable living with great potential. 
 The home features quality finishes, good outdoor space, and proximity to essential services.
 Perfect for families looking for a safe, convenient location.
-Monthly rent: R${price}. ${amenities ? `Features: ${amenities}.` : ""} 
+Monthly rent: R${typeof rent === 'number' ? rent.toLocaleString() : rent}. ${amenitiesText} 
 Schedule your viewing now and make this house your home!`,
 
-    Townhouse: `Modern ${bedrooms}-bedroom, ${bathrooms}-bathroom townhouse in ${location}. 
+    Townhouse: `Modern ${beds}-bedroom, ${baths}-bathroom townhouse in ${loc}. 
 Ideal for those seeking contemporary urban living with convenience.
 This property offers stylish design, secure parking, and excellent neighborhood amenities.
 Close to shopping centers, schools, and transport hubs.
-Monthly rent: R${price}. ${amenities ? `Includes: ${amenities}.` : ""} 
+Monthly rent: R${typeof rent === 'number' ? rent.toLocaleString() : rent}. ${amenitiesText} 
 Contact us today for a private showing!`,
 
-    Studio: `Cozy studio apartment in ${location}, perfect for professionals and students. 
+    Studio: `Cozy studio apartment in ${loc}, perfect for professionals and students. 
 This efficient space offers modern comfort in a prime location.
 Great access to local amenities, transport, and vibrant neighborhood.
-Monthly rent: R${price}. ${amenities ? `Amenities: ${amenities}.` : ""} 
+Monthly rent: R${typeof rent === 'number' ? rent.toLocaleString() : rent}. ${amenitiesText} 
 Ideal for independent living - book your viewing today!`,
 
-    Room: `Comfortable room in ${location}, perfect for a single tenant or couple.
+    Room: `Comfortable room in ${loc}, perfect for a single tenant or couple.
 Located in a friendly, secure residential area with excellent access to services.
-Monthly rent: R${price}. ${amenities ? `Amenities include: ${amenities}.` : ""} 
+Monthly rent: R${typeof rent === 'number' ? rent.toLocaleString() : rent}. ${amenitiesText} 
 Contact us to arrange a viewing!`,
   };
 
   return (
     templates[property_type] ||
-    `${bedrooms}-bedroom, ${bathrooms}-bathroom ${property_type} in ${location}.
-Monthly rent: R${price}. ${amenities ? `Amenities: ${amenities}.` : ""} 
+    `${beds}-bedroom, ${baths}-bathroom ${property_type} in ${loc}.
+Monthly rent: R${typeof rent === 'number' ? rent.toLocaleString() : rent}. ${amenitiesText} 
 Contact for viewing!`
   );
 }
@@ -149,33 +187,61 @@ export const generatePropertyTitle = async (req, res) => {
   try {
     const { property_type, bedrooms, bathrooms, location, price } = req.body;
 
-    if (!property_type || !location) {
+    if (!property_type) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: property_type, location",
+        message: "Property type is required",
       });
     }
 
-    let title;
+    // Use default values
+    const propertyData = {
+      property_type,
+      bedrooms: bedrooms || 1,
+      bathrooms: bathrooms || 1,
+      location: location || 'Great Location',
+      price: price || 0
+    };
 
-    if (openai) {
-      title = await generateTitleWithAI(req.body);
+    let title;
+    let method = 'template';
+
+    // Try AI generation if available
+    if (openai && process.env.OPENAI_API_KEY) {
+      try {
+        title = await generateTitleWithAI(propertyData);
+        method = 'ai';
+      } catch (aiError) {
+        console.warn("AI title generation failed, using template:", aiError.message);
+        title = generateTitleWithTemplate(propertyData);
+      }
     } else {
-      title = generateTitleWithTemplate(req.body);
+      title = generateTitleWithTemplate(propertyData);
     }
 
     return res.status(200).json({
       success: true,
       title,
-      method: openai ? "ai" : "template",
+      method,
     });
   } catch (error) {
     console.error("Title generation error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to generate title",
-      error: error.message,
-    });
+    
+    // Fallback
+    try {
+      const title = generateTitleWithTemplate(req.body);
+      return res.status(200).json({
+        success: true,
+        title,
+        method: 'template-fallback',
+      });
+    } catch (fallbackError) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to generate title",
+        error: error.message,
+      });
+    }
   }
 };
 
@@ -229,16 +295,20 @@ Return ONLY the title, nothing else.`;
  */
 function generateTitleWithTemplate(propertyData) {
   const { property_type, bedrooms, bathrooms, location } = propertyData;
+  
+  const beds = bedrooms || 1;
+  const baths = bathrooms || 1;
+  const loc = location || 'Great Location';
 
   const titles = {
-    Apartment: `${bedrooms}BR Apartment in ${location}`,
-    House: `${bedrooms}BR House in ${location}`,
-    Townhouse: `${bedrooms}BR Townhouse in ${location}`,
-    Studio: `Modern Studio in ${location}`,
-    Room: `Room in ${location}`,
+    Apartment: `${beds}BR Apartment in ${loc}`,
+    House: `${beds}BR ${baths}BA House in ${loc}`,
+    Townhouse: `${beds}BR Townhouse in ${loc}`,
+    Studio: `Modern Studio in ${loc}`,
+    Room: `Room for Rent in ${loc}`,
   };
 
-  return titles[property_type] || `${property_type} in ${location}`;
+  return titles[property_type] || `${property_type} in ${loc}`;
 }
 
 /**
@@ -248,33 +318,61 @@ export const suggestOptimalPrice = async (req, res) => {
   try {
     const { property_type, bedrooms, bathrooms, location, amenities } = req.body;
 
-    if (!property_type || !bedrooms || !location) {
+    if (!property_type) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields",
+        message: "Property type is required",
       });
     }
 
-    let priceSuggestion;
+    // Use default values
+    const propertyData = {
+      property_type,
+      bedrooms: bedrooms || 1,
+      bathrooms: bathrooms || 1,
+      location: location || 'General Area',
+      amenities: amenities || ''
+    };
 
-    if (openai) {
-      priceSuggestion = await suggestPriceWithAI(req.body);
+    let priceSuggestion;
+    let method = 'rule-based';
+
+    // Try AI if available
+    if (openai && process.env.OPENAI_API_KEY) {
+      try {
+        priceSuggestion = await suggestPriceWithAI(propertyData);
+        method = 'ai';
+      } catch (aiError) {
+        console.warn("AI price suggestion failed, using rules:", aiError.message);
+        priceSuggestion = suggestPriceWithRules(propertyData);
+      }
     } else {
-      priceSuggestion = suggestPriceWithRules(req.body);
+      priceSuggestion = suggestPriceWithRules(propertyData);
     }
 
     return res.status(200).json({
       success: true,
       suggestion: priceSuggestion,
-      method: openai ? "ai" : "rule-based",
+      method,
     });
   } catch (error) {
     console.error("Price suggestion error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to suggest price",
-      error: error.message,
-    });
+    
+    // Fallback
+    try {
+      const priceSuggestion = suggestPriceWithRules(req.body);
+      return res.status(200).json({
+        success: true,
+        suggestion: priceSuggestion,
+        method: 'rule-based-fallback',
+      });
+    } catch (fallbackError) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to suggest price",
+        error: error.message,
+      });
+    }
   }
 };
 
@@ -333,6 +431,10 @@ Respond with JSON format:
  */
 function suggestPriceWithRules(propertyData) {
   const { property_type, bedrooms, bathrooms, location } = propertyData;
+  
+  const beds = bedrooms || 1;
+  const baths = bathrooms || 1;
+  const loc = location || '';
 
   // Base prices per bed for common locations
   const baseLocationPrices = {
@@ -341,20 +443,23 @@ function suggestPriceWithRules(propertyData) {
     Sandton: 4500,
     Bryanston: 4200,
     Midrand: 3800,
+    Johannesburg: 3600,
+    Pretoria: 3400,
+    Centurion: 3700,
     default: 3500,
   };
 
   const locationKey = Object.keys(baseLocationPrices).find((key) =>
-    location.toLowerCase().includes(key.toLowerCase())
+    loc.toLowerCase().includes(key.toLowerCase())
   );
 
   const basePricePerBed = baseLocationPrices[locationKey] || baseLocationPrices.default;
 
   // Calculate base price
-  let basePrice = basePricePerBed * bedrooms;
+  let basePrice = basePricePerBed * beds;
 
   // Adjust for bathrooms
-  basePrice += bathrooms * 500;
+  basePrice += baths * 500;
 
   // Adjust for property type
   const typeMultipliers = {
@@ -369,9 +474,9 @@ function suggestPriceWithRules(propertyData) {
   basePrice = Math.round(basePrice * multiplier / 50) * 50;
 
   return {
-    minPrice: Math.round(basePrice * 0.9 / 50) * 50,
-    maxPrice: Math.round(basePrice * 1.2 / 50) * 50,
+    minPrice: Math.round(basePrice * 0.85 / 50) * 50,
+    maxPrice: Math.round(basePrice * 1.15 / 50) * 50,
     recommendedPrice: basePrice,
-    reasoning: `Based on ${property_type}, ${bedrooms}BR/${bathrooms}BA in ${location}. Adjust based on condition, amenities, and demand.`,
+    reasoning: `Based on ${property_type} with ${beds} bedroom(s) and ${baths} bathroom(s) in ${loc || 'your area'}. Prices may vary based on property condition, amenities, and market demand.`,
   };
 }
