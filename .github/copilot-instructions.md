@@ -14,7 +14,7 @@ KasiRent is a full-stack property rental application with distinct client and se
 - State management via React hooks and context
 
 ### Server (`/server`)
-- Express.js backend with MySQL (Sequelize)
+- Express.js backend with MongoDB (Mongoose)
 - RESTful API architecture with routes in `/routes`
 - Controllers in `/controllers` handling business logic
 - Models in `/models` defining data schemas
@@ -78,7 +78,7 @@ npm start  # Runs Express server
    - File uploads handled through Cloudinary (configured in `/server/config/cloudinary.js`)
 
 2. External Services:
-   - MySQL for data persistence
+   - MongoDB for data persistence
    - Cloudinary for image storage
    - Authentication middleware for protected routes
 
@@ -95,8 +95,8 @@ npm start  # Runs Express server
 ## Getting Started
 
 1. Set up environment:
-   - Create `.env` in server root (use `.env.example` as template)
-   - Configure MySQL connection (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)
+   - Create `.env` in server root
+   - Configure MongoDB connection
    - Set up Cloudinary credentials
 
 2. Install dependencies:
