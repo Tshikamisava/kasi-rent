@@ -8,6 +8,7 @@ import Reaction from './Reaction.js';
 import Property from './Property.js';
 import Booking from './Booking.js';
 import Review from './Review.js';
+import Favorite from './Favorite.js';
 
 // Associations
 Conversation.hasMany(Message, { foreignKey: 'conversation_id', as: 'messages' });
@@ -28,13 +29,20 @@ Reaction.belongsTo(Message, { foreignKey: 'message_id' });
 User.hasMany(Message, { foreignKey: 'sender_id', as: 'messages' });
 Message.belongsTo(User, { foreignKey: 'sender_id', as: 'sender' });
 
-// Booking associations - Property is in Supabase, so we don't enforce FK constraints
-// Property.hasMany(Booking, { foreignKey: 'property_id', as: 'bookings' });
-// Booking.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
+// Booking associations - Properties are now in MySQL
+Property.hasMany(Booking, { foreignKey: 'property_id', as: 'bookings' });
+Booking.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
 
-// Review associations - Property is in Supabase, so we don't enforce FK constraints
-// Property.hasMany(Review, { foreignKey: 'property_id', as: 'reviews' });
-// Review.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
+// Review associations - Properties are now in MySQL
+Property.hasMany(Review, { foreignKey: 'property_id', as: 'reviews' });
+Review.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
+
+// Favorite associations
+User.hasMany(Favorite, { foreignKey: 'user_id', as: 'favorites' });
+Favorite.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+Property.hasMany(Favorite, { foreignKey: 'property_id', as: 'favorites' });
+Favorite.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
 
 export {
   User,
@@ -46,4 +54,5 @@ export {
   Reaction,
   Property,
   Booking,
+  Favorite,
 };

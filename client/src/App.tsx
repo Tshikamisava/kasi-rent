@@ -19,6 +19,9 @@ const LandlordDashboard = lazy(() => import("./pages/LandlordDashboard"));
 const Payments = lazy(() => import("./pages/Payments"));
 const Chat = lazy(() => import("./pages/Chat"));
 const Bookings = lazy(() => import("./pages/Bookings"));
+const Savings = lazy(() => import("./pages/Savings"));
+const Favorites = lazy(() => import("./pages/Favorites"));
+const Profile = lazy(() => import("./pages/Profile"));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -88,6 +91,8 @@ const App = () => (
             <Route path="/signin" element={<SignIn />} />
             <Route path="/get-started" element={<GetStarted />} />
             <Route path="/payments" element={<Payments />} />
+            <Route path="/savings" element={<Savings />} />
+            <Route path="/favorites" element={<Favorites />} />
             
             {/* Protected Dashboard Routes */}
             <Route 
@@ -123,6 +128,16 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Bookings />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Profile - protected for authenticated users */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
                 </ProtectedRoute>
               }
             />

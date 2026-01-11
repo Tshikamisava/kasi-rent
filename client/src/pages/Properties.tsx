@@ -5,12 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, BedDouble, Bath, Search, Building2, ArrowLeft } from "lucide-react";
+import { MapPin, BedDouble, Bath, Search, Building2, ArrowLeft, Map, LayoutGrid, Video, Calendar } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PropertyDetailModal } from "@/components/PropertyDetailModal";
 import { RecommendedProperties } from "@/components/RecommendedProperties";
+import { PropertiesMap } from "@/components/PropertiesMap";
+import { StarRating } from "@/components/StarRating";
+import { AdvancedSearch } from "@/components/AdvancedSearch";
+import type { SearchFilters } from "@/components/AdvancedSearch";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 const Properties = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -20,10 +25,20 @@ const Properties = () => {
   const [onlyVerified, setOnlyVerified] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
+  const [selectedPropertyForMap, setSelectedPropertyForMap] = useState<string | null>(null);
   
-  const [searchQuery, setSearchQuery] = useState("");
-  const [propertyTypeFilter, setPropertyTypeFilter] = useState("all");
-  const [priceRangeFilter, setPriceRangeFilter] = useState("all");
+  const [propertyRatings, setPropertyRatings] = useState<{[key: string]: {avg: number, count: number}}>({});
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+    search: "",
+    minPrice: 0,
+    maxPrice: 50000,
+    bedrooms: "all",
+    bathrooms: "all",
+    property_type: "all",
+    sortBy: "created_at",
+    sortOrder: "DESC",
+  });
 
   useEffect(() => {
     const verifiedParam = searchParams.get("verified");
@@ -35,18 +50,57 @@ const Properties = () => {
   const fetchProperties = async (verifiedOnly: boolean) => {
     try {
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const verifiedParam = verifiedOnly ? '?is_verified=true' : '';
-      const response = await fetch(`${API_BASE}/api/properties${verifiedParam}`);
-      const data = await response.json();
-
-      if (!response.ok) throw new Error('Failed to fetch properties');
       
-      setProperties(data || []);
-      setFilteredProperties(data || []);
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (verifiedOnly) params.append('is_verified', 'true');
+      if (searchFilters.search) params.append('search', searchFilters.search);
+      if (searchFilters.minPrice > 0) params.append('minPrice', searchFilters.minPrice.toString());
+      if (searchFilters.maxPrice < 50000) params.append('maxPrice', searchFilters.maxPrice.toString());
+      if (searchFilters.bedrooms !== 'all') params.append('bedrooms', searchFilters.bedrooms);
+      if (searchFilters.bathrooms !== 'all') params.append('bathrooms', searchFilters.bathrooms);
+      if (searchFilters.property_type !== 'all') params.append('property_type', searchFilters.property_type);
+      if (searchFilters.sortBy) params.append('sortBy', searchFilters.sortBy);
+      if (searchFilters.sortOrder) params.append('sortOrder', searchFilters.sortOrder);
+      
+      const url = `${API_BASE}/api/properties?${params.toString()}`;
+      
+      console.log('Fetching from:', url);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Raw API response:', data);
+      
+      // Handle both array and object with value property
+      const propertyList = Array.isArray(data) ? data : (data.value || []);
+      console.log('Processed properties:', propertyList);
+      
+      setProperties(propertyList);
+      
+      // Fetch ratings for each property
+      const ratings: {[key: string]: {avg: number, count: number}} = {};
+      for (const prop of propertyList) {
+        try {
+          const ratingResponse = await fetch(`${API_BASE}/api/reviews/property/${prop.id}`);
+          if (ratingResponse.ok) {
+            const ratingData = await ratingResponse.json();
+            ratings[prop.id] = {
+              avg: ratingData.averageRating || 0,
+              count: ratingData.totalReviews || 0
+            };
+          }
+        } catch (err) {
+          console.error('Error fetching rating for property:', prop.id);
+        }
+      }
+      setPropertyRatings(ratings);
     } catch (error) {
       console.error("Error fetching properties:", error);
       setProperties([]);
-      setFilteredProperties([]);
     } finally {
       setLoading(false);
     }
@@ -78,28 +132,14 @@ const Properties = () => {
     }
   };
 
-  const filteredProperties = properties.filter((property) => {
-    // Search filter
-    const matchesSearch = searchQuery === "" || 
-      property.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      property.location?.toLowerCase().includes(searchQuery.toLowerCase());
+  const handleSearch = (filters: SearchFilters) => {
+    setSearchFilters(filters);
+    setLoading(true);
+    fetchProperties(onlyVerified);
+  };
 
-    // Property type filter
-    const matchesType = propertyTypeFilter === "all" || 
-      property.property_type?.toLowerCase() === propertyTypeFilter.toLowerCase();
-
-    // Price range filter
-    let matchesPrice = true;
-    if (priceRangeFilter !== "all") {
-      const price = property.price || 0;
-      if (priceRangeFilter === "0-2000") matchesPrice = price <= 2000;
-      else if (priceRangeFilter === "2000-4000") matchesPrice = price > 2000 && price <= 4000;
-      else if (priceRangeFilter === "4000-6000") matchesPrice = price > 4000 && price <= 6000;
-      else if (priceRangeFilter === "6000+") matchesPrice = price > 6000;
-    }
-
-    return matchesSearch && matchesType && matchesPrice;
-  });
+  // filteredProperties is now just the properties array since filtering happens on backend
+  const filteredProperties = properties;
 
   return (
     <div className="min-h-screen">
@@ -123,44 +163,36 @@ const Properties = () => {
             )}
           </div>
 
-          {/* Search & Filters */}
-          <div className="bg-card border border-border rounded-2xl p-6 mb-12 shadow-lg">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="md:col-span-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search by location or property name..." 
-                    className="pl-10"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </div>
-              <Select value={propertyTypeFilter} onValueChange={setPropertyTypeFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Property Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="house">House</SelectItem>
-                  <SelectItem value="apartment">Apartment</SelectItem>
-                  <SelectItem value="bachelor">Bachelor</SelectItem>
-                  <SelectItem value="room">Room</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={priceRangeFilter} onValueChange={setPriceRangeFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Price Range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Prices</SelectItem>
-                  <SelectItem value="0-2000">R0 - R2,000</SelectItem>
-                  <SelectItem value="2000-4000">R2,000 - R4,000</SelectItem>
-                  <SelectItem value="4000-6000">R4,000 - R6,000</SelectItem>
-                  <SelectItem value="6000+">R6,000+</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Advanced Search & Filters */}
+          <div className="bg-card border border-border rounded-2xl p-6 mb-6 shadow-lg">
+            <AdvancedSearch 
+              onSearch={handleSearch}
+              initialFilters={searchFilters}
+            />
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <p className="text-muted-foreground">
+              {filteredProperties.length} {filteredProperties.length === 1 ? 'property' : 'properties'} found
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+              >
+                <LayoutGrid className="w-4 h-4 mr-2" />
+                Grid
+              </Button>
+              <Button
+                variant={viewMode === "map" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("map")}
+              >
+                <Map className="w-4 h-4 mr-2" />
+                Map
+              </Button>
             </div>
           </div>
 
@@ -186,12 +218,50 @@ const Properties = () => {
                 </a>
               )}
             </div>
+          ) : viewMode === "map" ? (
+            <div className="relative">
+              {/* Property Selector Overlay - appears on top of map */}
+              {filteredProperties.length > 1 && (
+                <div className="absolute top-4 left-4 z-[1000] bg-background/95 backdrop-blur-sm rounded-lg shadow-lg p-3 border">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs font-medium text-muted-foreground">Filter Map:</p>
+                    <Select
+                      value={selectedPropertyForMap || "all"}
+                      onValueChange={(value) => setSelectedPropertyForMap(value === "all" ? null : value)}
+                    >
+                      <SelectTrigger className="w-[220px] bg-background">
+                        <SelectValue placeholder="Select property" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[1001]">
+                        <SelectItem value="all">All Properties</SelectItem>
+                        {filteredProperties.map((prop) => (
+                          <SelectItem key={prop.id} value={prop.id}>
+                            {prop.title.length > 30 ? prop.title.substring(0, 30) + '...' : prop.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+              <PropertiesMap
+                properties={selectedPropertyForMap 
+                  ? filteredProperties.filter(p => p.id === selectedPropertyForMap)
+                  : filteredProperties
+                }
+                onPropertyClick={(property) => {
+                  setSelectedProperty(property);
+                  setModalOpen(true);
+                  trackPropertyView(property.id);
+                }}
+              />
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredProperties.map((property) => (
                 <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-shadow">
                   {property.image_url ? (
-                    <div className="h-48 overflow-hidden">
+                    <div className="h-48 overflow-hidden relative">
                       <img 
                         src={property.image_url} 
                         alt={property.title}
@@ -201,6 +271,15 @@ const Properties = () => {
                           target.src = '/property-placeholder.png';
                         }}
                       />
+                      <div className="absolute top-2 right-2">
+                        <FavoriteButton propertyId={property.id} />
+                      </div>
+                      {property.video_url && (
+                        <div className="absolute top-2 left-2 bg-red-600/90 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                          <Video className="w-3 h-3" />
+                          Video
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
@@ -210,9 +289,13 @@ const Properties = () => {
                   <CardHeader>
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="text-xl font-semibold">{property.title}</h3>
-                      {property.is_verified && (
+                      {property.is_verified ? (
                         <Badge variant="default" className="bg-accent">
                           Verified
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-yellow-400 text-yellow-700 bg-yellow-50">
+                          Pending
                         </Badge>
                       )}
                     </div>
@@ -220,6 +303,16 @@ const Properties = () => {
                       <MapPin className="w-4 h-4 mr-1" />
                       <span className="text-sm">{property.location}</span>
                     </div>
+                    {propertyRatings[property.id]?.count > 0 && (
+                      <div className="mt-2">
+                        <StarRating 
+                          rating={propertyRatings[property.id].avg} 
+                          size="sm" 
+                          showNumber 
+                          readonly 
+                        />
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
@@ -233,10 +326,20 @@ const Properties = () => {
                       </div>
                       <Badge variant="outline">{property.property_type}</Badge>
                     </div>
-                    <div className="flex items-center text-2xl font-bold text-primary">
+                    <div className="flex items-center text-2xl font-bold text-primary mb-2">
                       R{property.price.toLocaleString()}
                       <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
                     </div>
+                    {property.created_at && (
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Calendar className="w-3 h-3 mr-1" />
+                        Posted {new Date(property.created_at).toLocaleDateString('en-ZA', { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </div>
+                    )}
                   </CardContent>
                   <CardFooter>
                     <Button 

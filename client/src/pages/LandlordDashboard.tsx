@@ -17,8 +17,10 @@ const LandlordDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
+  const [editingProperty, setEditingProperty] = useState<any>(null);
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTenantManagement, setShowTenantManagement] = useState(false);
   const [bookings, setBookings] = useState<any[]>([]);
   const [tenants, setTenants] = useState<any[]>([]);
   const [imageIndexes, setImageIndexes] = useState<{ [key: string]: number }>({});
@@ -125,13 +127,15 @@ const LandlordDashboard = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this property?')) return;
+    
     try {
-      const { error } = await supabase
-        .from("properties")
-        .delete()
-        .eq("id", id);
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_BASE}/api/properties/${id}`, {
+        method: 'DELETE',
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to delete');
 
       toast({
         title: "Success",
@@ -150,12 +154,14 @@ const LandlordDashboard = () => {
 
   const handleToggleVerification = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from("properties")
-        .update({ is_verified: !currentStatus })
-        .eq("id", id);
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_BASE}/api/properties/${id}/verify`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_verified: !currentStatus }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to update verification');
 
       toast({
         title: "Success",
@@ -167,6 +173,46 @@ const LandlordDashboard = () => {
       toast({
         title: "Error",
         description: "Failed to update verification status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = (property: any) => {
+    setEditingProperty(property);
+    setShowForm(true);
+    // Scroll to form
+    setTimeout(() => {
+      document.querySelector('form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
+  const handleUpdateBookingStatus = async (bookingId: string, newStatus: string) => {
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_BASE}/api/bookings/${bookingId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to update booking');
+      
+      const data = await response.json();
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: `Booking ${newStatus} successfully`,
+        });
+        fetchBookings(); // Refresh the list
+      }
+    } catch (error) {
+      console.error('Error updating booking:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update booking status",
         variant: "destructive",
       });
     }
@@ -288,10 +334,18 @@ const LandlordDashboard = () => {
 
           {showForm && (
             <div className="mb-6">
-              <PropertyForm onSuccess={() => {
-                setShowForm(false);
-                fetchProperties();
-              }} />
+              <PropertyForm 
+                editingProperty={editingProperty}
+                onSuccess={() => {
+                  setShowForm(false);
+                  setEditingProperty(null);
+                  fetchProperties();
+                }}
+                onCancel={() => {
+                  setShowForm(false);
+                  setEditingProperty(null);
+                }}
+              />
             </div>
           )}
 
@@ -313,9 +367,19 @@ const LandlordDashboard = () => {
                   <Home className="mr-2 h-4 w-4" />
                   View My Properties ({properties.length})
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
+                <Button 
+                  className="w-full justify-start" 
+                  variant={showTenantManagement ? "default" : "outline"}
+                  onClick={() => {
+                    setShowTenantManagement(!showTenantManagement);
+                    setShowForm(false);
+                    if (!showTenantManagement) {
+                      fetchBookings();
+                    }
+                  }}
+                >
                   <Users className="mr-2 h-4 w-4" />
-                  Manage Tenants
+                  Manage Tenants ({bookings.length})
                 </Button>
               </CardContent>
             </Card>
@@ -338,6 +402,131 @@ const LandlordDashboard = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Tenant Management Section */}
+          {showTenantManagement && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Tenant Management
+                </CardTitle>
+                <CardDescription>View and manage booking requests from tenants</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {bookings.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-2">No booking requests yet</p>
+                    <p className="text-sm text-muted-foreground">
+                      When tenants request to book your properties, they will appear here
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {bookings.map((booking) => (
+                      <Card key={booking.id} className="border-2">
+                        <CardContent className="pt-6">
+                          <div className="flex flex-col md:flex-row gap-4">
+                            {/* Property Info */}
+                            <div className="flex-1">
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <h4 className="font-semibold text-lg">
+                                    {booking.property?.title || 'Property'}
+                                  </h4>
+                                  <div className="flex items-center text-muted-foreground text-sm mt-1">
+                                    <MapPin className="w-3.5 h-3.5 mr-1" />
+                                    {booking.property?.location || 'N/A'}
+                                  </div>
+                                </div>
+                                <Badge 
+                                  variant={
+                                    booking.status === 'confirmed' ? 'default' :
+                                    booking.status === 'pending' ? 'outline' :
+                                    booking.status === 'cancelled' ? 'destructive' :
+                                    'secondary'
+                                  }
+                                  className={
+                                    booking.status === 'pending' 
+                                      ? 'border-yellow-400 text-yellow-700 bg-yellow-50' 
+                                      : booking.status === 'confirmed'
+                                      ? 'bg-emerald-500'
+                                      : ''
+                                  }
+                                >
+                                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                </Badge>
+                              </div>
+
+                              {/* Tenant & Booking Details */}
+                              <div className="space-y-2 mt-4">
+                                <div className="flex items-center text-sm">
+                                  <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
+                                  <span className="text-muted-foreground">Move-in:</span>
+                                  <span className="ml-2 font-medium">
+                                    {new Date(booking.move_in_date).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                {booking.move_out_date && (
+                                  <div className="flex items-center text-sm">
+                                    <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
+                                    <span className="text-muted-foreground">Move-out:</span>
+                                    <span className="ml-2 font-medium">
+                                      {new Date(booking.move_out_date).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                )}
+                                {booking.message && (
+                                  <div className="flex items-start text-sm mt-3 p-3 bg-muted/50 rounded-lg">
+                                    <MessageSquare className="w-4 h-4 mr-2 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <span className="text-muted-foreground font-medium">Message:</span>
+                                      <p className="mt-1">{booking.message}</p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            {booking.status === 'pending' && (
+                              <div className="flex md:flex-col gap-2 md:min-w-[120px]">
+                                <Button
+                                  size="sm"
+                                  className="flex-1 md:w-full bg-emerald-500 hover:bg-emerald-600"
+                                  onClick={() => {
+                                    if (confirm('Confirm this booking request?')) {
+                                      handleUpdateBookingStatus(booking.id, 'confirmed');
+                                    }
+                                  }}
+                                >
+                                  <ShieldCheck className="w-4 h-4 mr-1" />
+                                  Confirm
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="flex-1 md:w-full"
+                                  onClick={() => {
+                                    if (confirm('Reject this booking request?')) {
+                                      handleUpdateBookingStatus(booking.id, 'cancelled');
+                                    }
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card id="my-properties-section">
             <CardHeader>
@@ -454,7 +643,7 @@ const LandlordDashboard = () => {
                               <ShieldCheck className="w-3 h-3 mr-1" /> Verified
                             </Badge>
                           ) : (
-                            <Badge variant="secondary" className="shadow-sm">
+                            <Badge variant="outline" className="shadow-sm border-yellow-400 text-yellow-700 bg-yellow-50">
                               Pending
                             </Badge>
                           )}
@@ -491,7 +680,11 @@ const LandlordDashboard = () => {
                               Listed
                             </span>
                             <span className="font-medium">
-                              {new Date(property.created_at).toLocaleDateString()}
+                              {property.created_at ? new Date(property.created_at).toLocaleDateString('en-ZA', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric' 
+                              }) : 'N/A'}
                             </span>
                           </div>
                           {propertyImages.length > 1 && (
@@ -520,12 +713,7 @@ const LandlordDashboard = () => {
                               variant="outline" 
                               size="sm" 
                               className="flex-1"
-                              onClick={() => {
-                                toast({
-                                  title: "Edit Property",
-                                  description: "Edit functionality coming soon!",
-                                });
-                              }}
+                              onClick={() => handleEdit(property)}
                             >
                               <Edit className="w-4 h-4 mr-1" />
                               Edit

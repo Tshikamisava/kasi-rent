@@ -12,13 +12,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, BedDouble, Bath, Phone, Mail, User, Building2, Copy, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, BedDouble, Bath, Phone, Mail, User, Building2, Copy, Calendar, ChevronLeft, ChevronRight, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { RecommendedProperties } from "@/components/RecommendedProperties";
 import { PropertyReviews } from "@/components/PropertyReviews";
 import { FraudDetector } from "@/components/FraudDetector";
+import { VideoPlayer } from "@/components/VideoPlayer";
+import { ImageLightbox } from "@/components/ImageLightbox";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 interface PropertyDetailModalProps {
   open: boolean;
@@ -39,6 +42,7 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
   });
   const [submitting, setSubmitting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showLightbox, setShowLightbox] = useState(false);
 
   // Get all images from the property
   const propertyImages = property?.images && Array.isArray(property.images) && property.images.length > 0
@@ -297,27 +301,48 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl">{property.title || "Property Details"}</DialogTitle>
-          <DialogDescription className="flex items-center gap-1">
-            <MapPin className="h-4 w-4" />
-            {property.location || "Location not specified"}
-          </DialogDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <DialogTitle className="text-2xl">{property.title || "Property Details"}</DialogTitle>
+              <DialogDescription className="flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                {property.location || "Location not specified"}
+              </DialogDescription>
+            </div>
+            {user && (
+              <FavoriteButton 
+                propertyId={property.id} 
+                size="default"
+                variant="outline"
+                showLabel={true}
+              />
+            )}
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Property Image Gallery */}
           {propertyImages.length > 0 ? (
             <div className="relative">
-              <div className="h-64 md:h-96 w-full rounded-lg overflow-hidden">
+              <div 
+                className="h-64 md:h-96 w-full rounded-lg overflow-hidden cursor-pointer group"
+                onClick={() => setShowLightbox(true)}
+              >
                 <img
                   src={propertyImages[currentImageIndex]}
                   alt={`${property.title} - Image ${currentImageIndex + 1}`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = '/property-placeholder.png';
                   }}
                 />
+                {/* Overlay hint */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                  <span className="text-white font-medium opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 px-4 py-2 rounded-lg">
+                    Click to view full size
+                  </span>
+                </div>
               </div>
               
               {/* Navigation Arrows */}
@@ -524,6 +549,19 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
             </Card>
           )}
 
+          {/* Video Tour */}
+          {property.video_url && (
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                  <Video className="h-5 w-5 text-primary" />
+                  Property Video Tour
+                </h3>
+                <VideoPlayer videoUrl={property.video_url} title={property.title} />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Booking Form or Button */}
           {showBookingForm ? (
             <Card>
@@ -621,6 +659,15 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
           />
         </div>
       </DialogContent>
+
+      {/* Image Lightbox */}
+      {showLightbox && propertyImages.length > 0 && (
+        <ImageLightbox
+          images={propertyImages}
+          initialIndex={currentImageIndex}
+          onClose={() => setShowLightbox(false)}
+        />
+      )}
     </Dialog>
   );
 };

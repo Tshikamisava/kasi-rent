@@ -15,6 +15,9 @@ import recommendationsRoutes from "./routes/recommendationsRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import videoUploadRoutes from "./routes/videoUploadRoutes.js";
+import favoriteRoutes from "./routes/favoriteRoutes.js";
+import profileRoutes from "./routes/profileRoutes.js";
 import './models/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -48,6 +51,9 @@ app.use('/api/recommendations', recommendationsRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/video-upload', videoUploadRoutes);
+app.use('/api/favorites', favoriteRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
