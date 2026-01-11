@@ -84,9 +84,10 @@ The application uses JWT-based authentication with the following user types:
 
 ## Database Utilities
 
-The project includes several utility scripts for database management and verification:
+The project includes several utility scripts for database management and verification. 
+For a complete guide, see [DATABASE_UTILITIES.md](./DATABASE_UTILITIES.md).
 
-### Check Users Table Structure
+### Quick Start: Check Users Table Structure
 To verify the users table structure in your MySQL database:
 
 **Windows (PowerShell):**
