@@ -32,25 +32,16 @@ const teamMembers = [
     name: "Tshikamisava Mzwandie",
     role: "Founder & CEO",
     description: "Visionary leader committed to transforming township rental experiences.",
-    image: "/team/ceo.jpg",
-    initials: "TM",
-    color: "from-indigo-600 to-purple-600"
   },
   {
     name: "Development Team",
     role: "Technology",
     description: "Building secure and innovative solutions for our community.",
-    image: "/team/dev-team.jpg",
-    initials: "DT",
-    color: "from-green-600 to-emerald-600"
   },
   {
     name: "Support Team",
     role: "Customer Success",
     description: "Dedicated to ensuring every user has a seamless experience.",
-    image: "/team/support-team.jpg",
-    initials: "ST",
-    color: "from-orange-600 to-amber-600"
   },
 ];
 
@@ -235,22 +226,8 @@ const About = () => {
               {teamMembers.map((member, index) => (
                 <Card key={index} className="hover:shadow-xl transition-shadow">
                   <CardContent className="p-6 text-center">
-                    <div className="w-24 h-24 rounded-full mx-auto mb-4 overflow-hidden">
-                      <img 
-                        src={member.image} 
-                        alt={member.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback to gradient background with initials if image fails to load
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const parent = target.parentElement;
-                          if (parent) {
-                            parent.classList.add('bg-gradient-to-br', ...member.color.split(' '), 'flex', 'items-center', 'justify-center');
-                            parent.innerHTML = `<span class="text-white text-2xl font-bold">${member.initials}</span>`;
-                          }
-                        }}
-                      />
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4">
+                      <Users className="w-12 h-12 text-white" />
                     </div>
                     <h3 className="text-xl font-bold mb-1">{member.name}</h3>
                     <p className="text-primary font-medium mb-3">{member.role}</p>

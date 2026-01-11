@@ -37,7 +37,7 @@ const features = [
     icon: Wallet,
     title: "Save Money",
     description: "No agent fees or commissions - connect directly and keep more in your pocket",
-    link: "/savings",
+    link: null,
   },
 ];
 

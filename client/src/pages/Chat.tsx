@@ -24,25 +24,9 @@ const api = async (path: string, token: string, options: any = {}) => {
 
 const Chat = () => {
   const { user } = useAuth();
-  const token = user?.token || localStorage.getItem("token") || '';
+  const token = user?.token || '';
   const toast = useToast().toast;
   const navigate = useNavigate();
-
-  // Get user data from localStorage if not in Zustand
-  const getUserData = () => {
-    if (user) return user;
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        return JSON.parse(storedUser);
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  };
-
-  const currentUser = getUserData();
 
   const [conversations, setConversations] = useState<any[]>([]);
   const [selected, setSelected] = useState<any | null>(null);
@@ -170,7 +154,7 @@ const Chat = () => {
       id: Date.now(),
       content: messageText,
       contentType: 'text',
-      sender_id: currentUser?._id || currentUser?.id,
+      sender_id: user?._id || user?.id,
       conversation_id: selected.id,
       created_at: new Date().toISOString(),
     };
@@ -484,7 +468,7 @@ const Chat = () => {
               )}
               {conversations.map((c) => {
                 // Get other participants (not current user) to check online status
-                const currentUserId = currentUser?.id || currentUser?._id;
+                const currentUserId = user?.id || user?._id;
                 const otherParticipants = c.participants?.filter((p: any) => p.user_id !== currentUserId) || [];
                 const hasOnlineUser = otherParticipants.some((p: any) => onlineUsers.has(p.user_id));
                 
@@ -533,7 +517,7 @@ const Chat = () => {
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/5">
                   {messages.map((m) => {
                     const isOnline = m.sender_id && onlineUsers.has(m.sender_id);
-                    const currentUserId = currentUser?.id || currentUser?._id;
+                    const currentUserId = user?.id || user?._id;
                     const isMine = m.sender_id === currentUserId;
                     const isEditing = editingMessageId === m.id;
                     

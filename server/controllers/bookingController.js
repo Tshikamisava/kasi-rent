@@ -68,12 +68,6 @@ export const getTenantBookings = async (req, res) => {
 
     const bookings = await Booking.findAll({
       where: { tenant_id: tenantId },
-      include: [{
-        model: Property,
-        as: 'property',
-        attributes: ['id', 'title', 'description', 'price', 'location', 'image_url', 'images', 'bedrooms', 'bathrooms', 'property_type'],
-        required: false // LEFT JOIN - include bookings even if property is deleted
-      }],
       order: [['created_at', 'DESC']]
     });
 
@@ -98,12 +92,6 @@ export const getLandlordBookings = async (req, res) => {
 
     const bookings = await Booking.findAll({
       where: { landlord_id: landlordId },
-      include: [{
-        model: Property,
-        as: 'property',
-        attributes: ['id', 'title', 'description', 'price', 'location', 'image_url', 'images', 'bedrooms', 'bathrooms', 'property_type'],
-        required: false
-      }],
       order: [['created_at', 'DESC']]
     });
 

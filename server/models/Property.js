@@ -23,18 +23,6 @@ const Property = sequelize.define('Property', {
     type: DataTypes.STRING,
     allowNull: false
   },
-  address: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  latitude: {
-    type: DataTypes.DECIMAL(10, 8),
-    allowNull: true
-  },
-  longitude: {
-    type: DataTypes.DECIMAL(11, 8),
-    allowNull: true
-  },
   bedrooms: {
     type: DataTypes.INTEGER,
     defaultValue: 0
@@ -54,10 +42,6 @@ const Property = sequelize.define('Property', {
   images: {
     type: DataTypes.JSON,
     defaultValue: []
-  },
-  video_url: {
-    type: DataTypes.STRING,
-    allowNull: true
   },
   landlord_id: {
     type: DataTypes.STRING,

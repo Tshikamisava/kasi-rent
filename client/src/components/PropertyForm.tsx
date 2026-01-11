@@ -10,59 +10,27 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Copy, AlertTriangle, ShieldCheck, ShieldAlert, Sparkles, Zap, X } from "lucide-react";
+import { Copy, AlertTriangle, ShieldCheck, ShieldAlert, Sparkles, Zap } from "lucide-react";
 
-interface PropertyFormProps {
-  onSuccess: () => void;
-  onCancel?: () => void;
-  editingProperty?: any;
-}
-
-export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyFormProps) => {
+export const PropertyForm = ({ onSuccess }: { onSuccess: () => void }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     location: "",
-    address: "",
     price: "",
     bedrooms: "",
     bathrooms: "",
     property_type: "",
     description: "",
     image_url: "",
-    video_url: "",
   });
-
-  // Load editing data if provided
-  useEffect(() => {
-    if (editingProperty) {
-      setFormData({
-        title: editingProperty.title || "",
-        location: editingProperty.location || "",
-        address: editingProperty.address || "",
-        price: editingProperty.price?.toString() || "",
-        bedrooms: editingProperty.bedrooms?.toString() || "",
-        bathrooms: editingProperty.bathrooms?.toString() || "",
-        property_type: editingProperty.property_type || "",
-        description: editingProperty.description || "",
-        image_url: editingProperty.image_url || "",
-        video_url: editingProperty.video_url || "",
-      });
-    }
-  }, [editingProperty]);
 
   // Local file upload + preview state - now supporting multiple files
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  // Video upload state
-  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string>("");
-  const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string>("");
-  const [videoInputType, setVideoInputType] = useState<"url" | "file">("url"); // Toggle between URL and file upload
   // Debug: store last uploaded image URLs for quick verification
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   // Fraud detection state
@@ -79,11 +47,8 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
     return () => {
       // Clean up all preview URLs
       previewUrls.forEach(url => URL.revokeObjectURL(url));
-      if (videoPreviewUrl && videoPreviewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(videoPreviewUrl);
-      }
     };
-  }, [previewUrls, videoPreviewUrl]);
+  }, [previewUrls]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -116,90 +81,6 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
       toast({ title: "Copied!", description: "Image URL copied to clipboard" });
     } catch (err) {
       toast({ title: "Error", description: "Failed to copy URL", variant: "destructive" });
-    }
-  };
-
-  const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate video file type
-      const allowedTypes = ['video/mp4', 'video/webm', 'video/mov', 'video/avi', 'video/mkv'];
-      if (!allowedTypes.includes(file.type) && !file.name.match(/\.(mp4|webm|mov|avi|mkv)$/i)) {
-        toast({
-          title: "Invalid file type",
-          description: "Please upload a video file (mp4, webm, mov, avi, mkv)",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Check file size (max 100MB)
-      const maxSize = 100 * 1024 * 1024;
-      if (file.size > maxSize) {
-        toast({
-          title: "File too large",
-          description: "Video file must be less than 100MB",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      setSelectedVideoFile(file);
-      // Create preview URL
-      if (videoPreviewUrl && videoPreviewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(videoPreviewUrl);
-      }
-      const previewUrl = URL.createObjectURL(file);
-      setVideoPreviewUrl(previewUrl);
-    }
-  };
-
-  const removeVideoFile = () => {
-    if (videoPreviewUrl && videoPreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(videoPreviewUrl);
-    }
-    setSelectedVideoFile(null);
-    setVideoPreviewUrl("");
-    setUploadedVideoUrl("");
-  };
-
-  const uploadVideoFile = async () => {
-    if (!selectedVideoFile) return null;
-
-    setUploadingVideo(true);
-    try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const formData = new FormData();
-      formData.append('video', selectedVideoFile);
-
-      const response = await fetch(`${API_BASE}/api/video-upload/single`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        const fullVideoUrl = `${API_BASE}${data.videoUrl}`;
-        setUploadedVideoUrl(fullVideoUrl);
-        toast({
-          title: "Video uploaded!",
-          description: `Video uploaded successfully (${(data.size / (1024 * 1024)).toFixed(2)}MB)`,
-        });
-        return fullVideoUrl;
-      } else {
-        throw new Error(data.message || 'Upload failed');
-      }
-    } catch (error) {
-      console.error('Video upload error:', error);
-      toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to upload video",
-        variant: "destructive",
-      });
-      return null;
-    } finally {
-      setUploadingVideo(false);
     }
   };
 
@@ -370,58 +251,7 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to list a property",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Frontend Validation
-    const validationErrors: string[] = [];
-    
-    if (!formData.title || formData.title.trim().length < 5) {
-      validationErrors.push('Property title must be at least 5 characters');
-    }
-    
-    if (!formData.location || formData.location.trim().length < 2) {
-      validationErrors.push('Location must be at least 2 characters');
-    }
-    
-    if (!formData.price || parseFloat(formData.price) <= 0) {
-      validationErrors.push('Price must be greater than 0');
-    }
-    
-    if (parseFloat(formData.price) > 1000000) {
-      validationErrors.push('Price seems unrealistic (max: R1,000,000)');
-    }
-    
-    if (!formData.property_type) {
-      validationErrors.push('Please select a property type');
-    }
-    
-    if (!formData.bedrooms || parseInt(formData.bedrooms) < 0) {
-      validationErrors.push('Please enter number of bedrooms (0 or more)');
-    }
-    
-    if (!formData.bathrooms || parseInt(formData.bathrooms) < 1) {
-      validationErrors.push('Please enter number of bathrooms (at least 1)');
-    }
-    
-    if (selectedFiles.length === 0 && !formData.image_url) {
-      validationErrors.push('Please upload at least one image or provide an image URL');
-    }
-    
-    if (validationErrors.length > 0) {
-      toast({
-        title: "Validation Error",
-        description: validationErrors.join('. '),
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!user) return;
 
     // Run fraud detection first
     if (!fraudAnalysis) {
@@ -447,15 +277,6 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
 
     setLoading(true);
     try {
-      // Upload video file if selected
-      let videoUrl = formData.video_url; // Default to URL input
-      if (videoInputType === "file" && selectedVideoFile) {
-        const uploadedUrl = await uploadVideoFile();
-        if (uploadedUrl) {
-          videoUrl = uploadedUrl;
-        }
-      }
-
       // Upload multiple images to server
       const uploadedUrls: string[] = [];
       let uploadErrors = 0;
@@ -515,48 +336,38 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
         }
       }
 
-      // Use the first uploaded image as the primary image, or use existing/URL field
-      const primaryImageUrl = uploadedUrls.length > 0 
-        ? uploadedUrls[0] 
-        : (editingProperty?.image_url || formData.image_url || null);
+      // Use the first uploaded image as the primary image, or use the URL field
+      const primaryImageUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : (formData.image_url || null);
 
       console.log('Submitting property with:', {
         images: uploadedUrls,
         primaryImage: primaryImageUrl,
-        userId: user._id,
-        isEditing: !!editingProperty
+        userId: user._id
       });
 
-      // Submit to MySQL API
+      // Submit to MySQL API instead of Supabase
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const isEditing = !!editingProperty;
-      const apiUrl = isEditing 
-        ? `${API_BASE}/api/properties/${editingProperty.id}`
-        : `${API_BASE}/api/properties`;
+      const apiUrl = `${API_BASE}/api/properties`;
       
-      console.log(isEditing ? 'Updating' : 'Creating', 'property at:', apiUrl);
+      console.log('Posting to:', apiUrl);
       
       const propertyData = {
         landlord_id: user._id,
         title: formData.title,
         location: formData.location,
-        address: formData.address,
         price: parseFloat(formData.price),
         bedrooms: parseInt(formData.bedrooms),
         bathrooms: parseInt(formData.bathrooms),
         property_type: formData.property_type,
         description: formData.description,
         image_url: primaryImageUrl,
-        images: uploadedUrls.length > 0 
-          ? uploadedUrls 
-          : (editingProperty?.images || (formData.image_url ? [formData.image_url] : [])),
-        video_url: videoUrl || null,
+        images: uploadedUrls.length > 0 ? uploadedUrls : (formData.image_url ? [formData.image_url] : []),
       };
       
       console.log('Property data:', propertyData);
       
       const response = await fetch(apiUrl, {
-        method: isEditing ? 'PUT' : 'POST',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -571,31 +382,14 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
 
       if (!response.ok || !result.success) {
         console.error('Database insert error:', result);
-        
-        // Display validation errors if present
-        if (result.errors && Array.isArray(result.errors)) {
-          toast({
-            title: "Validation Error",
-            description: result.errors.join('. '),
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: result.message || 'Failed to create property',
-            variant: "destructive",
-          });
-        }
-        return;
+        throw new Error(result.message || 'Failed to create property');
       }
 
       toast({
         title: "Success!",
-        description: isEditing 
-          ? "Property updated successfully"
-          : (uploadedUrls.length > 0 
-              ? `Property listed successfully with ${uploadedUrls.length} image(s)` 
-              : "Property listed successfully"),
+        description: uploadedUrls.length > 0 
+          ? `Property listed successfully with ${uploadedUrls.length} image(s)` 
+          : "Property listed successfully",
       });
 
       // Store uploaded URLs for reference
@@ -608,22 +402,17 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
       setFormData({
         title: "",
         location: "",
-        address: "",
         price: "",
         bedrooms: "",
         bathrooms: "",
         property_type: "",
         description: "",
         image_url: "",
-        video_url: "",
       });
       setSelectedFiles([]);
       previewUrls.forEach(url => URL.revokeObjectURL(url));
       setPreviewUrls([]);
       setUploading(false);
-      // Reset video upload state
-      removeVideoFile();
-      setVideoInputType("url");
 
       onSuccess();
     } catch (error) {
@@ -639,13 +428,8 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>{editingProperty ? 'Edit Property' : 'List New Property'}</CardTitle>
-        {onCancel && (
-          <Button variant="ghost" size="icon" onClick={onCancel}>
-            <X className="h-4 w-4" />
-          </Button>
-        )}
+      <CardHeader>
+        <CardTitle>List New Property</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -657,10 +441,7 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 required
-                minLength={5}
-                maxLength={200}
                 className="flex-1"
-                placeholder="e.g., Modern 3BR House in Soweto"
               />
               <Button
                 type="button"
@@ -679,34 +460,14 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
           </div>
 
           <div>
-            <Label htmlFor="location">City/Area</Label>
+            <Label htmlFor="location">Location</Label>
             <Input
               id="location"
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              placeholder="e.g., Pretoria, Soweto, Sandton"
+              placeholder="e.g., Riverside, Fourways"
               required
-              minLength={2}
-              maxLength={100}
             />
-            <p className="text-sm text-muted-foreground mt-1">
-              Main city or area
-            </p>
-          </div>
-
-          <div>
-            <Label htmlFor="address">Full Address (for map location)</Label>
-            <Input
-              id="address"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="e.g., 123 Main Street, Riverside"
-              minLength={5}
-              maxLength={200}
-            />
-            <p className="text-sm text-muted-foreground mt-1">
-              Street address helps tenants find you on the map
-            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -719,11 +480,7 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   required
-                  min="1"
-                  max="1000000"
-                  step="0.01"
                   className="flex-1"
-                  placeholder="5000"
                 />
                 <Button
                   type="button"
@@ -742,11 +499,10 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
             </div>
 
             <div>
-              <Label htmlFor="property_type">Property Type *</Label>
+              <Label htmlFor="property_type">Property Type</Label>
               <Select
                 value={formData.property_type}
                 onValueChange={(value) => setFormData({ ...formData, property_type: value })}
-                required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
@@ -785,11 +541,9 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
                 id="bedrooms"
                 type="number"
                 min="0"
-                max="50"
                 value={formData.bedrooms}
                 onChange={(e) => setFormData({ ...formData, bedrooms: e.target.value })}
                 required
-                placeholder="3"
               />
             </div>
 
@@ -799,11 +553,9 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
                 id="bathrooms"
                 type="number"
                 min="1"
-                max="20"
                 value={formData.bathrooms}
                 onChange={(e) => setFormData({ ...formData, bathrooms: e.target.value })}
                 required
-                placeholder="2"
               />
             </div>
           </div>
@@ -901,115 +653,6 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
             <p className="text-sm text-muted-foreground mt-1">
               Try: /riverside-house-1.jpg, /riverside-apartment-1.jpg, /riverside-studio-1.jpg, or /riverside-townhouse-1.jpg
             </p>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label htmlFor="video_url">🎥 Video Tour (Optional)</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={videoInputType === "url" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setVideoInputType("url")}
-                  className="text-xs"
-                >
-                  URL
-                </Button>
-                <Button
-                  type="button"
-                  variant={videoInputType === "file" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setVideoInputType("file")}
-                  className="text-xs"
-                >
-                  Upload
-                </Button>
-              </div>
-            </div>
-
-            {videoInputType === "url" ? (
-              <>
-                <Input
-                  id="video_url"
-                  type="url"
-                  value={formData.video_url}
-                  onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                  placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
-                  disabled={uploading || loading}
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Add a YouTube, Vimeo, or direct video link to showcase your property with a video tour
-                </p>
-              </>
-            ) : (
-              <>
-                <Input
-                  id="video_file"
-                  type="file"
-                  accept="video/mp4,video/webm,video/mov,video/avi,video/mkv"
-                  onChange={handleVideoFileChange}
-                  disabled={uploading || loading || uploadingVideo}
-                  className="cursor-pointer"
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Upload a video file (MP4, WebM, MOV, AVI, MKV) - Max 100MB
-                </p>
-
-                {/* Video Preview */}
-                {selectedVideoFile && (
-                  <div className="mt-4 relative">
-                    <video
-                      src={videoPreviewUrl}
-                      controls
-                      className="w-full max-h-64 rounded-lg"
-                    >
-                      Your browser does not support the video tag.
-                    </video>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={removeVideoFile}
-                      className="absolute top-2 right-2"
-                    >
-                      <X className="h-4 w-4 mr-1" />
-                      Remove
-                    </Button>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {selectedVideoFile.name} - {(selectedVideoFile.size / (1024 * 1024)).toFixed(2)} MB
-                    </p>
-                  </div>
-                )}
-
-                {/* Uploaded Video Confirmation */}
-                {uploadedVideoUrl && (
-                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
-                    <p className="font-semibold text-sm text-green-900 mb-2">
-                      ✓ Video Uploaded Successfully
-                    </p>
-                    <div className="flex items-center gap-2 text-xs">
-                      <a 
-                        href={uploadedVideoUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="underline text-primary truncate flex-1"
-                      >
-                        {uploadedVideoUrl}
-                      </a>
-                      <Button 
-                        size="sm" 
-                        variant="ghost"
-                        onClick={() => handleCopyUrl(uploadedVideoUrl)} 
-                        className="h-6 px-2"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
           </div>
 
           <div>
@@ -1143,11 +786,11 @@ export const PropertyForm = ({ onSuccess, onCancel, editingProperty }: PropertyF
                   <span>Uploading...</span>
                 </div>
               ) : loading ? (
-                editingProperty ? "Updating..." : "Listing..."
+                "Listing..."
               ) : fraudAnalysis?.isSuspicious ? (
                 "Submit Anyway"
               ) : (
-                editingProperty ? "Update Property" : "List Property"
+                "List Property"
               )}
             </Button>
           </div>

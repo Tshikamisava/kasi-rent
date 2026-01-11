@@ -1,19 +1,17 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, BedDouble, Bath, Building2, Images, Video, Calendar } from "lucide-react";
+import { MapPin, BedDouble, Bath, Building2, Images } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { PropertyDetailModal } from "@/components/PropertyDetailModal";
-import { StarRating } from "@/components/StarRating";
 
 export const FeaturedProperties = () => {
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [propertyRatings, setPropertyRatings] = useState<{[key: string]: {avg: number, count: number}}>({});
 
   useEffect(() => {
     fetchProperties();
@@ -23,38 +21,12 @@ export const FeaturedProperties = () => {
     try {
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
       const response = await fetch(`${API_BASE}/api/properties?limit=3`);
-      
-      if (!response.ok) throw new Error('Failed to fetch properties');
-      
       const data = await response.json();
-      console.log('Featured properties API response:', data);
-      
-      // Handle both array and object with value property
-      const propertyList = Array.isArray(data) ? data : (data.value || []);
-      console.log('Featured properties list:', propertyList);
-      
-      setProperties(propertyList);
-      
-      // Fetch ratings for each property
-      const ratings: {[key: string]: {avg: number, count: number}} = {};
-      for (const prop of propertyList) {
-        try {
-          const ratingResponse = await fetch(`${API_BASE}/api/reviews/property/${prop.id}`);
-          if (ratingResponse.ok) {
-            const ratingData = await ratingResponse.json();
-            ratings[prop.id] = {
-              avg: ratingData.averageRating || 0,
-              count: ratingData.totalReviews || 0
-            };
-          }
-        } catch (err) {
-          console.error('Error fetching rating for property:', prop.id);
-        }
-      }
-      setPropertyRatings(ratings);
+
+      if (!response.ok) throw new Error('Failed to fetch properties');
+      setProperties(data || []);
     } catch (error) {
       console.error("Error fetching properties:", error);
-      setProperties([]);
     } finally {
       setLoading(false);
     }
@@ -122,12 +94,6 @@ export const FeaturedProperties = () => {
                       {imageCount}
                     </div>
                   )}
-                  {property.video_url && (
-                    <div className="absolute top-2 left-2 bg-red-600/90 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                      <Video className="w-3 h-3" />
-                      Video
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
@@ -137,13 +103,9 @@ export const FeaturedProperties = () => {
               <CardHeader>
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="text-xl font-semibold">{property.title}</h3>
-                  {property.is_verified ? (
+                  {property.is_verified && (
                     <Badge variant="default" className="bg-accent">
                       Verified
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="border-yellow-400 text-yellow-700 bg-yellow-50">
-                      Pending
                     </Badge>
                   )}
                 </div>
@@ -151,16 +113,6 @@ export const FeaturedProperties = () => {
                   <MapPin className="w-4 h-4 mr-1" />
                   <span className="text-sm">{property.location}</span>
                 </div>
-                {propertyRatings[property.id]?.count > 0 && (
-                  <div className="mt-2">
-                    <StarRating 
-                      rating={propertyRatings[property.id].avg} 
-                      size="sm" 
-                      showNumber 
-                      readonly 
-                    />
-                  </div>
-                )}
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
@@ -174,20 +126,10 @@ export const FeaturedProperties = () => {
                   </div>
                   <Badge variant="outline">{property.property_type}</Badge>
                 </div>
-                <div className="flex items-center text-2xl font-bold text-primary mb-2">
+                <div className="flex items-center text-2xl font-bold text-primary">
                   R{property.price.toLocaleString()}
                   <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
                 </div>
-                {property.created_at && (
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    Posted {new Date(property.created_at).toLocaleDateString('en-ZA', { 
-                      year: 'numeric', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })}
-                  </div>
-                )}
               </CardContent>
               <CardFooter>
                 <Button 
