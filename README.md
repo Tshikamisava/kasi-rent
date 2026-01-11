@@ -13,10 +13,11 @@ KasiRent is a modern web application designed to connect tenants and landlords i
 ## Tech Stack
 
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS
-- **Authentication**: Supabase Auth
-- **Database**: Supabase (PostgreSQL)
-- **State Management**: Zustand
-- **Deployment**: Vercel
+- **Backend**: Node.js, Express.js
+- **Database**: MySQL with Sequelize ORM
+- **Authentication**: JWT (JSON Web Tokens)
+- **File Storage**: Cloudinary
+- **Deployment**: Vercel (Frontend), Custom hosting (Backend)
 
 ## Live Application
 
@@ -36,30 +37,75 @@ git clone https://github.com/Tshikamisava/kasi-rent.git
 cd kasi-rent
 ```
 
-2. Install dependencies:
+2. Install server dependencies:
 ```bash
-cd client
+cd server
 npm install
 ```
 
-3. Set up environment variables:
-Create a `.env` file in the client directory:
+3. Set up server environment variables:
+Create a `.env` file in the server directory (use `.env.example` as template):
 ```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
-VITE_SUPABASE_PROJECT_ID=your_project_id
+# Database Configuration
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=kasirent
+
+# JWT Secret
+JWT_SECRET=your_jwt_secret_key_here
+
+# Cloudinary (for image uploads)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 ```
 
-4. Start the development server:
+4. Install client dependencies:
 ```bash
+cd ../client
+npm install
+```
+
+5. Start the development servers:
+```bash
+# In server directory
+npm start
+
+# In client directory (separate terminal)
 npm run dev
 ```
 
 ## Authentication System
 
-The application uses Supabase for authentication with the following user types:
+The application uses JWT-based authentication with the following user types:
 - **Tenants**: Users looking for properties to rent
 - **Landlords**: Property owners managing their listings
+
+## Database Utilities
+
+The project includes several utility scripts for database management and verification:
+
+### Check Users Table Structure
+To verify the users table structure in your MySQL database:
+
+**Windows (PowerShell):**
+```powershell
+.\check-users-table.ps1
+```
+
+**Linux/Mac:**
+```bash
+./check-users-table.sh
+```
+
+**Or directly:**
+```bash
+cd server
+node check-users-table.js
+```
+
+These scripts will display the current structure of the users table, helping you verify that migrations have been applied correctly.
 
 ## Deployment
 
@@ -87,8 +133,17 @@ kasi-rent/
 │   │   └── assets/        # Images and static files
 │   ├── public/            # Public static files
 │   └── dist/              # Built application (after build)
-├── vercel.json            # Vercel deployment configuration
-└── README.md              # This file
+├── server/                # Backend Express application
+│   ├── config/           # Database and service configurations
+│   ├── controllers/      # Request handlers
+│   ├── models/          # Sequelize models
+│   ├── routes/          # API routes
+│   ├── middleware/      # Custom middleware
+│   └── *.js             # Utility scripts for DB management
+├── check-users-table.ps1 # PowerShell utility to check users table
+├── check-users-table.sh  # Bash utility to check users table
+├── vercel.json          # Vercel deployment configuration
+└── README.md            # This file
 ```
 
 ## Contributing
