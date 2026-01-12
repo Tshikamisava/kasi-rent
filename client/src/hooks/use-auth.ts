@@ -7,6 +7,8 @@ interface User {
   email: string;
   token: string;
   userType?: string;
+  role?: string;
+  profile_photo?: string;
 }
 
 interface AuthState {
@@ -14,6 +16,7 @@ interface AuthState {
   userType: string | null;
   setUser: (user: User | null) => void;
   setUserType: (userType: string | null) => void;
+  logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
 }
@@ -27,6 +30,11 @@ export const useAuth = create<AuthState>()(
       loading: false,
       setUser: (user) => set({ user, isAuthenticated: !!user }),
       setUserType: (userType) => set({ userType }),
+      logout: () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        set({ user: null, userType: null, isAuthenticated: false });
+      },
     }),
     {
       name: 'auth-storage',

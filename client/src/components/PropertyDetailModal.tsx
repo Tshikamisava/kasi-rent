@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RecommendedProperties } from "@/components/RecommendedProperties";
 import { PropertyReviews } from "@/components/PropertyReviews";
 import { FraudDetector } from "@/components/FraudDetector";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 interface PropertyDetailModalProps {
   open: boolean;
@@ -297,11 +298,20 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl">{property.title || "Property Details"}</DialogTitle>
-          <DialogDescription className="flex items-center gap-1">
-            <MapPin className="h-4 w-4" />
-            {property.location || "Location not specified"}
-          </DialogDescription>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <DialogTitle className="text-2xl">{property.title || "Property Details"}</DialogTitle>
+              <DialogDescription className="flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                {property.address || property.location || "Location not specified"}
+              </DialogDescription>
+            </div>
+            <FavoriteButton 
+              propertyId={property.id} 
+              size="default"
+              className="ml-2"
+            />
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -376,12 +386,50 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
             </div>
           )}
 
+          {/* Property Video */}
+          {property.video_url && (
+            <div className="mt-4">
+              <h3 className="font-semibold text-lg mb-3">Property Video Tour</h3>
+              <div className="aspect-video w-full rounded-lg overflow-hidden bg-black">
+                {property.video_url.includes('youtube.com') || property.video_url.includes('youtu.be') ? (
+                  <iframe
+                    src={property.video_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                    className="w-full h-full"
+                    allowFullScreen
+                    title="Property Video"
+                  />
+                ) : property.video_url.includes('vimeo.com') ? (
+                  <iframe
+                    src={property.video_url.replace('vimeo.com/', 'player.vimeo.com/video/')}
+                    className="w-full h-full"
+                    allowFullScreen
+                    title="Property Video"
+                  />
+                ) : (
+                  <video 
+                    controls 
+                    className="w-full h-full"
+                    src={property.video_url}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Property Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardContent className="p-6">
                 <h3 className="font-semibold text-lg mb-4">Property Details</h3>
                 <div className="space-y-3">
+                  {property.address && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">{property.address}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">{property.location}</span>

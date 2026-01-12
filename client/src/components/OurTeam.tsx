@@ -3,12 +3,12 @@ import { Linkedin, Mail } from "lucide-react";
 
 const teamMembers = [
   {
-    name: "Team Member 1",
+    name: "Tshikamisava Mmbengwa",
     role: "Co-Founder & CEO",
     bio: "Passionate about transforming township rentals and empowering communities",
-    image: "/placeholder.svg",
-    linkedin: "#",
-    email: "team1@kasirent.com",
+    image: "https://media.licdn.com/dms/image/v2/D4D03AQHqvKv8LlLgRA/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1733946685456?e=1742428800&v=beta&t=LdQtU5gNM2VPXCqAYZz7ixZPaSnRYr8i7u-dLdC5iig",
+    linkedin: "https://www.linkedin.com/in/tshikamisava-mmbengwa-394b11260/",
+    email: "tshika@kasirent.com",
   },
   {
     name: "Team Member 2",
@@ -42,10 +42,22 @@ export const OurTeam = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {teamMembers.map((member, index) => (
             <Card key={index} className="overflow-hidden border-border hover:border-primary/50 transition-all hover:shadow-lg">
-              <div className="aspect-square bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-4xl font-bold">
-                  {member.name.charAt(0)}
-                </div>
+              <div className="aspect-square bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center overflow-hidden">
+                {member.image && !member.image.includes('placeholder') ? (
+                  <img 
+                    src={member.image} 
+                    alt={member.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.parentElement!.innerHTML = `<div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-4xl font-bold">${member.name.charAt(0)}</div>`;
+                    }}
+                  />
+                ) : (
+                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-4xl font-bold">
+                    {member.name.charAt(0)}
+                  </div>
+                )}
               </div>
               <CardContent className="p-6 text-center">
                 <h3 className="text-xl font-semibold mb-1">{member.name}</h3>

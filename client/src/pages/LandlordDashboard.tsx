@@ -17,6 +17,7 @@ const LandlordDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
+  const [editingProperty, setEditingProperty] = useState<any>(null);
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState<any[]>([]);
@@ -126,12 +127,16 @@ const LandlordDashboard = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("properties")
-        .delete()
-        .eq("id", id);
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_BASE}/api/properties/${id}?landlord_id=${user?._id}`, {
+        method: 'DELETE',
+      });
 
-      if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to delete property');
+      }
 
       toast({
         title: "Success",
@@ -139,10 +144,52 @@ const LandlordDashboard = () => {
       });
 
       fetchProperties();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to delete property",
+        description: error.message || "Failed to delete property",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = (property: any) => {
+    setEditingProperty(property);
+    setShowForm(true);
+  };
+
+  const handleUpdateProperty = async (updatedProperty: any) => {
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_BASE}/api/properties/${editingProperty.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...updatedProperty,
+          landlord_id: user?._id
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to update property');
+      }
+
+      toast({
+        title: "Success",
+        description: "Property updated successfully",
+      });
+
+      setEditingProperty(null);
+      setShowForm(false);
+      fetchProperties();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update property",
         variant: "destructive",
       });
     }
@@ -288,10 +335,15 @@ const LandlordDashboard = () => {
 
           {showForm && (
             <div className="mb-6">
-              <PropertyForm onSuccess={() => {
-                setShowForm(false);
-                fetchProperties();
-              }} />
+              <PropertyForm 
+                onSuccess={() => {
+                  setShowForm(false);
+                  setEditingProperty(null);
+                  fetchProperties();
+                }}
+                initialData={editingProperty}
+                onUpdate={editingProperty ? handleUpdateProperty : undefined}
+              />
             </div>
           )}
 
@@ -520,12 +572,7 @@ const LandlordDashboard = () => {
                               variant="outline" 
                               size="sm" 
                               className="flex-1"
-                              onClick={() => {
-                                toast({
-                                  title: "Edit Property",
-                                  description: "Edit functionality coming soon!",
-                                });
-                              }}
+                              onClick={() => handleEdit(property)}
                             >
                               <Edit className="w-4 h-4 mr-1" />
                               Edit

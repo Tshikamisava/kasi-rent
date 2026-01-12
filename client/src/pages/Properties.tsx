@@ -11,6 +11,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PropertyDetailModal } from "@/components/PropertyDetailModal";
 import { RecommendedProperties } from "@/components/RecommendedProperties";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 const Properties = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -191,7 +192,7 @@ const Properties = () => {
               {filteredProperties.map((property) => (
                 <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-shadow">
                   {property.image_url ? (
-                    <div className="h-48 overflow-hidden">
+                    <div className="h-48 overflow-hidden relative">
                       <img 
                         src={property.image_url} 
                         alt={property.title}
@@ -201,6 +202,14 @@ const Properties = () => {
                           target.src = '/property-placeholder.png';
                         }}
                       />
+                      {/* Favorite Button */}
+                      <div className="absolute top-2 right-2">
+                        <FavoriteButton 
+                          propertyId={property.id} 
+                          variant="default"
+                          className="bg-white/90 hover:bg-white shadow-md"
+                        />
+                      </div>
                     </div>
                   ) : (
                     <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">

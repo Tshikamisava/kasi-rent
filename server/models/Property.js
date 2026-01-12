@@ -54,6 +54,22 @@ const Property = sequelize.define('Property', {
   status: {
     type: DataTypes.ENUM('available', 'rented', 'maintenance'),
     defaultValue: 'available'
+  },
+  address: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  latitude: {
+    type: DataTypes.DECIMAL(10, 8),
+    allowNull: true
+  },
+  longitude: {
+    type: DataTypes.DECIMAL(11, 8),
+    allowNull: true
+  },
+  video_url: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   tableName: 'properties',

@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { PropertyDetailModal } from "@/components/PropertyDetailModal";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 export const FeaturedProperties = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -88,6 +89,14 @@ export const FeaturedProperties = () => {
                       target.src = '/property-placeholder.png';
                     }}
                   />
+                  {/* Favorite Button */}
+                  <div className="absolute top-2 left-2">
+                    <FavoriteButton 
+                      propertyId={property.id} 
+                      variant="default"
+                      className="bg-white/90 hover:bg-white shadow-md"
+                    />
+                  </div>
                   {imageCount > 1 && (
                     <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
                       <Images className="w-3 h-3" />

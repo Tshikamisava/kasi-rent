@@ -1,4 +1,6 @@
 import User from '../models/User.js';
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 /**
  * Get Landlord Contact Information
@@ -78,6 +80,114 @@ export const findUserByEmail = async (req, res) => {
     console.error('Error finding user by email:', error);
     res.status(500).json({
       error: 'Failed to find user',
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * Request Password Reset
+ */
+export const requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      // Don't reveal if user exists
+      return res.json({ 
+        success: true, 
+        message: 'If an account exists with that email, a password reset link has been sent.' 
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Set token expiry (1 hour from now)
+    user.reset_password_token = hashedToken;
+    user.reset_password_expires = new Date(Date.now() + 3600000);
+    await user.save();
+
+    // In production, send email here
+    // For now, return token in response (remove in production)
+    const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    
+    console.log('Password reset URL:', resetUrl);
+    console.log('Reset token:', resetToken);
+
+    // TODO: Implement email sending with nodemailer
+    // await sendPasswordResetEmail(user.email, resetUrl);
+
+    res.json({ 
+      success: true, 
+      message: 'Password reset instructions sent to your email.',
+      // Remove this in production:
+      resetUrl: resetUrl 
+    });
+  } catch (error) {
+    console.error('Error requesting password reset:', error);
+    res.status(500).json({
+      error: 'Failed to process password reset request',
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * Reset Password
+ */
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // Hash the token to compare
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Find user with valid token
+    const user = await User.findOne({
+      where: {
+        reset_password_token: hashedToken,
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    // Check if token is expired
+    if (user.reset_password_expires < new Date()) {
+      return res.status(400).json({ error: 'Reset token has expired' });
+    }
+
+    // Hash new password and update user
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.reset_password_token = null;
+    user.reset_password_expires = null;
+    await user.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Password has been reset successfully' 
+    });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({
+      error: 'Failed to reset password',
       message: error.message,
     });
   }

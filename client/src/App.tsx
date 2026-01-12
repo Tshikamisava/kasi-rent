@@ -13,12 +13,18 @@ const Properties = lazy(() => import("./pages/Properties"));
 const About = lazy(() => import("./pages/About"));
 const SignIn = lazy(() => import("./pages/SignIn"));
 const GetStarted = lazy(() => import("./pages/GetStarted"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TenantDashboard = lazy(() => import("./pages/TenantDashboard"));
 const LandlordDashboard = lazy(() => import("./pages/LandlordDashboard"));
 const Payments = lazy(() => import("./pages/Payments"));
 const Chat = lazy(() => import("./pages/Chat"));
 const Bookings = lazy(() => import("./pages/Bookings"));
+const Favorites = lazy(() => import("./pages/Favorites"));
+const Profile = lazy(() => import("./pages/Profile"));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -87,6 +93,10 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/get-started" element={<GetStarted />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/payments" element={<Payments />} />
             
             {/* Protected Dashboard Routes */}
@@ -123,6 +133,26 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Bookings />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Favorites - protected for authenticated users */}
+            <Route
+              path="/favorites"
+              element={
+                <ProtectedRoute>
+                  <Favorites />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Profile - protected for authenticated users */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
                 </ProtectedRoute>
               }
             />

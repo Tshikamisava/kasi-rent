@@ -29,16 +29,21 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter - only images
+// File filter - only images (allow .jfif as jpeg)
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
+  const allowedExtensions = /\.jpeg$|\.jpg$|\.png$|\.gif$|\.webp$|\.jfif$/;
+  const ext = path.extname(file.originalname).toLowerCase();
+  const extname = allowedExtensions.test(ext);
+  const mimetypeOk = /^image\/(jpeg|jpg|png|gif|webp)$/i.test(file.mimetype || '');
 
-  if (mimetype && extname) {
+  // Treat .jfif as image/jpeg
+  const isJfif = ext === '.jfif';
+  const allow = (mimetypeOk || isJfif) && extname;
+
+  if (allow) {
     return cb(null, true);
   } else {
-    cb(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp)'));
+    cb(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp, jfif)'));
   }
 };
 
