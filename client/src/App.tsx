@@ -25,6 +25,9 @@ const Chat = lazy(() => import("./pages/Chat"));
 const Bookings = lazy(() => import("./pages/Bookings"));
 const Favorites = lazy(() => import("./pages/Favorites"));
 const Profile = lazy(() => import("./pages/Profile"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const TenantVerification = lazy(() => import("./pages/TenantVerification"));
+const AdvancedSearch = lazy(() => import("./pages/AdvancedSearch"));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -156,6 +159,29 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+
+            {/* Admin Dashboard - protected for admin users only */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Tenant Verification - protected for authenticated users */}
+            <Route
+              path="/verification"
+              element={
+                <ProtectedRoute>
+                  <TenantVerification />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Advanced Search - public access */}
+            <Route path="/search" element={<AdvancedSearch />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -6,10 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/hooks/use-auth";
-import { login, signInWithOAuth, getCurrentSession } from "@/lib/auth";
+import { login } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Mail, Lock, CheckCircle2, Shield, Sparkles } from "lucide-react";
+import { Mail, Lock, CheckCircle2, Shield, Sparkles, Eye, EyeOff } from "lucide-react";
 
 const SignIn = () => {
   const { user, setUser, setUserType } = useAuth();
@@ -20,13 +20,11 @@ const SignIn = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      navigate("/");
-      return;
-    }
-  }, [user, navigate]);
+    // Do not auto-redirect here; role-based redirect happens after successful sign-in
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +64,7 @@ const SignIn = () => {
           token: result.session?.access_token || "",
           userType: userRole
         });
+        // Token persistence handled centrally in `use-auth` store
         
         toast.success("Signed in successfully!");
         
@@ -77,8 +76,13 @@ const SignIn = () => {
             return;
           }
 
-          if (userRole && ['tenant', 'landlord'].includes(userRole)) {
-            navigate(`/dashboard/${userRole}`);
+          // Redirect based on user role
+          if (userRole === 'admin') {
+            navigate('/admin');
+          } else if (userRole === 'tenant') {
+            navigate('/dashboard/tenant');
+          } else if (userRole === 'landlord') {
+            navigate('/dashboard/landlord');
           } else {
             navigate("/");
           }
@@ -239,13 +243,20 @@ const SignIn = () => {
                           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                           <Input 
                             id="password" 
-                            type="password" 
+                            type={showPassword ? "text" : "password"}
                             placeholder="••••••••"
-                            className="pl-9 h-8 hover:border-primary/50 transition-all"
+                            className="pl-9 pr-9 h-8 hover:border-primary/50 transition-all"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
                         </div>
                       </div>
                       <Button type="submit" className="w-full h-9 bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5" disabled={loading}>

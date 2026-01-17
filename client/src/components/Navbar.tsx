@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Menu, X, Calendar, Heart, User, LogOut, Settings } from "lucide-react";
+import { Menu, X, Calendar, Heart, User, LogOut, Settings, Search, Shield } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
@@ -47,9 +47,25 @@ export const Navbar = () => {
             <Link to="/properties" className="text-foreground hover:text-primary transition-colors">
               Properties
             </Link>
+            <Link to="/search" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
+              <Search className="w-4 h-4" />
+              Search
+            </Link>
             <Link to="/about" className="text-foreground hover:text-primary transition-colors">
               About
             </Link>
+            {user && user.role === 'tenant' && (
+              <Link to="/verification" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                <Shield className="w-4 h-4" />
+                Verification
+              </Link>
+            )}
+            {user && user.role === 'admin' && (
+              <Link to="/admin" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                <Shield className="w-4 h-4" />
+                Admin
+              </Link>
+            )}
             {user && (
               <Link to="/bookings" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
@@ -131,9 +147,25 @@ export const Navbar = () => {
               <Link to="/properties" className="text-foreground hover:text-primary transition-colors py-2">
                 Properties
               </Link>
+              <Link to="/search" className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1">
+                <Search className="w-4 h-4" />
+                Advanced Search
+              </Link>
               <Link to="/about" className="text-foreground hover:text-primary transition-colors py-2">
                 About
               </Link>
+              {user && user.role === 'tenant' && (
+                <Link to="/verification" className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1">
+                  <Shield className="w-4 h-4" />
+                  Verification
+                </Link>
+              )}
+              {user && user.role === 'admin' && (
+                <Link to="/admin" className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1">
+                  <Shield className="w-4 h-4" />
+                  Admin Dashboard
+                </Link>
+              )}
               {user && (
                 <Link to="/bookings" className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1">
                   <Calendar className="w-4 h-4" />

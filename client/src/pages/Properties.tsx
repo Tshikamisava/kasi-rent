@@ -43,11 +43,9 @@ const Properties = () => {
       if (!response.ok) throw new Error('Failed to fetch properties');
       
       setProperties(data || []);
-      setFilteredProperties(data || []);
     } catch (error) {
       console.error("Error fetching properties:", error);
       setProperties([]);
-      setFilteredProperties([]);
     } finally {
       setLoading(false);
     }

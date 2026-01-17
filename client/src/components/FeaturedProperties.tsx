@@ -79,11 +79,11 @@ export const FeaturedProperties = () => {
             return (
             <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-shadow">
               {displayImage ? (
-                <div className="h-48 overflow-hidden relative">
+                <div className="h-80 overflow-hidden relative">
                   <img 
                     src={displayImage} 
                     alt={property.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.src = '/property-placeholder.png';
@@ -105,7 +105,7 @@ export const FeaturedProperties = () => {
                   )}
                 </div>
               ) : (
-                <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                <div className="h-80 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
                   <Building2 className="w-20 h-20 text-primary/40" />
                 </div>
               )}

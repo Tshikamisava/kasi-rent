@@ -63,3 +63,6 @@ export const protect = async (req, res, next) => {
     res.status(401).json({ message: 'Not authorized, no token' });
   }
 };
+
+// Export alias for backward compatibility
+export const authenticateToken = protect;

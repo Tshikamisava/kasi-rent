@@ -1,8 +1,16 @@
 import express from 'express';
 import passport from '../config/passport.js';
 import jwt from 'jsonwebtoken';
+import { register, login, logout, getCurrentUser } from '../controllers/authController.js';
+import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// MySQL-based authentication routes
+router.post('/register', register);
+router.post('/login', login);
+router.post('/logout', logout);
+router.get('/me', protect, getCurrentUser);
 
 // Helper to generate JWT token
 const generateToken = (user) => {

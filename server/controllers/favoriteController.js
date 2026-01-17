@@ -1,5 +1,6 @@
 import Favorite from '../models/Favorite.js';
 import Property from '../models/Property.js';
+import User from '../models/User.js';
 import { Op } from 'sequelize';
 
 // Add to favorites
@@ -92,30 +93,40 @@ export const getUserFavorites = async (req, res) => {
 
     const favorites = await Favorite.findAll({
       where: { user_id },
-      include: [{
-        model: Property,
-        as: 'property'
-      }]
+      include: [
+        {
+          model: Property,
+          as: 'property'
+        },
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email']
+        }
+      ]
     });
 
-    // If no associations, fetch properties separately
-    if (favorites.length > 0 && !favorites[0].property) {
+    // If associations aren't present (older DB), fetch properties and user separately
+    if (favorites.length > 0 && (!favorites[0].property || !favorites[0].user)) {
       const propertyIds = favorites.map(f => f.property_id);
       const properties = await Property.findAll({
         where: { id: { [Op.in]: propertyIds } }
       });
 
-      const favoritesWithProperties = favorites.map(fav => {
-        const property = properties.find(p => p.id === fav.property_id);
+      const userRecord = await User.findByPk(user_id);
+
+      const favoritesWithRelations = favorites.map(fav => {
+        const property = properties.find(p => p.id === fav.property_id) || null;
         return {
           ...fav.toJSON(),
-          property
+          property,
+          user: userRecord ? userRecord.toJSON() : null
         };
       });
 
       return res.json({ 
         success: true, 
-        favorites: favoritesWithProperties 
+        favorites: favoritesWithRelations 
       });
     }
 

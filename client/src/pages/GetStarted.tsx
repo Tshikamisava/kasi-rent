@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, User, Phone, UserPlus, CheckCircle2, Shield, Sparkles, Star } from "lucide-react";
+import { Mail, Lock, User, Phone, UserPlus, CheckCircle2, Shield, Sparkles, Star, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { register } from "@/lib/auth";
 import { useAuth } from "@/hooks/use-auth";
@@ -18,6 +18,8 @@ const GetStarted = () => {
   const { setUser, setUserType } = useAuth();
   const [loading, setLoading] = useState(false);
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const slidingTexts = [
     { title: "Find Your Dream Home", subtitle: "Discover amazing properties in your area", icon: "🏠" },
     { title: "Trusted by 50,000+ Users", subtitle: "Join our growing community today", icon: "⭐" },
@@ -224,70 +226,70 @@ const GetStarted = () => {
             <div className="flex items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-primary/5 h-screen">
               <div className="w-full max-w-md">
                 <Card className="shadow-2xl border-0 bg-white animate-fade-in-up">
-              <CardHeader className="space-y-0.5 text-center pb-2 relative">
-                <div className="absolute -top-4 -right-4 w-16 h-16 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full blur-2xl animate-pulse"></div>
+              <CardHeader className="space-y-0 text-center pb-1 relative">
+                <div className="absolute -top-4 -right-4 w-12 h-12 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full blur-2xl animate-pulse"></div>
                 <div className="relative">
-                  <div className="w-10 h-10 mx-auto mb-1.5 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg hover:scale-110 hover:rotate-6 transition-all">
-                    <Sparkles className="w-5 h-5 text-white animate-pulse" />
+                  <div className="w-8 h-8 mx-auto mb-1 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg hover:scale-110 hover:rotate-6 transition-all">
+                    <Sparkles className="w-4 h-4 text-white animate-pulse" />
                   </div>
-                  <CardTitle className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Get Started</CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
-                  Join <span className="font-semibold text-primary">50,000+</span> users
+                  <CardTitle className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Get Started</CardTitle>
+                  <CardDescription className="text-xs mt-0">
+                  Join <span className="font-semibold text-primary">50K+</span> users
                 </CardDescription>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-1.5 px-4 pb-3">
-                <form onSubmit={handleSubmit} className="space-y-1.5">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="name" className="text-sm">Full Name</Label>
+              <CardContent className="space-y-1 px-3 pb-2">
+                <form onSubmit={handleSubmit} className="space-y-1">
+                  <div>
+                    <Label htmlFor="name" className="text-xs">Full Name</Label>
                     <div className="relative group">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <Input 
                         id="name" 
                         type="text" 
                         placeholder="John Doe"
-                        className="pl-9 h-8 hover:border-primary/50 transition-all"
+                        className="pl-8 h-7 text-sm hover:border-primary/50 transition-all"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         required
                       />
                     </div>
                   </div>
-                  <div className="space-y-0.5">
-                    <Label htmlFor="email" className="text-sm">Email</Label>
+                  <div>
+                    <Label htmlFor="email" className="text-xs">Email</Label>
                     <div className="relative group">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <Input 
                         id="email" 
                         type="email" 
                         placeholder="you@example.com"
-                        className="pl-9 h-8 hover:border-primary/50 transition-all"
+                        className="pl-8 h-7 text-sm hover:border-primary/50 transition-all"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         required
                       />
                     </div>
                   </div>
-                  <div className="space-y-0.5">
-                    <Label htmlFor="phone" className="text-sm">Phone Number</Label>
+                  <div>
+                    <Label htmlFor="phone" className="text-xs">Phone</Label>
                     <div className="relative group">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <Input 
                         id="phone" 
                         type="tel" 
                         placeholder="+27 11 123 4567"
-                        className="pl-9 h-8 hover:border-primary/50 transition-all"
+                        className="pl-8 h-7 text-sm hover:border-primary/50 transition-all"
                         value={formData.phone}
                         onChange={(e) => handleInputChange('phone', e.target.value)}
                         required
                       />
                     </div>
                   </div>
-                  <div className="space-y-0.5">
-                    <Label htmlFor="user-type" className="text-sm">I am a...</Label>
+                  <div>
+                    <Label htmlFor="user-type" className="text-xs">I am a...</Label>
                     <Select value={formData.userType} onValueChange={(value) => handleInputChange('userType', value)}>
-                      <SelectTrigger id="user-type" className="h-8 hover:border-primary/50 transition-all">
-                        <SelectValue placeholder="Select your role" />
+                      <SelectTrigger id="user-type" className="h-7 text-sm hover:border-primary/50 transition-all">
+                        <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="tenant">🏠 Tenant</SelectItem>
@@ -296,57 +298,71 @@ const GetStarted = () => {
                     </Select>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="password" className="text-sm">Password</Label>
+                    <div>
+                      <Label htmlFor="password" className="text-xs">Password</Label>
                       <div className="relative group">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <Lock className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                         <Input 
                           id="password" 
-                          type="password" 
+                          type={showPassword ? "text" : "password"}
                           placeholder="••••••••"
-                          className="pl-9 h-8 hover:border-primary/50 transition-all"
+                          className="pl-8 pr-8 h-7 text-sm hover:border-primary/50 transition-all"
                           value={formData.password}
                           onChange={(e) => handleInputChange('password', e.target.value)}
                           required
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
                       </div>
                     </div>
-                    <div className="space-y-0.5">
-                      <Label htmlFor="confirm-password" className="text-sm">Confirm</Label>
+                    <div>
+                      <Label htmlFor="confirm-password" className="text-xs">Confirm</Label>
                       <div className="relative group">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <Lock className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                         <Input 
                           id="confirm-password" 
-                          type="password" 
+                          type={showConfirmPassword ? "text" : "password"}
                           placeholder="••••••••"
-                          className="pl-9 h-8 hover:border-primary/50 transition-all"
+                          className="pl-8 pr-8 h-7 text-sm hover:border-primary/50 transition-all"
                           value={formData.confirmPassword}
                           onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                           required
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-2 text-xs bg-gray-50 p-2.5 rounded-lg">
+                  <div className="flex items-start gap-1.5 text-xs bg-gray-50 p-1.5 rounded-lg">
                     <input 
                       type="checkbox" 
                       id="terms-checkbox"
-                      className="rounded mt-0.5 h-4 w-4 cursor-pointer hover:scale-110 transition-transform" 
+                      className="rounded mt-0.5 h-3.5 w-3.5 cursor-pointer hover:scale-110 transition-transform" 
                       checked={formData.agreeToTerms}
                       onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
                       required
                     />
-                    <label htmlFor="terms-checkbox" className="text-gray-700 cursor-pointer">
+                    <label htmlFor="terms-checkbox" className="text-gray-700 cursor-pointer leading-tight">
                       I agree to the{" "}
                       <Link to="/terms-of-service" className="text-primary hover:underline font-semibold">Terms</Link>
                       {" "}and{" "}
                       <Link to="/privacy-policy" className="text-primary hover:underline font-semibold">Privacy</Link>
                     </label>
                   </div>
-                  <Button type="submit" className="w-full h-9 bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5" disabled={loading}>
+                  <Button type="submit" className="w-full h-8 text-sm bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5" disabled={loading}>
                     {loading ? (
                       <span className="flex items-center gap-2">
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
@@ -354,13 +370,13 @@ const GetStarted = () => {
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
-                        <UserPlus className="w-4 h-4" />
+                        <UserPlus className="w-3.5 h-3.5" />
                         Create Account
                       </span>
                     )}
                   </Button>
                 </form>
-                <Separator className="my-2" />
+                <Separator className="my-1.5" />
                 <div className="text-center text-xs text-gray-600">
                   Already have an account?{" "}
                   <Link to="/signin" className="text-primary hover:underline font-semibold">

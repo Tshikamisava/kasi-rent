@@ -135,7 +135,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
 
     setUploadingVideo(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const videoFormData = new FormData();
       videoFormData.append('video', selectedVideo);
 
@@ -183,7 +183,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
   const analyzeFraud = async () => {
     setAnalyzing(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const response = await fetch(`${API_BASE}/api/fraud-detection/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -222,7 +222,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
 
     setGeneratingDescription(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const response = await fetch(`${API_BASE}/api/description-generator/description`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -269,7 +269,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
 
     setGeneratingTitle(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const response = await fetch(`${API_BASE}/api/description-generator/title`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -313,7 +313,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
 
     setSuggestingPrice(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const response = await fetch(`${API_BASE}/api/description-generator/suggest-price`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -417,7 +417,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
       if (selectedFiles.length > 0) {
         setUploading(true);
         
-        const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
         
         // Upload each file to the server
         for (const file of selectedFiles) {
@@ -479,7 +479,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
       });
 
       // Submit to MySQL API instead of Supabase
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const apiUrl = `${API_BASE}/api/properties`;
       
       console.log('Posting to:', apiUrl);

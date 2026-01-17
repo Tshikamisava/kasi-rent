@@ -6,6 +6,7 @@ import Message from './Message.js';
 import Attachment from './Attachment.js';
 import Reaction from './Reaction.js';
 import Property from './Property.js';
+import Favorite from './Favorite.js';
 import Booking from './Booking.js';
 import Review from './Review.js';
 
@@ -36,6 +37,10 @@ Message.belongsTo(User, { foreignKey: 'sender_id', as: 'sender' });
 // Property.hasMany(Review, { foreignKey: 'property_id', as: 'reviews' });
 // Review.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
 
+// Favorite associations
+Favorite.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
+Favorite.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
 export {
   User,
   Conversation,
@@ -46,4 +51,5 @@ export {
   Reaction,
   Property,
   Booking,
+  Favorite,
 };

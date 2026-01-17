@@ -33,7 +33,7 @@ const User = sequelize.define('User', {
     allowNull: true
   },
   role: {
-    type: DataTypes.ENUM('landlord', 'tenant', 'agent'),
+    type: DataTypes.ENUM('landlord', 'tenant', 'agent', 'admin'),
     defaultValue: 'tenant'
   },
   oauth_provider: {

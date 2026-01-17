@@ -318,11 +318,11 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
           {/* Property Image Gallery */}
           {propertyImages.length > 0 ? (
             <div className="relative">
-              <div className="h-64 md:h-96 w-full rounded-lg overflow-hidden">
+              <div className="h-96 md:h-[600px] w-full rounded-lg overflow-hidden">
                 <img
                   src={propertyImages[currentImageIndex]}
                   alt={`${property.title} - Image ${currentImageIndex + 1}`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = '/property-placeholder.png';
@@ -364,10 +364,10 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
-                      className={`flex-shrink-0 h-16 w-20 rounded overflow-hidden border-2 transition-all ${
+                      className={`flex-shrink-0 h-20 w-28 rounded overflow-hidden border-2 transition-all ${
                         index === currentImageIndex
-                          ? 'border-primary ring-2 ring-primary'
-                          : 'border-transparent opacity-60 hover:opacity-100'
+                          ? 'border-primary ring-2 ring-primary scale-105'
+                          : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105'
                       }`}
                     >
                       <img
@@ -381,7 +381,7 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
               )}
             </div>
           ) : (
-            <div className="h-64 w-full rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+            <div className="h-96 md:h-[600px] w-full rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
               <Building2 className="w-24 h-24 text-primary/40" />
             </div>
           )}

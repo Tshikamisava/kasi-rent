@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import { sendPasswordResetEmail } from '../utils/emailService.js';
 
 /**
  * Get Landlord Contact Information
@@ -111,25 +112,25 @@ export const requestPasswordReset = async (req, res) => {
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
     // Set token expiry (1 hour from now)
-    user.reset_password_token = hashedToken;
-    user.reset_password_expires = new Date(Date.now() + 3600000);
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = new Date(Date.now() + 3600000);
     await user.save();
 
-    // In production, send email here
-    // For now, return token in response (remove in production)
+    // Send password reset email
     const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
     
-    console.log('Password reset URL:', resetUrl);
-    console.log('Reset token:', resetToken);
-
-    // TODO: Implement email sending with nodemailer
-    // await sendPasswordResetEmail(user.email, resetUrl);
+    try {
+      await sendPasswordResetEmail(user.email, resetUrl, user.name);
+      console.log('✓ Password reset email sent to:', user.email);
+    } catch (emailError) {
+      console.error('✗ Failed to send email:', emailError.message);
+      // Log the URL for development purposes
+      console.log('Password reset URL:', resetUrl);
+    }
 
     res.json({ 
       success: true, 
-      message: 'Password reset instructions sent to your email.',
-      // Remove this in production:
-      resetUrl: resetUrl 
+      message: 'Password reset instructions have been sent to your email.',
     });
   } catch (error) {
     console.error('Error requesting password reset:', error);
@@ -161,7 +162,7 @@ export const resetPassword = async (req, res) => {
     // Find user with valid token
     const user = await User.findOne({
       where: {
-        reset_password_token: hashedToken,
+        resetPasswordToken: hashedToken,
       },
     });
 
@@ -170,14 +171,14 @@ export const resetPassword = async (req, res) => {
     }
 
     // Check if token is expired
-    if (user.reset_password_expires < new Date()) {
+    if (user.resetPasswordExpires < new Date()) {
       return res.status(400).json({ error: 'Reset token has expired' });
     }
 
     // Hash new password and update user
     user.password = await bcrypt.hash(newPassword, 10);
-    user.reset_password_token = null;
-    user.reset_password_expires = null;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
     await user.save();
 
     res.json({ 

@@ -1,4 +1,5 @@
-import { supabase } from '@/integrations/supabase/client'
+// MySQL-based authentication (no Supabase)
+const API_URL = 'http://localhost:5001/api/auth';
 
 interface LoginData {
   email: string;
@@ -14,147 +15,223 @@ interface RegisterData extends LoginData {
 export const authApi = {
   async login(data: LoginData) {
     try {
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      })
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
-      if (error) {
-        throw new Error(error.message)
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Login failed');
       }
 
-      return {
-        _id: authData.user?.id,
-        name: authData.user?.user_metadata?.name || authData.user?.email,
-        email: authData.user?.email,
-        phone: authData.user?.user_metadata?.phone,
-        userType: authData.user?.user_metadata?.userType,
-        token: authData.session?.access_token,
-      }
+      return result.user;
     } catch (error) {
       if (error instanceof TypeError) {
-        throw new Error('Cannot connect to authentication service.')
+        throw new Error('Cannot connect to authentication service.');
       }
-      throw error
+      throw error;
     }
   },
 
   async register(data: RegisterData) {
     try {
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            name: data.name,
-            phone: data.phone,
-            userType: data.userType,
-          }
-        }
-      })
+      const response = await fetch(`${API_URL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          phone: data.phone,
+          role: data.userType || 'tenant',
+        }),
+      });
 
-      if (error) {
-        throw new Error(error.message)
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Registration failed');
       }
 
-      if (!authData.user) {
-        throw new Error('Registration failed')
-      }
-
-      return {
-        _id: authData.user.id,
-        name: data.name,
-        email: authData.user.email,
-        phone: data.phone,
-        userType: data.userType,
-        token: authData.session?.access_token,
-      }
+      return result.user;
     } catch (error) {
       if (error instanceof TypeError) {
-        throw new Error('Cannot connect to authentication service.')
+        throw new Error('Cannot connect to authentication service.');
       }
-      throw error
+      throw error;
     }
   },
 
   async logout() {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      throw new Error(error.message)
+    try {
+      await fetch(`${API_URL}/logout`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      // Logout is mainly client-side for JWT
+      console.error('Logout error:', error);
     }
   },
-}
+};
 
 // Export individual functions for convenience
 export const login = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
-
-  return {
-    user: data.user,
-    session: data.session,
-    error: error?.message,
-  }
-}
-
-// OAuth Sign In
-export const signInWithOAuth = async (provider: 'google' | 'github' | 'facebook') => {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: provider,
-    options: {
-      redirectTo: `${window.location.origin}/signin`,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
+  try {
+    const response = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return {
+        user: null,
+        session: null,
+        error: result.error || 'Invalid login credentials',
+      };
     }
-  })
 
-  return {
-    data,
-    error: error?.message,
+    // Format response to match Supabase structure
+    return {
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        user_metadata: {
+          name: result.user.name,
+          phone: result.user.phone,
+          userType: result.user.role,
+        },
+      },
+      session: {
+        access_token: result.token,
+      },
+      error: null,
+    };
+  } catch (error) {
+    return {
+      user: null,
+      session: null,
+      error: error instanceof Error ? error.message : 'Login failed',
+    };
   }
-}
+};
 
-// Get current session
+// OAuth Sign In (disabled for MySQL-only auth)
+export const signInWithOAuth = async (provider: 'google' | 'github' | 'facebook') => {
+  return {
+    data: null,
+    error: 'OAuth is not available with MySQL authentication',
+  };
+};
+
+// Get current session (MySQL version)
 export const getCurrentSession = async () => {
-  const { data: { session }, error } = await supabase.auth.getSession()
-  
-  return {
-    session,
-    user: session?.user,
-    error: error?.message,
-  }
-}
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return { session: null, user: null, error: null };
+    }
 
-// Listen to auth state changes
+    const response = await fetch(`${API_URL}/me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      return { session: null, user: null, error: 'Session expired' };
+    }
+
+    const result = await response.json();
+    
+    return {
+      session: { access_token: token },
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        user_metadata: {
+          name: result.user.name,
+          phone: result.user.phone,
+          userType: result.user.role,
+        },
+      },
+      error: null,
+    };
+  } catch (error) {
+    return {
+      session: null,
+      user: null,
+      error: error instanceof Error ? error.message : 'Failed to get session',
+    };
+  }
+};
+
+// Listen to auth state changes (no-op for MySQL)
 export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
-  return supabase.auth.onAuthStateChange((event, session) => {
-    callback(event, session)
-  })
-}
+  // For MySQL auth, we don't have real-time auth state changes
+  return { data: { subscription: { unsubscribe: () => {} } } };
+};
 
 export const register = async (email: string, password: string, name: string, phone?: string, userType?: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
+  try {
+    const response = await fetch(`${API_URL}/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password,
         name,
         phone,
-        userType,
-      }
-    }
-  })
+        role: userType || 'tenant',
+      }),
+    });
 
-  return {
-    user: data.user,
-    session: data.session,
-    error: error?.message,
+    const result = await response.json();
+
+    if (!response.ok) {
+      return {
+        user: null,
+        session: null,
+        error: result.error || 'Registration failed',
+      };
+    }
+
+    return {
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        user_metadata: {
+          name: result.user.name,
+          phone: result.user.phone,
+          userType: result.user.role,
+        },
+      },
+      session: {
+        access_token: result.token,
+      },
+      error: null,
+    };
+  } catch (error) {
+    return {
+      user: null,
+      session: null,
+      error: error instanceof Error ? error.message : 'Registration failed',
+    };
   }
-}
+};
 
 // Reset password - sends email with reset link (MySQL backend)
 export const resetPassword = async (email: string) => {
