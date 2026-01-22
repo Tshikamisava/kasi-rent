@@ -240,3 +240,41 @@ All colors MUST be HSL.
 .animate-count-up {
   animation: fadeInUp 1s ease-out forwards;
 }
+
+/* Button primary style used across the app */
+.btn-primary {
+  background: var(--gradient-primary);
+  color: hsl(var(--primary-foreground));
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+}
+.btn-primary:focus {
+  outline: none;
+  box-shadow: 0 6px 20px rgba(17,24,39,0.12);
+  transform: translateY(-2px);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(2,6,23,0.12);
+}
+
+/* Skeleton placeholder */
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: gradient 1.6s linear infinite;
+  border-radius: 8px;
+}
+
+/* Small utility for subtle card inner fade */
+.card-inner-fade {
+  opacity: 0.98;
+  transition: opacity 220ms ease;
+}
+.card-inner-fade:hover { opacity: 1; }

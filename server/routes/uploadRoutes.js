@@ -1,5 +1,6 @@
 import express from 'express';
 import { upload, compressImage } from '../config/upload.js';
+import { docUpload, finalizeDocument } from '../config/docUpload.js';
 import { videoUpload } from '../config/videoUpload.js';
 import path from 'path';
 import fs from 'fs';
@@ -144,6 +145,21 @@ router.post('/video', videoUpload.single('video'), async (req, res) => {
       message: 'Failed to upload video',
       error: error.message
     });
+  }
+});
+
+// Upload landlord document (ID, proof)
+router.post('/document', docUpload.single('document'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'No document uploaded' });
+
+    const filename = req.file.filename;
+    const finalUrl = finalizeDocument(req.file.path, filename);
+
+    res.json({ success: true, documentUrl: finalUrl, filename, originalName: req.file.originalname });
+  } catch (error) {
+    console.error('Document upload error:', error);
+    res.status(500).json({ success: false, message: 'Failed to upload document', error: error.message });
   }
 });
 

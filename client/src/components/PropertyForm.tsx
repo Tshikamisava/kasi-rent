@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+// supabase not used here; backend API used instead
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Copy, AlertTriangle, ShieldCheck, ShieldAlert, Sparkles, Zap } from "lucide-react";
@@ -31,12 +31,20 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
     description: initialData?.description || "",
     image_url: initialData?.image_url || "",
     video_url: initialData?.video_url || "",
+    wifi_available: initialData?.wifi_available ?? false,
+    pets_allowed: initialData?.pets_allowed ?? false,
+    furnished: initialData?.furnished ?? false,
+    parking_available: initialData?.parking_available ?? false,
+    amenities: initialData?.amenities || "",
   });
 
   // Local file upload + preview state - now supporting multiple files
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  // Document upload state (landlord ID / proof)
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [documentPreviewUrl, setDocumentPreviewUrl] = useState<string>('');
   // Debug: store last uploaded image URLs for quick verification
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   // Video upload UI mode: 'file' or 'link'
@@ -120,6 +128,23 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
       if (videoPreview) URL.revokeObjectURL(videoPreview);
       const preview = URL.createObjectURL(file);
       setVideoPreview(preview);
+    }
+  };
+
+  const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setDocumentFile(file);
+    if (file) {
+      try {
+        const url = URL.createObjectURL(file);
+        if (documentPreviewUrl) URL.revokeObjectURL(documentPreviewUrl);
+        setDocumentPreviewUrl(url);
+      } catch (err) {
+        setDocumentPreviewUrl('');
+      }
+    } else {
+      if (documentPreviewUrl) URL.revokeObjectURL(documentPreviewUrl);
+      setDocumentPreviewUrl('');
     }
   };
 
@@ -472,6 +497,40 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
       // Use the first uploaded image as the primary image, or use the URL field
       const primaryImageUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : (formData.image_url || null);
 
+      // Upload document (required for new listings)
+      let documentUrl = initialData?.document_url || null;
+      let documentFilename = initialData?.document_filename || null;
+      let documentType = initialData?.document_type || null;
+
+      if (!initialData && !documentFile) {
+        toast({ title: 'Document required', description: 'Please upload an identity document before listing', variant: 'destructive' });
+        setLoading(false);
+        return;
+      }
+
+      if (documentFile) {
+        setUploading(true);
+        try {
+          const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+          const form = new FormData();
+          form.append('document', documentFile);
+          const res = await fetch(`${API_BASE}/api/upload/document`, { method: 'POST', body: form });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.message || 'Document upload failed');
+          documentUrl = `${API_BASE}${data.documentUrl}`;
+          documentFilename = data.filename;
+          documentType = data.originalName?.split('.').pop() || documentFile.type;
+        } catch (err: any) {
+          console.error('Document upload failed', err);
+          toast({ title: 'Document upload failed', description: err.message || 'Please try again', variant: 'destructive' });
+          setUploading(false);
+          setLoading(false);
+          return;
+        } finally {
+          setUploading(false);
+        }
+      }
+
       console.log('Submitting property with:', {
         images: uploadedUrls,
         primaryImage: primaryImageUrl,
@@ -497,6 +556,14 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
         image_url: primaryImageUrl,
         images: uploadedUrls.length > 0 ? uploadedUrls : (formData.image_url ? [formData.image_url] : []),
         video_url: videoUrl || null,
+        document_url: documentUrl,
+        document_filename: documentFilename,
+        document_type: documentType,
+        wifi_available: !!formData.wifi_available,
+        pets_allowed: !!formData.pets_allowed,
+        furnished: !!formData.furnished,
+        parking_available: !!formData.parking_available,
+        amenities: formData.amenities ? String(formData.amenities).split(',').map((s:any)=>s.trim()).filter(Boolean) : [],
       };
       
       console.log('Property data:', propertyData);
@@ -533,16 +600,23 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
         console.log("Uploaded image URLs:", uploadedUrls);
       }
 
-      // reset form + uploaded file previews
+      // reset form + uploaded file previews (include full shape)
       setFormData({
         title: "",
         location: "",
+        address: "",
         price: "",
         bedrooms: "",
         bathrooms: "",
         property_type: "",
         description: "",
         image_url: "",
+        video_url: "",
+        wifi_available: false,
+        pets_allowed: false,
+        furnished: false,
+        parking_available: false,
+        amenities: "",
       });
       setSelectedFiles([]);
       previewUrls.forEach(url => URL.revokeObjectURL(url));
@@ -708,6 +782,47 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>WiFi Available</Label>
+              <div className="flex items-center gap-3 mt-2">
+                <input id="wifi_available" type="checkbox" checked={!!formData.wifi_available} onChange={(e) => setFormData({ ...formData, wifi_available: e.target.checked })} />
+                <Label htmlFor="wifi_available" className="text-sm">Available</Label>
+              </div>
+            </div>
+
+            <div>
+              <Label>Pets Allowed</Label>
+              <div className="flex items-center gap-3 mt-2">
+                <input id="pets_allowed" type="checkbox" checked={!!formData.pets_allowed} onChange={(e) => setFormData({ ...formData, pets_allowed: e.target.checked })} />
+                <Label htmlFor="pets_allowed" className="text-sm">Allowed</Label>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mt-2">
+            <div>
+              <Label>Furnished</Label>
+              <div className="flex items-center gap-3 mt-2">
+                <input id="furnished" type="checkbox" checked={!!formData.furnished} onChange={(e) => setFormData({ ...formData, furnished: e.target.checked })} />
+                <Label htmlFor="furnished" className="text-sm">Furnished</Label>
+              </div>
+            </div>
+
+            <div>
+              <Label>Parking Available</Label>
+              <div className="flex items-center gap-3 mt-2">
+                <input id="parking_available" type="checkbox" checked={!!formData.parking_available} onChange={(e) => setFormData({ ...formData, parking_available: e.target.checked })} />
+                <Label htmlFor="parking_available" className="text-sm">Available</Label>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="amenities">Other Amenities (comma separated)</Label>
+            <Input id="amenities" value={formData.amenities} onChange={(e) => setFormData({ ...formData, amenities: e.target.value })} placeholder="e.g., hot water, security, pool" />
+          </div>
+
           <div>
             <Label>Property Images (Multiple)</Label>
             <input
@@ -801,6 +916,24 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
                   <Button type="button" variant="outline" size="sm" onClick={switchToLink} disabled={uploading || loading || uploadingVideo}>
                     Use Link Input
                   </Button>
+                )}
+              </div>
+
+              <div className="mt-4">
+                <Label>Upload Identity Document (required)</Label>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={handleDocumentChange}
+                  className="mt-2"
+                  disabled={uploading || loading}
+                />
+                <p className="text-sm text-muted-foreground mt-1">Upload a government ID or proof of identity. Admin will verify before the listing goes live.</p>
+
+                {documentPreviewUrl && (
+                  <div className="mt-3">
+                    <a href={documentPreviewUrl} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline">Preview uploaded document</a>
+                  </div>
                 )}
               </div>
 

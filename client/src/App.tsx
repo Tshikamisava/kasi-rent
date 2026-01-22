@@ -28,6 +28,12 @@ const Profile = lazy(() => import("./pages/Profile"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const TenantVerification = lazy(() => import("./pages/TenantVerification"));
 const AdvancedSearch = lazy(() => import("./pages/AdvancedSearch"));
+const MapSearch = lazy(() => import("./pages/MapSearch"));
+const ListProperty = lazy(() => import("./pages/ListProperty"));
+const FindAgents = lazy(() => import("./pages/FindAgents"));
+const HelpCenter = lazy(() => import("./pages/HelpCenter"));
+const SafetyTips = lazy(() => import("./pages/SafetyTips"));
+const SaveMoney = lazy(() => import("./pages/SaveMoney"));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -182,6 +188,13 @@ const App = () => (
 
             {/* Advanced Search - public access */}
             <Route path="/search" element={<AdvancedSearch />} />
+            {/* Map Search - pick a point on the map to search nearby */}
+            <Route path="/map-search" element={<MapSearch />} />
+            <Route path="/list-property" element={<ListProperty />} />
+            <Route path="/save-money" element={<SaveMoney />} />
+            <Route path="/agents" element={<FindAgents />} />
+            <Route path="/help" element={<HelpCenter />} />
+            <Route path="/safety" element={<SafetyTips />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

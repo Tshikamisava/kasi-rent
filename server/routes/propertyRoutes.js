@@ -6,8 +6,8 @@ import { authorizeRole } from "../middleware/authorizeRole.js";
 const router = express.Router();
 
 router.get("/", getProperties);
-router.post("/", createProperty); // Removed auth temporarily for testing
-router.put("/:id", updateProperty);
+	router.post("/", protect, createProperty);
+	router.put("/:id", protect, updateProperty);
 router.delete("/:id", deleteProperty);
 router.patch("/:id/verify", protect, verifyProperty);
 

@@ -6,7 +6,7 @@ const teamMembers = [
     name: "Tshikamisava Mmbengwa",
     role: "Co-Founder & CEO",
     bio: "Passionate about transforming township rentals and empowering communities",
-    image: "https://media.licdn.com/dms/image/v2/D4D03AQHqvKv8LlLgRA/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1733946685456?e=1742428800&v=beta&t=LdQtU5gNM2VPXCqAYZz7ixZPaSnRYr8i7u-dLdC5iig",
+    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
     linkedin: "https://www.linkedin.com/in/tshikamisava-mmbengwa-394b11260/",
     email: "tshika@kasirent.com",
   },
@@ -14,7 +14,7 @@ const teamMembers = [
     name: "Team Member 2",
     role: "Co-Founder & CTO",
     bio: "Building technology that bridges the gap in the rental market",
-    image: "/placeholder.svg",
+    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
     linkedin: "#",
     email: "team2@kasirent.com",
   },
@@ -22,7 +22,7 @@ const teamMembers = [
     name: "Team Member 3",
     role: "Head of Operations",
     bio: "Ensuring smooth operations and excellent customer experience",
-    image: "/placeholder.svg",
+    image: "https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
     linkedin: "#",
     email: "team3@kasirent.com",
   },
@@ -41,16 +41,17 @@ export const OurTeam = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {teamMembers.map((member, index) => (
-            <Card key={index} className="overflow-hidden border-border hover:border-primary/50 transition-all hover:shadow-lg">
+            <Card key={index} className="overflow-hidden border-border hover:border-primary/50 transition-all hover:shadow-lg animate-fade-in-up">
               <div className="aspect-square bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center overflow-hidden">
-                {member.image && !member.image.includes('placeholder') ? (
+                {member.image ? (
                   <img 
                     src={member.image} 
                     alt={member.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-full"
                     onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      e.currentTarget.parentElement!.innerHTML = `<div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-4xl font-bold">${member.name.charAt(0)}</div>`;
+                      // graceful fallback to initials when the image fails to load
+                      const parent = e.currentTarget.parentElement!;
+                      parent.innerHTML = `<div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-4xl font-bold">${member.name.charAt(0)}</div>`;
                     }}
                   />
                 ) : (

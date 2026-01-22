@@ -59,17 +59,18 @@ const Chat = () => {
     // Sync user to MySQL first (for chat functionality)
     api('/api/users/sync', token, { method: 'POST' }).then(() => {
       console.log('User synced to database');
-    }).catch((err) => {
-      console.log('User sync skipped or failed:', err.message);
+    }).catch((err: any) => {
+      console.log('User sync skipped or failed:', err?.message ?? err);
     });
 
     // fetch convos
     api('/api/chats', token).then((data) => {
       console.log('Conversations loaded:', data);
       if (Array.isArray(data)) setConversations(data);
-    }).catch((err) => {
+    }).catch((err: any) => {
       console.error('Failed to load conversations:', err);
-      toast({ title: 'Failed to load conversations', description: err.message || 'Please ensure you are logged in', variant: 'destructive' });
+      const msg = err?.message ?? String(err);
+      toast({ title: 'Failed to load conversations', description: msg || 'Please ensure you are logged in', variant: 'destructive' });
     });
 
     const socket = getSocket();
@@ -234,9 +235,10 @@ const Chat = () => {
           toast({ title: 'No users found', description: 'Try a different search term' });
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('User search error:', err);
-      toast({ title: 'Failed to load users', description: err.message || 'An error occurred', variant: 'destructive' });
+      const msg = err?.message ?? String(err);
+      toast({ title: 'Failed to load users', description: msg || 'An error occurred', variant: 'destructive' });
     }
   };
 

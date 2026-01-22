@@ -114,7 +114,7 @@ export const Navbar = () => {
                       {user.name || 'User'}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {user.role === 'landlord' ? 'Property Owner' : 'Tenant'}
+                      {user.role === 'admin' ? 'Admin' : user.role === 'landlord' ? 'Property Owner' : 'Tenant'}
                     </span>
                   </div>
                 </Link>

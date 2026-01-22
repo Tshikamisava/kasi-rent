@@ -71,6 +71,57 @@ const Property = sequelize.define('Property', {
     type: DataTypes.STRING,
     allowNull: true
   }
+  ,
+  // Landlord identity / verification document
+  document_url: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  document_filename: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  document_type: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  document_uploaded_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  document_verified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  document_verified_by: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  document_review_notes: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  }
+  ,
+  wifi_available: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  pets_allowed: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  furnished: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  parking_available: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  amenities: {
+    type: DataTypes.JSON,
+    defaultValue: []
+  }
 }, {
   tableName: 'properties',
   timestamps: true,

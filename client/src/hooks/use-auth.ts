@@ -2,10 +2,11 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface User {
-  _id: string;
-  name: string;
-  email: string;
-  token: string;
+  id?: string;
+  _id?: string;
+  name?: string;
+  email?: string;
+  token?: string;
   userType?: string;
   role?: string;
   profile_photo?: string;
@@ -28,7 +29,6 @@ export const useAuth = create<AuthState>()(
       userType: null,
       isAuthenticated: false,
       loading: false,
-      setUser: (user) => set({ user, isAuthenticated: !!user }),
       setUser: (user) => {
         try {
           if (user && (user as any).token) {
@@ -40,7 +40,8 @@ export const useAuth = create<AuthState>()(
           console.warn('Unable to persist token to localStorage', e);
         }
 
-        set({ user, isAuthenticated: !!user });
+        const userType = (user as any)?.role ?? null;
+        set({ user, userType, isAuthenticated: !!user });
       },
       setUserType: (userType) => set({ userType }),
       logout: () => {

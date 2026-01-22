@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PropertyDetailModal } from "@/components/PropertyDetailModal";
 import { RecommendedProperties } from "@/components/RecommendedProperties";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import PropertyMap from "@/components/PropertyMap";
 
 const Properties = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -162,6 +163,11 @@ const Properties = () => {
               </Select>
             </div>
           </div>
+
+          {/* Property Map */}
+          {!loading && filteredProperties.length > 0 && (
+            <PropertyMap properties={filteredProperties} />
+          )}
 
           {/* Property Grid */}
           {loading ? (

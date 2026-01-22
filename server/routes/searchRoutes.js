@@ -3,8 +3,61 @@ import { authenticateToken } from '../middleware/authMiddleware.js';
 import { Op } from 'sequelize';
 import Property from '../models/Property.js';
 import SavedSearch from '../models/SavedSearch.js';
+import User from '../models/User.js';
 
 const router = express.Router();
+
+// Nearby search: return properties within `radius` km of lat/lng
+router.get('/nearby', async (req, res) => {
+  try {
+    const { lat, lng, radius = 5, limit = 50 } = req.query;
+    const latNum = parseFloat(lat);
+    const lngNum = parseFloat(lng);
+    const radiusKm = parseFloat(radius);
+
+    if (Number.isNaN(latNum) || Number.isNaN(lngNum)) {
+      return res.status(400).json({ success: false, error: 'lat and lng query params required' });
+    }
+
+    // Fetch candidate properties with coordinates
+    const candidates = await Property.findAll({
+      where: {
+        latitude: { [Op.ne]: null },
+        longitude: { [Op.ne]: null },
+        status: 'available'
+      },
+      include: [{ model: User, as: 'landlord', attributes: ['id', 'name', 'email'] }]
+    });
+
+    // Haversine distance
+    function haversine(lat1, lon1, lat2, lon2) {
+      const toRad = (v) => (v * Math.PI) / 180;
+      const R = 6371; // km
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    const results = candidates
+      .map((p) => {
+        const plat = Number(p.latitude);
+        const plng = Number(p.longitude);
+        const distance = haversine(latNum, lngNum, plat, plng);
+        return { property: p, distance };
+      })
+      .filter((x) => x.distance <= radiusKm)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, Number(limit))
+      .map((x) => ({ ...x.property.toJSON(), distance_km: Number(x.distance.toFixed(3)) }));
+
+    res.json({ success: true, total: results.length, properties: results });
+  } catch (error) {
+    console.error('Nearby search error:', error);
+    res.status(500).json({ success: false, error: 'Failed to perform nearby search' });
+  }
+});
 
 // Advanced property search with filters
 router.get('/', async (req, res) => {

@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Shield, FileText, CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
+import { Shield, FileText, CheckCircle, XCircle, Eye } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -50,6 +50,21 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Helper to render a status badge for verification items
+  function getStatusBadge(status: TenantVerification['status'] | string | undefined) {
+    if (!status) return <Badge>Unknown</Badge>;
+    switch (status) {
+      case 'pending':
+        return <Badge variant="outline">Pending</Badge>;
+      case 'verified':
+        return <Badge variant="default"><CheckCircle className="w-4 h-4 mr-1 inline" /> Verified</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive"><XCircle className="w-4 h-4 mr-1 inline" /> Rejected</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  }
 
   // Admin role change form
   const [roleEmail, setRoleEmail] = useState('');

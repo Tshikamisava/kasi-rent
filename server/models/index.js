@@ -29,6 +29,10 @@ Reaction.belongsTo(Message, { foreignKey: 'message_id' });
 User.hasMany(Message, { foreignKey: 'sender_id', as: 'messages' });
 Message.belongsTo(User, { foreignKey: 'sender_id', as: 'sender' });
 
+// User <-> Property associations
+User.hasMany(Property, { foreignKey: 'landlord_id', as: 'properties' });
+Property.belongsTo(User, { foreignKey: 'landlord_id', as: 'landlord' });
+
 // Booking associations - Property is in Supabase, so we don't enforce FK constraints
 // Property.hasMany(Booking, { foreignKey: 'property_id', as: 'bookings' });
 // Booking.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });

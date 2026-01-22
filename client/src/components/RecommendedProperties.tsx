@@ -156,7 +156,7 @@ export const RecommendedProperties = ({
           {recommendations.map((property) => (
             <Card
               key={property.id}
-              className="group hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer overflow-hidden"
+              className="group transition-transform will-change-transform hover:-translate-y-1 hover:shadow-lg hover:border-primary/50 cursor-pointer overflow-hidden"
               onClick={() => handlePropertyClick(property.id)}
             >
               {/* Image */}
@@ -165,7 +165,7 @@ export const RecommendedProperties = ({
                   <img
                     src={property.image_url}
                     alt={property.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 will-change-transform"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.src = '/property-placeholder.png';

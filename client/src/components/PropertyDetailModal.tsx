@@ -442,6 +442,28 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                     <Bath className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">{property.bathrooms || 'N/A'} Bathrooms</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{property.wifi_available ? 'WiFi available' : 'No WiFi'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{property.pets_allowed ? 'Pets allowed' : 'No pets'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{property.furnished ? 'Furnished' : 'Unfurnished'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{property.parking_available ? 'Parking available' : 'No parking'}</span>
+                  </div>
+                  {property.amenities && Array.isArray(property.amenities) && property.amenities.length > 0 && (
+                    <div className="pt-2">
+                      <div className="text-sm font-medium mb-2">Amenities</div>
+                      <div className="flex flex-wrap gap-2">
+                        {property.amenities.map((a:any, idx:number) => (
+                          <Badge key={idx} variant="secondary">{a}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <Badge variant="outline">{property.property_type || 'Property'}</Badge>
                   </div>

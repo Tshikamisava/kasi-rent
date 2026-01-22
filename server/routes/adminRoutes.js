@@ -2,6 +2,7 @@ import express from 'express';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 import { authorizeRole } from '../middleware/authorizeRole.js';
 import User from '../models/User.js';
+import { getPendingDocuments, verifyDocument } from '../controllers/propertyController.js';
 
 const router = express.Router();
 
@@ -51,5 +52,9 @@ router.put('/user/role', authenticateToken, authorizeRole('admin'), async (req, 
     res.status(500).json({ success: false, error: 'Failed to update role' });
   }
 });
+
+// Admin: document verification endpoints
+router.get('/documents/pending', authenticateToken, authorizeRole('admin'), getPendingDocuments);
+router.post('/documents/:id/verify', authenticateToken, authorizeRole('admin'), verifyDocument);
 
 export default router;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,6 @@ import {
   Save,
   X,
   Loader2,
-  Upload,
   Camera
 } from "lucide-react";
 
@@ -106,7 +105,17 @@ export default function Profile() {
 
   const fetchProfile = async () => {
     try {
-      const token = localStorage.getItem("token");
+      // Prefer token from auth store if present
+      const stored = localStorage.getItem('auth-storage');
+      let token = localStorage.getItem("token");
+      try {
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.state?.user?.token) token = parsed.state.user.token;
+        }
+      } catch (e) {
+        // ignore
+      }
       if (!token) {
         navigate("/signin");
         return;
@@ -124,7 +133,7 @@ export default function Profile() {
         setStats(data.stats);
         setEditForm({
           name: data.user.name || "",
-          bio: data.user.bio || "",
+          bio: (data.user as any).bio || "",
           phone: data.user.phone || "",
           location: data.user.location || "",
           profile_photo: data.user.profile_photo || ""
@@ -299,7 +308,7 @@ export default function Profile() {
   if (!user) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <p>Profile not found</p>
+        <p>Profile not found — please sign in.</p>
       </div>
     );
   }
@@ -345,9 +354,13 @@ export default function Profile() {
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h1 className="text-3xl font-bold mb-2">{user.name}</h1>
-                      <Badge variant="outline" className="mb-2">
-                        {user.role === "landlord" ? "Property Owner" : "Tenant"}
-                      </Badge>
+                      <div className="flex gap-2 mb-2">
+                        {user.role === 'admin' ? (
+                          <Badge variant="outline">Admin</Badge>
+                        ) : (
+                          <Badge variant="outline">{user.role === "landlord" ? "Property Owner" : "Tenant"}</Badge>
+                        )}
+                      </div>
                     </div>
                     <Button onClick={() => setIsEditing(true)} variant="outline">
                       <Edit2 className="h-4 w-4 mr-2" />
@@ -583,6 +596,7 @@ export default function Profile() {
 
       {/* Tab Content */}
       {activeTab === "overview" && (
+        <>
         <Card>
           <CardHeader>
             <CardTitle>Account Overview</CardTitle>
@@ -601,6 +615,25 @@ export default function Profile() {
             </div>
           </CardContent>
         </Card>
+        {/* Save Money Promo - standalone card */}
+        <div className="mt-6">
+          <Link to="/save-money" className="block">
+            <Card className="bg-gradient-to-r from-emerald-50 to-emerald-100 border-0 shadow-lg overflow-hidden cursor-pointer hover:shadow-xl transition-shadow">
+              <CardContent className="p-6 flex flex-col md:flex-row items-center gap-6">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-emerald-800">Save Money</h3>
+                  <p className="text-sm text-emerald-700 mt-2">No agent fees or commissions — connect directly and keep more in your pocket.</p>
+                </div>
+                <div>
+                  <span className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700">
+                    Learn How
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+        </>
       )}
 
       {activeTab === "properties" && user.role === "landlord" && (
