@@ -129,7 +129,11 @@ export default function Profile() {
 
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
+        setUser({
+          ...data.user,
+          role: data.user.role || (data.user as any).userType || (data.user as any).user_type,
+          profile_photo: data.user.profile_photo || (data.user as any).profilePhoto || null,
+        });
         setStats(data.stats);
         setEditForm({
           name: data.user.name || "",
@@ -155,12 +159,7 @@ export default function Profile() {
 
   const fetchProperties = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/api/profile/properties`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(`${API_URL}/api/properties`);
 
       if (response.ok) {
         const data = await response.json();
@@ -205,7 +204,11 @@ export default function Profile() {
 
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
+        setUser({
+          ...data.user,
+          role: data.user.role || (data.user as any).userType || (data.user as any).user_type,
+          profile_photo: data.user.profile_photo || (data.user as any).profilePhoto || null,
+        });
         
         // Update auth store so navbar reflects changes immediately
         if (authUser) {

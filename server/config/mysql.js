@@ -24,8 +24,17 @@ const connectDB = async () => {
   try {
     await sequelize.authenticate();
     console.log('✅ MySQL Connected successfully');
-    // Don't sync/alter schema to preserve manual FK changes
-    // await sequelize.sync({ alter: true });
+    // Optionally sync model changes to DB when SEQ_SYNC=true is set in env.
+    // WARNING: This will ALTER your tables to match the models. Use only for local/dev environments.
+    if (process.env.SEQ_SYNC === 'true') {
+      try {
+        console.log('🔁 SEQ_SYNC=true: running sequelize.sync({ alter: true }) to update schema');
+        await sequelize.sync({ alter: true });
+        console.log('✅ Database schema synced (alter applied)');
+      } catch (syncErr) {
+        console.error('❌ sequelize.sync failed:', syncErr.message);
+      }
+    }
     console.log('✅ Database ready');
   } catch (error) {
     console.error('❌ MySQL Connection Error:', error.message);

@@ -106,12 +106,16 @@ const GetStarted = () => {
         name: formData.name,
         email: result.user.email || formData.email,
         token: result.session?.access_token || "",
-        userType: formData.userType
+        userType: formData.userType,
       };
-      
+
       // Set user type first to ensure Zustand store is updated
       setUserType(formData.userType);
-      setUser(user);
+      setUser({
+        ...user,
+        role: (user as any).role || user.userType || formData.userType,
+        profile_photo: (user as any).profile_photo || null,
+      });
       
       toast.success("Account created successfully!");
       

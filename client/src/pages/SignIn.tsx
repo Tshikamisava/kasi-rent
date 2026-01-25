@@ -62,7 +62,9 @@ const SignIn = () => {
           name: result.user.user_metadata?.name || result.user.email || "",
           email: result.user.email || "",
           token: result.session?.access_token || "",
-          userType: userRole
+          userType: userRole,
+          role: userRole,
+          profile_photo: result.user.user_metadata?.profile_photo || null
         });
         // Token persistence handled centrally in `use-auth` store
         
