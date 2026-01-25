@@ -30,7 +30,7 @@
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
     "socket.io": "^4.7.2",
-    "debug": "^4.4.4",
+    "debug": "^4.4.3",
     "sequelize": "^6.37.7",
     "sharp": "^0.34.5",
     "uuid": "^13.0.0"
