@@ -5,8 +5,8 @@
   "main": "server/server.js",
   "type": "module",
   "scripts": {
-    "start": "node server/server.js",
-    "dev": "nodemon server/server.js",
+    "start": "cd server && npm install && node server.js",
+    "dev": "cd server && npm install && nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
