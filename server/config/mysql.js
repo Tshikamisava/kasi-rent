@@ -3,6 +3,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const poolMax = parseInt(process.env.DB_POOL_MAX, 10) || 5;
+const poolMin = parseInt(process.env.DB_POOL_MIN, 10) || 0;
+const poolAcquire = parseInt(process.env.DB_POOL_ACQUIRE, 10) || 30000;
+const poolIdle = parseInt(process.env.DB_POOL_IDLE, 10) || 10000;
+
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
@@ -12,10 +17,10 @@ const sequelize = new Sequelize(
     dialect: 'mysql',
     logging: false,
     pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
+      max: poolMax,
+      min: poolMin,
+      acquire: poolAcquire,
+      idle: poolIdle
     }
   }
 );
@@ -37,8 +42,25 @@ const connectDB = async () => {
     }
     console.log('✅ Database ready');
   } catch (error) {
-    console.error('❌ MySQL Connection Error:', error.message);
+    console.error('❌ MySQL Connection Error:', error);
+    // Rethrow so callers can decide how to handle startup failures
+    throw error;
   }
 };
 
 export { sequelize, connectDB };
+
+// Graceful shutdown: close Sequelize connection on process exit
+const shutdown = async () => {
+  try {
+    console.log('Shutting down DB connection...');
+    await sequelize.close();
+    console.log('✅ Sequelize connection closed');
+  } catch (err) {
+    console.error('Error closing Sequelize connection:', err);
+  }
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+process.on('beforeExit', shutdown);

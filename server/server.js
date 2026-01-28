@@ -31,8 +31,17 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 const app = express();
 
+// Configure CORS to allow the frontend origin from env or localhost fallbacks
+const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:5174'].filter(Boolean);
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  origin: (origin, callback) => {
+    // allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS policy: This origin is not allowed'));
+  },
   credentials: true
 }));
 
@@ -103,7 +112,12 @@ const startServer = async () => {
   }
 
   const server = http.createServer(app);
-  initSocket(server);
+  try {
+    await initSocket(server);
+  } catch (err) {
+    console.error('⚠️ Socket initialization failed:', err);
+  }
+
   server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 };
 
