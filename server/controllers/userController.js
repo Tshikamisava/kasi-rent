@@ -1,58 +1,319 @@
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import User from "../models/User.js";
+import User from '../models/User.js';
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
+import { sendPasswordResetEmail } from '../utils/emailService.js';
 
-// Register user
-export const registerUser = async (req, res) => {
-  console.log('📝 Registration request received:', { ...req.body, password: '***' });
-  const { name, email, password, phone, userType } = req.body;
+/**
+ * Get Landlord Contact Information
+ * Returns contact info for a landlord (for tenants to contact)
+ */
+export const getLandlordContact = async (req, res) => {
   try {
-    const userExists = await User.findOne({ email });
-    if (userExists) return res.status(400).json({ message: "User already exists" });
+    const { landlord_id } = req.params;
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    if (!landlord_id) {
+      return res.status(400).json({ error: 'Landlord ID is required' });
+    }
 
-    const user = await User.create({ 
-      name, 
-      email, 
-      password: hashedPassword,
-      phone,
-      userType
+    // Find the landlord user
+    const landlord = await User.findByPk(landlord_id, {
+      attributes: ['id', 'name', 'email', 'phone'], // Only return contact info
     });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "30d" });
+    if (!landlord) {
+      return res.status(404).json({ error: 'Landlord not found' });
+    }
 
-    console.log('✅ User registered successfully:', user.email);
+    // Check if user is a landlord
+    if (landlord.role !== 'landlord') {
+      return res.status(403).json({ error: 'User is not a landlord' });
+    }
 
-    res.status(201).json({ 
-      _id: user._id, 
-      name: user.name, 
-      email: user.email,
-      phone: user.phone,
-      userType: user.userType,
-      token 
+    // Return contact information
+    res.json({
+      success: true,
+      landlord: {
+        id: landlord.id,
+        name: landlord.name || 'Landlord',
+        email: landlord.email,
+        phone: landlord.phone || null,
+      },
     });
   } catch (error) {
-    console.error('❌ Registration error:', error.message);
-    res.status(500).json({ message: error.message });
+    console.error('Error fetching landlord contact:', error);
+    res.status(500).json({
+      error: 'Failed to fetch landlord contact information',
+      message: error.message,
+    });
   }
 };
 
-// Login user
-export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+/**
+ * Find User by Email
+ */
+export const findUserByEmail = async (req, res) => {
   try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Invalid email or password" });
+    const { email } = req.query;
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid email or password" });
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "30d" });
+    const user = await User.findOne({
+      where: { email },
+      attributes: ['id', 'name', 'email', 'role'],
+    });
 
-    res.json({ _id: user._id, name: user.name, email: user.email, token });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found with that email' });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error finding user by email:', error);
+    res.status(500).json({
+      error: 'Failed to find user',
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * Request Password Reset
+ */
+export const requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      // Don't reveal if user exists
+      return res.json({ 
+        success: true, 
+        message: 'If an account exists with that email, a password reset link has been sent.' 
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Set token expiry (1 hour from now)
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = new Date(Date.now() + 3600000);
+    await user.save();
+
+    // Send password reset email
+    const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    
+    try {
+      await sendPasswordResetEmail(user.email, resetUrl, user.name);
+      console.log('✓ Password reset email sent to:', user.email);
+    } catch (emailError) {
+      console.error('✗ Failed to send email:', emailError.message);
+      // Log the URL for development purposes
+      console.log('Password reset URL:', resetUrl);
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Password reset instructions have been sent to your email.',
+    });
+  } catch (error) {
+    console.error('Error requesting password reset:', error);
+    res.status(500).json({
+      error: 'Failed to process password reset request',
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * Reset Password
+ */
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // Hash the token to compare
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Find user with valid token
+    const user = await User.findOne({
+      where: {
+        resetPasswordToken: hashedToken,
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    // Check if token is expired
+    if (user.resetPasswordExpires < new Date()) {
+      return res.status(400).json({ error: 'Reset token has expired' });
+    }
+
+    // Hash new password and update user
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Password has been reset successfully' 
+    });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({
+      error: 'Failed to reset password',
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * List Users (for starting conversations)
+ */
+export const listUsers = async (req, res) => {
+  try {
+    const { role, search } = req.query;
+    console.log('Listing users with search:', search, 'role:', role);
+    
+    const where = {};
+
+    // Filter by role if specified
+    if (role && ['landlord', 'tenant', 'agent'].includes(role)) {
+      where.role = role;
+    }
+
+    // Search by name or email
+    if (search) {
+      const { Op } = await import('sequelize');
+      where[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    const users = await User.findAll({
+      where,
+      attributes: ['id', 'name', 'email', 'role'],
+      limit: 50,
+      order: [['name', 'ASC']],
+    });
+
+    console.log(`Found ${users.length} users`);
+
+    res.json({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    console.error('Error listing users:', error);
+    res.status(500).json({
+      error: 'Failed to list users',
+      message: error.message,
+    });
+  }
+};
+export const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.params.user_id;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    const user = await User.findByPk(userId, {
+      attributes: { exclude: ['password'] }, // Don't return password
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      user: user,
+    });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({
+      error: 'Failed to fetch user profile',
+      message: error.message,
+    });
+  }
+};
+
+export const updateAvatar = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { avatar_url } = req.body;
+
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!avatar_url) return res.status(400).json({ error: 'avatar_url is required' });
+
+    await User.update({ avatar_url }, { where: { id: userId } });
+    const user = await User.findByPk(userId, { attributes: ['id', 'avatar_url'] });
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('Error updating avatar:', error);
+    res.status(500).json({ error: 'Failed to update avatar', message: error.message });
+  }
+};
+
+/**
+ * Sync Supabase user to MySQL (for chat functionality)
+ */
+export const syncUser = async (req, res) => {
+  try {
+    const user = req.user; // From auth middleware
+    
+    if (!user || !user.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Check if user already exists in MySQL
+    let mysqlUser = await User.findByPk(user.id);
+    
+    if (mysqlUser) {
+      return res.json({ success: true, message: 'User already synced', user: mysqlUser });
+    }
+
+    // Create user in MySQL
+    mysqlUser = await User.create({
+      id: user.id,
+      name: user.name || 'User',
+      email: user.email,
+      role: user.role || 'tenant',
+    });
+
+    res.json({ success: true, message: 'User synced to database', user: mysqlUser });
+  } catch (error) {
+    console.error('Error syncing user:', error);
+    res.status(500).json({ error: 'Failed to sync user', message: error.message });
   }
 };

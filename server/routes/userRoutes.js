@@ -1,9 +1,30 @@
 import express from "express";
-import { registerUser, loginUser } from "../controllers/userController.js";
+import { getLandlordContact, getUserProfile, findUserByEmail, listUsers, syncUser, requestPasswordReset, resetPassword } from "../controllers/userController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/register", registerUser);
-router.post("/login", loginUser);
+// Get landlord contact information (for tenants)
+router.get("/landlord/:landlord_id/contact", protect, getLandlordContact);
+
+// Get user profile
+router.get("/profile/:user_id", protect, getUserProfile);
+router.get("/profile", protect, getUserProfile);
+
+// Sync Supabase user to MySQL (for chat)
+router.post("/sync", protect, syncUser);
+
+// Find user by email (public for chat discovery)
+router.get("/find", findUserByEmail);
+
+// List users (public for chat discovery)
+router.get("/list", listUsers);
+
+// Update avatar (expects avatar_url from Supabase)
+router.patch('/profile/avatar', protect, (req, res, next) => import('../controllers/userController.js').then(m => m.updateAvatar(req,res,next)));
+
+// Password reset routes (public)
+router.post("/forgot-password", requestPasswordReset);
+router.post("/reset-password", resetPassword);
 
 export default router;

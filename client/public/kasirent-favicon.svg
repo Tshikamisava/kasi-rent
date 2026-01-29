@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:hsl(32, 95%, 44%);stop-opacity:1" />
+      <stop offset="100%" style="stop-color:hsl(17, 88%, 50%);stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="url(#grad)"/>
+  
+  <!-- House icon -->
+  <g fill="white">
+    <!-- Roof -->
+    <path d="M 50 25 L 25 45 L 30 45 L 30 70 L 70 70 L 70 45 L 75 45 Z"/>
+    
+    <!-- Door -->
+    <rect x="42" y="55" width="16" height="15" fill="hsl(32, 95%, 44%)"/>
+    
+    <!-- Window -->
+    <rect x="35" y="48" width="8" height="8" fill="hsl(32, 95%, 44%)" rx="1"/>
+    <rect x="57" y="48" width="8" height="8" fill="hsl(32, 95%, 44%)" rx="1"/>
+    
+    <!-- Chimney -->
+    <rect x="60" y="30" width="6" height="12" fill="white"/>
+  </g>
+  
+  <!-- Key accent -->
+  <circle cx="72" cy="72" r="8" fill="hsl(45, 100%, 60%)" stroke="white" stroke-width="2"/>
+  <path d="M 72 67 L 72 77 M 75 74 L 77 74 M 75 76 L 76 76" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

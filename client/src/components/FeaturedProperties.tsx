@@ -1,14 +1,20 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, BedDouble, Bath, Building2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MapPin, BedDouble, Bath, Building2, Images, Wifi } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
+import { PropertyDetailModal } from "@/components/PropertyDetailModal";
+import { FavoriteButton } from "@/components/FavoriteButton";
+import PropertyMap from "@/components/PropertyMap";
 
 export const FeaturedProperties = () => {
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProperty, setSelectedProperty] = useState<any>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     fetchProperties();
@@ -16,13 +22,11 @@ export const FeaturedProperties = () => {
 
   const fetchProperties = async () => {
     try {
-      const { data, error } = await supabase
-        .from("properties")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(3);
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_BASE}/api/properties?limit=3`);
+      const data = await response.json();
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to fetch properties');
       setProperties(data || []);
     } catch (error) {
       console.error("Error fetching properties:", error);
@@ -35,7 +39,20 @@ export const FeaturedProperties = () => {
     return (
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-6">
-          <p className="text-center text-muted-foreground">Loading properties...</p>
+          <div className="text-center mb-12">
+            <Skeleton className="h-10 w-72 mx-auto mb-3" />
+            <Skeleton className="h-4 w-96 mx-auto" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[...Array(3)].map((_, i) => (
+              <div key={i}>
+                <Skeleton className="h-80 w-full rounded-lg mb-4" />
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -69,23 +86,46 @@ export const FeaturedProperties = () => {
           </p>
         </div>
 
+        {/* Map for featured properties */}
+        {properties.length > 0 && (
+          <PropertyMap properties={properties} />
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {properties.map((property) => (
-            <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-shadow">
-              {property.image_url ? (
-                <div className="h-48 overflow-hidden">
+          {properties.map((property) => {
+            const imageCount = property.images && Array.isArray(property.images) ? property.images.length : (property.image_url ? 1 : 0);
+            const displayImage = property.images && property.images.length > 0 ? property.images[0] : property.image_url;
+            
+            return (
+            <Card key={property.id} className="overflow-hidden group transition-transform hover:-translate-y-1 hover:shadow-lg">
+              {displayImage ? (
+                <div className="h-80 overflow-hidden relative">
                   <img 
-                    src={property.image_url} 
+                    src={displayImage} 
                     alt={property.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.src = '/property-placeholder.png';
                     }}
                   />
+                  {/* Favorite Button */}
+                  <div className="absolute top-2 left-2">
+                    <FavoriteButton 
+                      propertyId={property.id} 
+                      variant="default"
+                      className="bg-white/90 hover:bg-white shadow-md"
+                    />
+                  </div>
+                  {imageCount > 1 && (
+                    <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                      <Images className="w-3 h-3" />
+                      {imageCount}
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                <div className="h-80 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
                   <Building2 className="w-20 h-20 text-primary/40" />
                 </div>
               )}
@@ -114,6 +154,14 @@ export const FeaturedProperties = () => {
                     {property.bathrooms}
                   </div>
                   <Badge variant="outline">{property.property_type}</Badge>
+                  <div className="ml-auto flex items-center gap-2">
+                    {property.wifi_available ? (
+                      <Badge variant="secondary" className="flex items-center gap-1"><Wifi className="w-3 h-3" /> WiFi</Badge>
+                    ) : null}
+                    {property.pets_allowed ? (
+                      <Badge variant="outline">Pets</Badge>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="flex items-center text-2xl font-bold text-primary">
                   R{property.price.toLocaleString()}
@@ -121,15 +169,32 @@ export const FeaturedProperties = () => {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" size="lg">
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={() => {
+                    setSelectedProperty(property);
+                    setModalOpen(true);
+                  }}
+                >
                   View Details
                 </Button>
               </CardFooter>
             </Card>
-          ))}
+            );
+          })}
         </div>
 
         <div className="text-center mt-12">
+
+      {/* Property Detail Modal */}
+      {selectedProperty && (
+        <PropertyDetailModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          property={selectedProperty}
+        />
+      )}
           <Link to="/properties">
             <Button variant="outline" size="lg" className="px-8">
               View All Properties

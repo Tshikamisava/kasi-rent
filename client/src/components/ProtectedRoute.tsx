@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 
 interface ProtectedRouteProps {
@@ -17,8 +17,11 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
     );
   }
 
+  const location = useLocation();
+
   if (!user) {
-    return <Navigate to="/signin" replace />;
+    const redirectTo = `/signin?redirect=${encodeURIComponent(location.pathname)}`;
+    return <Navigate to={redirectTo} replace />;
   }
 
   if (requiredRole && userType !== requiredRole) {

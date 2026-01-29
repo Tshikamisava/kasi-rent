@@ -1,12 +1,14 @@
 import express from "express";
-import multer from "multer";
-import { getProperties, createProperty } from "../controllers/propertyController.js";
+import { getProperties, createProperty, verifyProperty, updateProperty, deleteProperty } from "../controllers/propertyController.js";
 import { protect } from "../middleware/authMiddleware.js";
+import { authorizeRole } from "../middleware/authorizeRole.js";
 
 const router = express.Router();
-const upload = multer({ dest: "uploads/" });
 
 router.get("/", getProperties);
-router.post("/", protect, upload.single("image"), createProperty);
+	router.post("/", protect, createProperty);
+	router.put("/:id", protect, updateProperty);
+router.delete("/:id", deleteProperty);
+router.patch("/:id/verify", protect, verifyProperty);
 
 export default router;
