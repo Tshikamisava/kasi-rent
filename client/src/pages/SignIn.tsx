@@ -33,17 +33,23 @@ const SignIn = () => {
     }
   }, [user, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     
-    console.log("Sign in form submitted");
+    console.log("=== SIGN IN STARTED ===");
+    console.log("Email:", email);
+    console.log("Password length:", password.length);
     
     // Validate Supabase configuration
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     
+    console.log("Supabase URL:", supabaseUrl);
+    console.log("Supabase Key exists:", !!supabaseKey);
+    
     if (!supabaseUrl || !supabaseKey || supabaseUrl === 'your_supabase_project_url') {
-      toast.error("Authentication service not configured. Please set up Supabase credentials.");
+      toast.error("Authentication service not configured");
       console.error("Missing Supabase configuration");
       return;
     }
@@ -55,60 +61,57 @@ const SignIn = () => {
 
     setLoading(true);
     
-    try {
-      console.log("Attempting login with:", { email });
-      
-      const result = await login(email, password);
-      console.log("Login result:", { 
-        hasUser: !!result.user, 
-        hasSession: !!result.session, 
-        error: result.error 
-      });
-      
-      if (result.error) {
-        console.error("Login error:", result.error);
-        toast.error(result.error || "Failed to sign in");
-        setLoading(false);
-        return;
-      } 
-      
-      if (result.user && result.session) {
-        const userRole = result.user.user_metadata?.userType || 'tenant';
-        console.log("User authenticated. Role:", userRole);
+    // Use async IIFE to handle the async logic
+    (async () => {
+      try {
+        console.log("Calling login function...");
         
-        const userData = {
-          _id: result.user.id,
-          name: result.user.user_metadata?.name || result.user.email || "",
-          email: result.user.email || "",
-          token: result.session.access_token || "",
-          userType: userRole
-        };
+        const result = await login(email, password);
+        console.log("Login result:", result);
         
-        // Set user type first
-        setUserType(userRole);
-        setUser(userData);
+        if (result.error) {
+          console.error("Login error:", result.error);
+          toast.error(result.error);
+          setLoading(false);
+          return;
+        } 
         
-        console.log("User state updated, navigating to dashboard");
-        toast.success("Signed in successfully!");
-        
-        // Navigate based on role
-        setTimeout(() => {
-          const targetPath = ['tenant', 'landlord'].includes(userRole) 
-            ? `/dashboard/${userRole}` 
-            : "/";
-          console.log("Navigating to:", targetPath);
-          navigate(targetPath);
-        }, 100);
-      } else {
-        console.error("No user or session in result");
-        toast.error("Login failed - please check your credentials");
+        if (result.user && result.session) {
+          const userRole = result.user.user_metadata?.userType || 'tenant';
+          console.log("Login successful! User role:", userRole);
+          
+          const userData = {
+            _id: result.user.id,
+            name: result.user.user_metadata?.name || result.user.email || "",
+            email: result.user.email || "",
+            token: result.session.access_token || "",
+            userType: userRole
+          };
+          
+          setUserType(userRole);
+          setUser(userData);
+          
+          toast.success("Signed in successfully!");
+          console.log("Navigating to dashboard...");
+          
+          setTimeout(() => {
+            const targetPath = ['tenant', 'landlord'].includes(userRole) 
+              ? `/dashboard/${userRole}` 
+              : "/";
+            console.log("Target path:", targetPath);
+            navigate(targetPath);
+          }, 100);
+        } else {
+          console.error("No user or session in result");
+          toast.error("Login failed - invalid credentials");
+          setLoading(false);
+        }
+      } catch (error: any) {
+        console.error("Sign in exception:", error);
+        toast.error(error.message || "Sign in failed");
         setLoading(false);
       }
-    } catch (error: any) {
-      console.error("Sign in exception:", error);
-      toast.error(error.message || "An error occurred during sign in");
-      setLoading(false);
-    }
+    })();
   };
 
   return (

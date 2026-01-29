@@ -55,7 +55,7 @@ export const Hero = () => {
               target.src = slide.fallback;
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/60 via-secondary/50 to-accent/60" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-secondary/25 to-accent/30" />
         </div>
       ))}
       
