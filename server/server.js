@@ -4,6 +4,8 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import session from "express-session";
+import * as connectRedisModule from 'connect-redis';
+import { createClient as createRedisClient } from 'redis';
 import passport from "./config/passport.js";
 import { connectDB } from "./config/mysql.js";
 import propertyRoutes from "./routes/propertyRoutes.js";
@@ -46,15 +48,27 @@ app.use(cors({
 }));
 
 // Session middleware for Passport
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-session-secret-change-in-production',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+{
+  // Use Redis-backed session store in production when REDIS_URL is provided
+  const connectRedis = connectRedisModule.default || connectRedisModule;
+  const RedisStore = typeof connectRedis === 'function' ? connectRedis(session) : null;
+  let redisClient = null;
+  if (process.env.REDIS_URL && RedisStore) {
+    redisClient = createRedisClient({ url: process.env.REDIS_URL });
+    redisClient.connect().then(() => console.log('✅ Redis client connected for sessions')).catch((err) => console.error('❌ Redis session client error', err));
   }
-}));
+
+  app.use(session({
+    store: redisClient ? new RedisStore({ client: redisClient }) : undefined,
+    secret: process.env.SESSION_SECRET || 'your-session-secret-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    }
+  }));
+}
 
 // Initialize Passport
 app.use(passport.initialize());
