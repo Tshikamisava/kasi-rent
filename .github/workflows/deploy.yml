@@ -13,10 +13,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
       # ---------- FRONTEND (React) ----------
       - name: Install frontend dependencies
         working-directory: client
-        run: npm install
+        run: npm ci
 
       - name: Build React app
         working-directory: client
@@ -28,7 +35,7 @@ jobs:
           server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
-          local-dir: client/build/
+          local-dir: client/dist/
           server-dir: /public_html/
 
       # ---------- BACKEND (Node API) ----------
