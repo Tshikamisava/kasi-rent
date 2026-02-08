@@ -503,7 +503,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
       let documentType = initialData?.document_type || null;
 
       if (!initialData && !documentFile) {
-        toast({ title: 'Document required', description: 'Please upload an identity document before listing', variant: 'destructive' });
+        toast({ title: 'Document required', description: 'Please upload your Municipality Rates Statement before listing', variant: 'destructive' });
         setLoading(false);
         return;
       }
@@ -734,6 +734,8 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
                   <SelectItem value="House">House</SelectItem>
                   <SelectItem value="Townhouse">Townhouse</SelectItem>
                   <SelectItem value="Studio">Studio</SelectItem>
+                  <SelectItem value="Bachelor">Bachelor</SelectItem>
+                  <SelectItem value="Room">Room</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -920,7 +922,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
               </div>
 
               <div className="mt-4">
-                <Label>Upload Identity Document (required)</Label>
+                <Label>Upload Proof of Ownership (required)</Label>
                 <input
                   type="file"
                   accept="image/*,application/pdf"
@@ -928,7 +930,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
                   className="mt-2"
                   disabled={uploading || loading}
                 />
-                <p className="text-sm text-muted-foreground mt-1">Upload a government ID or proof of identity. Admin will verify before the listing goes live.</p>
+                <p className="text-sm text-muted-foreground mt-1">Upload your Municipality Rates Statement (not older than 3 months). Admin will verify before the listing goes live.</p>
 
                 {documentPreviewUrl && (
                   <div className="mt-3">

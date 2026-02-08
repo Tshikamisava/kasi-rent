@@ -9,11 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { login } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-<<<<<<< HEAD
-import { supabase } from "@/integrations/supabase/client";
-=======
 import { Mail, Lock, CheckCircle2, Shield, Sparkles, Eye, EyeOff } from "lucide-react";
->>>>>>> d44e7b536e8ffb7a9ae95f38c56bcf22f74bc76a
 
 const SignIn = () => {
   const { user, setUser, setUserType } = useAuth();
@@ -27,24 +23,8 @@ const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-<<<<<<< HEAD
-    // Check Supabase configuration
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    
-    if (!supabaseUrl || !supabaseKey || supabaseUrl === 'your_supabase_project_url') {
-      console.error("Supabase not configured. Please set up your .env file with valid credentials.");
-      toast.error("Authentication service not configured. Please contact support.");
-    }
-
-    if (user) {
-      navigate("/");
-    }
-  }, [user, navigate]);
-=======
     // Do not auto-redirect here; role-based redirect happens after successful sign-in
   }, []);
->>>>>>> d44e7b536e8ffb7a9ae95f38c56bcf22f74bc76a
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,19 +33,6 @@ const SignIn = () => {
     console.log("=== SIGN IN STARTED ===");
     console.log("Email:", email);
     console.log("Password length:", password.length);
-    
-    // Validate Supabase configuration
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    
-    console.log("Supabase URL:", supabaseUrl);
-    console.log("Supabase Key exists:", !!supabaseKey);
-    
-    if (!supabaseUrl || !supabaseKey || supabaseUrl === 'your_supabase_project_url') {
-      toast.error("Authentication service not configured");
-      console.error("Missing Supabase configuration");
-      return;
-    }
     
     if (!email || !password) {
       toast.error("Please fill in all fields");
@@ -82,7 +49,6 @@ const SignIn = () => {
         const result = await login(email, password);
         console.log("Login result:", result);
         
-<<<<<<< HEAD
         if (result.error) {
           console.error("Login error:", result.error);
           toast.error(result.error);
@@ -94,72 +60,47 @@ const SignIn = () => {
           const userRole = result.user.user_metadata?.userType || 'tenant';
           console.log("Login successful! User role:", userRole);
           
-          const userData = {
+          setUserType(userRole);
+          setUser({
             _id: result.user.id,
             name: result.user.user_metadata?.name || result.user.email || "",
             email: result.user.email || "",
-            token: result.session.access_token || "",
-            userType: userRole
-          };
-          
-          setUserType(userRole);
-          setUser(userData);
+            token: result.session?.access_token || "",
+            userType: userRole,
+            role: userRole,
+            profile_photo: result.user.user_metadata?.profile_photo || null
+          });
           
           toast.success("Signed in successfully!");
           console.log("Navigating to dashboard...");
           
+          // Small delay to ensure state is updated before navigation
           setTimeout(() => {
-            const targetPath = ['tenant', 'landlord'].includes(userRole) 
-              ? `/dashboard/${userRole}` 
-              : "/";
-            console.log("Target path:", targetPath);
-            navigate(targetPath);
+            // Navigate to redirect if provided (e.g., ?redirect=/dashboard/landlord)
+            if (redirectTo) {
+              navigate(redirectTo);
+              return;
+            }
+
+            // Redirect based on user role
+            if (userRole === 'admin') {
+              navigate('/admin');
+            } else if (userRole === 'tenant') {
+              navigate('/dashboard/tenant');
+            } else if (userRole === 'landlord') {
+              navigate('/dashboard/landlord');
+            } else {
+              navigate("/");
+            }
           }, 100);
         } else {
           console.error("No user or session in result");
-          toast.error("Login failed - invalid credentials");
+          toast.error("Login failed - please check your credentials");
           setLoading(false);
         }
       } catch (error: any) {
         console.error("Sign in exception:", error);
         toast.error(error.message || "Sign in failed");
-=======
-        setUser({
-          _id: result.user.id,
-          name: result.user.user_metadata?.name || result.user.email || "",
-          email: result.user.email || "",
-          token: result.session?.access_token || "",
-          userType: userRole,
-          role: userRole,
-          profile_photo: result.user.user_metadata?.profile_photo || null
-        });
-        // Token persistence handled centrally in `use-auth` store
-        
-        toast.success("Signed in successfully!");
-        
-        // Small delay to ensure state is updated before navigation
-        setTimeout(() => {
-          // Navigate to redirect if provided (e.g., ?redirect=/dashboard/landlord)
-          if (redirectTo) {
-            navigate(redirectTo);
-            return;
-          }
-
-          // Redirect based on user role
-          if (userRole === 'admin') {
-            navigate('/admin');
-          } else if (userRole === 'tenant') {
-            navigate('/dashboard/tenant');
-          } else if (userRole === 'landlord') {
-            navigate('/dashboard/landlord');
-          } else {
-            navigate("/");
-          }
-        }, 100);
-      } else {
-        console.error("No user in result");
-        toast.error("Login failed - please check your credentials");
->>>>>>> d44e7b536e8ffb7a9ae95f38c56bcf22f74bc76a
         setLoading(false);
       }
     })();

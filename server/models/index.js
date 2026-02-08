@@ -1,5 +1,6 @@
 // Import models and setup associations
 import User from './User.js';
+import UserRole from './UserRole.js';
 import Conversation from './Conversation.js';
 import ConversationParticipant from './ConversationParticipant.js';
 import Message from './Message.js';
@@ -11,6 +12,10 @@ import Booking from './Booking.js';
 import Review from './Review.js';
 
 // Associations
+// User <-> UserRole associations
+User.hasMany(UserRole, { foreignKey: 'user_id', as: 'userRoles' });
+UserRole.belongsTo(User, { foreignKey: 'user_id' });
+
 Conversation.hasMany(Message, { foreignKey: 'conversation_id', as: 'messages' });
 Message.belongsTo(Conversation, { foreignKey: 'conversation_id' });
 
@@ -47,6 +52,7 @@ Favorite.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
 export {
   User,
+  UserRole,
   Conversation,
   ConversationParticipant,
   Message,

@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import MapPicker from "../components/MapPicker";
-import { supabase } from "../lib/supabase";
 
 type PropItem = { id: string; title: string; location?: string; lat?: number; lng?: number; landlordName?: string };
 
@@ -62,16 +61,7 @@ export default function MapSearch() {
           }
         }
 
-        // Fallback to Supabase or mock if server API fails
-        try {
-          const { data, error } = await supabase.from("properties").select("id,title,location").limit(200);
-          if (!error && data && data.length && mounted) {
-            const mapped = data.map((r: any) => ({ id: r.id, title: r.title, location: r.location }));
-            setOptions(mapped);
-          }
-        } catch (e) {
-          // ignore and keep mock
-        }
+        // Keep mock data as fallback if server API fails
       } catch (e) {
         // ignore and keep mock
       } finally {

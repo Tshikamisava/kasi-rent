@@ -10,6 +10,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    port: 5174,
+    strictPort: false,
+  },
   assetsInclude: ['**/*.jpg', '**/*.jpeg', '**/*.png', '**/*.svg'],
   build: {
     chunkSizeWarningLimit: 1000,
@@ -35,9 +39,6 @@ export default defineConfig({
             }
             if (id.includes('lucide-react')) {
               return 'ui-vendor';
-            }
-            if (id.includes('@supabase')) {
-              return 'supabase-vendor';
             }
             if (id.includes('zustand')) {
               return 'state-vendor';

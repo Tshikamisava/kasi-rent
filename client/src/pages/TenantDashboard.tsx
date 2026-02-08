@@ -6,7 +6,6 @@ import { Footer } from "@/components/Footer";
 import { Home, Search, MessageSquare, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 
 const TenantDashboard = () => {
@@ -28,7 +27,9 @@ const TenantDashboard = () => {
   }, [user, userType, navigate]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    // Clear user state and local storage
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
     setUserType(null);
     navigate("/");

@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapPin, BedDouble, Bath, Search, Building2, ArrowLeft } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { PropertyDetailModal } from "@/components/PropertyDetailModal";
 import { RecommendedProperties } from "@/components/RecommendedProperties";
 import { FavoriteButton } from "@/components/FavoriteButton";

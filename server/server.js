@@ -34,7 +34,7 @@ dotenv.config();
 const app = express();
 
 // Configure CORS to allow the frontend origin from env or localhost fallbacks
-const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:5174'].filter(Boolean);
+const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'].filter(Boolean);
 app.use(cors({
   origin: (origin, callback) => {
     // allow requests with no origin (like mobile apps or curl)

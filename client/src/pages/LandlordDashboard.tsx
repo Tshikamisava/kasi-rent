@@ -8,7 +8,6 @@ import { Home, Plus, Users, DollarSign, Edit, Trash, MapPin, BedDouble, Bath, Sh
 import { useNavigate } from "react-router-dom";
 import { PropertyForm } from "@/components/PropertyForm";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 
@@ -46,7 +45,9 @@ const LandlordDashboard = () => {
   }, [user, userType, navigate, toast]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    // Clear user state and local storage
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
     setUserType(null);
     navigate("/");

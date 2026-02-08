@@ -47,7 +47,7 @@ export const Footer = () => {
               <ul className="space-y-2 text-muted-foreground">
                 <li><Link to="/properties" className="hover:text-primary transition-colors">Browse Properties</Link></li>
                 <li><Link to="/list-property" className="hover:text-primary transition-colors">List Property</Link></li>
-                <li><Link to="/agents" className="hover:text-primary transition-colors">Find Agents</Link></li>
+                <li><Link to="/help" className="hover:text-primary transition-colors">Help Center</Link></li>
                 <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
               </ul>
             </div>

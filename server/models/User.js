@@ -22,7 +22,8 @@ const User = sequelize.define('User', {
   },
   name: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: true,
+    field: 'full_name'  // Maps to full_name column in database
   },
   phone: {
     type: DataTypes.STRING,
@@ -31,10 +32,6 @@ const User = sequelize.define('User', {
   avatar_url: {
     type: DataTypes.STRING,
     allowNull: true
-  },
-  role: {
-    type: DataTypes.ENUM('landlord', 'tenant', 'agent', 'admin'),
-    defaultValue: 'tenant'
   },
   oauth_provider: {
     type: DataTypes.STRING(50),

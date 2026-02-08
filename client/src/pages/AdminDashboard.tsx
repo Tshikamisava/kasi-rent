@@ -417,10 +417,10 @@ export default function AdminDashboard() {
                   <p className="text-sm"><strong>Email:</strong> {selectedVerification.tenant.email}</p>
                 </div>
 
-                {/* ID Verification */}
+                {/* Proof of Ownership Verification */}
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold">ID Document</h3>
+                    <h3 className="font-semibold">Municipality Rates Statement</h3>
                     <Checkbox 
                       checked={reviewData.id_verified}
                       onCheckedChange={(checked) => setReviewData({...reviewData, id_verified: checked as boolean})}
@@ -436,7 +436,7 @@ export default function AdminDashboard() {
                       className="text-primary text-sm hover:underline flex items-center mt-1"
                     >
                       <FileText className="w-4 h-4 mr-1" />
-                      View ID Document
+                      View Rates Statement
                     </a>
                   )}
                 </div>

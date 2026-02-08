@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { connectSocket, getSocket } from '@/lib/socket';
-import { supabase } from '@/lib/supabase';
 import { Smile, Paperclip, Mic, Send, X, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -270,13 +269,19 @@ const Chat = () => {
 
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop();
-      const fileName = `chat_${Date.now()}.${ext}`;
-      const { data, error } = await supabase.storage.from('images').upload(fileName, file);
+      // Upload file to backend API
+      const formData = new FormData();
+      formData.append('file', file);
 
-      if (error) throw error;
+      const res = await fetch(`${API_BASE}/api/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
 
-      const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(data.path);
+      if (!res.ok) throw new Error('Upload failed');
+
+      const { url: publicUrl } = await res.json();
 
       // Send as message
       const socket = getSocket();
@@ -335,12 +340,19 @@ const Chat = () => {
 
     setUploading(true);
     try {
-      const fileName = `audio_${Date.now()}.webm`;
-      const { data, error } = await supabase.storage.from('images').upload(fileName, audioBlob);
+      // Upload audio to backend API
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'audio.webm');
 
-      if (error) throw error;
+      const res = await fetch(`${API_BASE}/api/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
 
-      const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(data.path);
+      if (!res.ok) throw new Error('Upload failed');
+
+      const { url: publicUrl } = await res.json();
 
       const socket = getSocket();
       socket?.emit('send_message', { conversationId: selected.id, content: 'Voice message', contentType: 'audio', attachmentUrl: publicUrl }, (ack: any) => {
