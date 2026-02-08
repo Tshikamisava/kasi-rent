@@ -1,0 +1,53 @@
+name: Deploy Fullstack App to TrueHost
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ---------- FRONTEND (React) ----------
+      - name: Install frontend dependencies
+        working-directory: client
+        run: npm install
+
+      - name: Build React app
+        working-directory: client
+        run: npm run build
+
+      - name: Deploy frontend to public_html
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: client/build/
+          server-dir: /public_html/
+
+      # ---------- BACKEND (Node API) ----------
+      - name: Deploy backend to server folder
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: server/
+          server-dir: /home/tedajomr/backend/
+
+      - name: Restart backend with PM2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /home/tedajomr/backend
+            npm install --production
+            pm2 restart all || pm2 start index.js
