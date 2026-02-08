@@ -49,11 +49,13 @@ jobs:
           server-dir: /home/tedajomr/backend/
 
       - name: Restart backend with PM2
+        continue-on-error: true
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           port: ${{ secrets.SSH_PORT || 22 }}
           timeout: 30s
           command_timeout: 10m
