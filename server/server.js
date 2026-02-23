@@ -9,6 +9,7 @@ import { createClient as createRedisClient } from 'redis';
 import passport from "./config/passport.js";
 import { connectDB } from "./config/mysql.js";
 import propertyRoutes from "./routes/propertyRoutes.js";
+import marketplaceRoutes from "./routes/marketplace.js";
 import userRoutes from "./routes/userRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
@@ -83,6 +84,7 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use("/api/properties", propertyRoutes);
+app.use("/api/marketplace", marketplaceRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/payments", paymentRoutes);
