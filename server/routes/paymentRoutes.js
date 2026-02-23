@@ -8,6 +8,8 @@ import {
 } from "../controllers/paymentController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
+import { markSubscriptionFromPayment } from '../controllers/subscriptionController.js';
+
 const router = express.Router();
 
 // Initialize payment (requires auth)

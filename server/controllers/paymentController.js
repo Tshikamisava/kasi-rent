@@ -335,13 +335,21 @@ export const paymentWebhook = async (req, res) => {
         await payment.save();
 
         console.log(`Payment ${payment.id} marked as completed via webhook`);
-
         // Here you can trigger additional actions like:
         // - Send confirmation email
         // - Update property status
         // - Notify landlord
         // - Update user subscription
-        // etc.
+        // Attempt to update related subscription when metadata contains subscription id
+        try {
+          const { markSubscriptionFromPayment } = await import('./subscriptionController.js');
+          const updated = await markSubscriptionFromPayment(reference, event.data);
+          if (updated) {
+            console.log('Subscription updated from webhook:', updated.id);
+          }
+        } catch (err) {
+          console.error('Subscription update from webhook failed:', err.message || err);
+        }
       }
     } else if (event.event === 'charge.failed') {
       const reference = event.data.reference;
@@ -356,6 +364,15 @@ export const paymentWebhook = async (req, res) => {
         await payment.save();
 
         console.log(`Payment ${payment.id} marked as failed via webhook`);
+        try {
+          const { markSubscriptionFromPayment } = await import('./subscriptionController.js');
+          const updated = await markSubscriptionFromPayment(reference, event.data);
+          if (updated) {
+            console.log('Subscription updated (failed) from webhook:', updated.id);
+          }
+        } catch (err) {
+          console.error('Subscription update (failed) from webhook failed:', err.message || err);
+        }
       }
     }
 

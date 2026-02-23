@@ -7,6 +7,7 @@ import Attachment from './Attachment.js';
 import Reaction from './Reaction.js';
 import Property from './Property.js';
 import Favorite from './Favorite.js';
+import Subscription from './Subscription.js';
 import Booking from './Booking.js';
 import Review from './Review.js';
 
@@ -45,6 +46,10 @@ Property.belongsTo(User, { foreignKey: 'landlord_id', as: 'landlord' });
 Favorite.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
 Favorite.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
+// Subscriptions
+User.hasMany(Subscription, { foreignKey: 'user_id', as: 'subscriptions' });
+Subscription.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
 export {
   User,
   Conversation,
@@ -56,4 +61,5 @@ export {
   Property,
   Booking,
   Favorite,
+  Subscription,
 };
