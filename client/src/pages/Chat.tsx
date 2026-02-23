@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { connectSocket, getSocket } from '@/lib/socket';
 import { Smile, Paperclip, Mic, Send, X, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // Backend base URL (set VITE_API_URL in client/.env; falls back to localhost:5000)
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -22,6 +22,7 @@ const api = async (path: string, token: string, options: any = {}) => {
 };
 
 const Chat = () => {
+  const location = useLocation();
   const { user } = useAuth();
   const token = user?.token || '';
   const toast = useToast().toast;
@@ -117,6 +118,37 @@ const Chat = () => {
       socket.off('message_deleted', onMessageDeleted);
     };
   }, [token, selected]);
+
+  // Enhancement: Auto-select seller if seller param is present
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const sellerId = params.get('seller');
+    if (!sellerId || !token) return;
+    // Wait for conversations to load
+    if (conversations.length === 0) return;
+    // Try to find existing conversation with seller
+    const convo = conversations.find(c =>
+      c.participants?.some((p: any) => p.user_id === sellerId)
+    );
+    if (convo) {
+      selectConversation(convo);
+    } else {
+      // Start new conversation with seller
+      (async () => {
+        try {
+          const createRes = await api('/api/chats', token, {
+            method: 'POST',
+            body: JSON.stringify({ participantIds: [sellerId], type: 'private' })
+          });
+          setConversations((prev) => [createRes, ...prev]);
+          selectConversation(createRes);
+        } catch (err) {
+          toast({ title: 'Failed to start chat with seller', variant: 'destructive' });
+        }
+      })();
+    }
+    // eslint-disable-next-line
+  }, [location.search, conversations, token]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

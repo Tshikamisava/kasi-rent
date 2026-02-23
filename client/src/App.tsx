@@ -34,6 +34,7 @@ const FindAgents = lazy(() => import("./pages/FindAgents"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const SafetyTips = lazy(() => import("./pages/SafetyTips"));
 const SaveMoney = lazy(() => import("./pages/SaveMoney"));
+import Marketplace from "./pages/Marketplace";
 
 // Loading component
 const LoadingSpinner = () => (
@@ -196,6 +197,8 @@ const App = () => (
             <Route path="/help" element={<HelpCenter />} />
             <Route path="/safety" element={<SafetyTips />} />
             
+            {/* Marketplace - public access */}
+            <Route path="/marketplace" element={<Marketplace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

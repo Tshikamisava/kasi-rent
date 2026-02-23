@@ -26,6 +26,9 @@ export const Navbar = () => {
             <Link to="/properties" className="text-foreground hover:text-primary transition-colors">
               Properties
             </Link>
+            <Link to="/marketplace" className="text-foreground hover:text-primary transition-colors">
+              Marketplace
+            </Link>
             <Link to="/search" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
               <Search className="w-4 h-4" />
               Search
@@ -57,6 +60,9 @@ export const Navbar = () => {
             <div className="flex flex-col gap-4">
               <Link to="/properties" className="text-foreground hover:text-primary transition-colors py-2" onClick={() => setIsOpen(false)}>
                 Properties
+              </Link>
+              <Link to="/marketplace" className="text-foreground hover:text-primary transition-colors py-2" onClick={() => setIsOpen(false)}>
+                Marketplace
               </Link>
               <Link to="/about" className="text-foreground hover:text-primary transition-colors py-2">
                 About
