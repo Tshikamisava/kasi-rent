@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { isAcceptableEmail, isValidEmailFormat } from '../utils/emailValidator.js';
 
 /**
  * Generate JWT Token
@@ -30,6 +31,16 @@ export const register = async (req, res) => {
         success: false,
         error: 'Name, email and password are required' 
       });
+    }
+
+    // Email format and disposable-domain validation
+    if (!isValidEmailFormat(email)) {
+      return res.status(400).json({ success: false, error: 'Invalid email format' });
+    }
+
+    const acceptable = await isAcceptableEmail(email);
+    if (!acceptable) {
+      return res.status(400).json({ success: false, error: 'Disposable or invalid email addresses are not allowed' });
     }
 
     if (password.length < 6) {
@@ -99,6 +110,11 @@ export const login = async (req, res) => {
         success: false,
         error: 'Email and password are required' 
       });
+    }
+
+    // Basic email validation
+    if (!isValidEmailFormat(email)) {
+      return res.status(400).json({ success: false, error: 'Invalid email format' });
     }
 
     // Find user by email
