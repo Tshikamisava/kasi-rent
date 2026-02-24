@@ -56,11 +56,14 @@ const connectDB = async () => {
     try {
       await sequelize.authenticate();
       console.log('✅ Database connected successfully');
-      // Optionally sync model changes to DB when SEQ_SYNC=true is set in env.
-      // WARNING: This will ALTER your tables to match the models. Use only for local/dev environments.
-      if (process.env.SEQ_SYNC === 'true') {
+      // Optionally sync model changes to DB. By default we enable sync in
+      // non-production environments unless explicitly disabled via SEQ_SYNC=false.
+      // WARNING: This will ALTER your tables to match the models. Use with care.
+      const shouldSync = (process.env.SEQ_SYNC === 'true') ||
+        (typeof process.env.SEQ_SYNC === 'undefined' && process.env.NODE_ENV !== 'production');
+      if (shouldSync) {
         try {
-          console.log('🔁 SEQ_SYNC=true: running sequelize.sync({ alter: true }) to update schema');
+          console.log('🔁 SEQ_SYNC enabled: running sequelize.sync({ alter: true }) to update schema');
           await sequelize.sync({ alter: true });
           console.log('✅ Database schema synced (alter applied)');
         } catch (syncErr) {
