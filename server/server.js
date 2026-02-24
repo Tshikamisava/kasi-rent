@@ -32,6 +32,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config();
+console.log('🔧 Starting KasiRent server (server.js) - PID', process.pid);
 const app = express();
 
 // Configure CORS to allow the frontend origin from env or localhost fallbacks
