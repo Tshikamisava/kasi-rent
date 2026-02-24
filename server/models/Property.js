@@ -44,8 +44,12 @@ const Property = sequelize.define('Property', {
     defaultValue: []
   },
   landlord_id: {
-    type: DataTypes.STRING,
-    allowNull: false
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
   },
   is_verified: {
     type: DataTypes.BOOLEAN,
