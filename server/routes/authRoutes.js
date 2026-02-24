@@ -14,9 +14,10 @@ router.get('/me', protect, getCurrentUser);
 
 // Helper to generate JWT token
 const generateToken = (user) => {
+  const jwtSecret = process.env.JWT_SECRET || 'kasirent_jwt_secret_key_2025';
   return jwt.sign(
     { id: user.id, email: user.email, role: user.role },
-    process.env.JWT_SECRET || 'your-secret-key',
+    jwtSecret,
     { expiresIn: '7d' }
   );
 };
