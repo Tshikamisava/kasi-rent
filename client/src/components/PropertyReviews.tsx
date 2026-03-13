@@ -48,14 +48,9 @@ export const PropertyReviews = ({
   const fetchReviews = async () => {
     try {
       setLoading(true);
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const response = await fetch(`${API_BASE}/api/reviews/property/${propertyId}`);
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch reviews");
-      }
-
-      const data = await response.json();
+      const res = await (await import('@/lib/api')).apiFetch(`/api/reviews/property/${propertyId}`);
+      if (!res.ok) throw new Error('Failed to fetch reviews');
+      const data = await res.json();
       setReviewsList(data.reviews || []);
       setAvgRating(data.averageRating || 0);
       setTotal(data.totalReviews || 0);
@@ -112,17 +107,15 @@ export const PropertyReviews = ({
 
       console.log('Submitting review with payload:', reviewPayload);
 
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const response = await fetch(`${API_BASE}/api/reviews`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await (await import('@/lib/api')).apiFetch('/api/reviews', {
+        method: 'POST',
         body: JSON.stringify(reviewPayload),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to submit review");
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to submit review');
       }
 
       toast({

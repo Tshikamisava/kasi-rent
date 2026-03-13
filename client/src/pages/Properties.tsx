@@ -13,6 +13,8 @@ import { PropertyDetailModal } from "@/components/PropertyDetailModal";
 import { RecommendedProperties } from "@/components/RecommendedProperties";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import PropertyMap from "@/components/PropertyMap";
+import { apiFetch } from '@/lib/api';
+import { formatRand } from '@/lib/currency';
 
 const Properties = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -36,13 +38,12 @@ const Properties = () => {
 
   const fetchProperties = async (verifiedOnly: boolean) => {
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
       const verifiedParam = verifiedOnly ? '?is_verified=true' : '';
-      const response = await fetch(`${API_BASE}/api/properties${verifiedParam}`);
-      const data = await response.json();
+      const res = await apiFetch(`/api/properties${verifiedParam}`);
+      const data = await res.json();
 
-      if (!response.ok) throw new Error('Failed to fetch properties');
-      
+      if (!res.ok) throw new Error('Failed to fetch properties');
+
       setProperties(data || []);
     } catch (error) {
       console.error("Error fetching properties:", error);
@@ -59,10 +60,8 @@ const Properties = () => {
 
   const trackPropertyView = async (propertyId: string) => {
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      await fetch(`${API_BASE}/api/recommendations/track-view`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await apiFetch('/api/recommendations/track-view', {
+        method: 'POST',
         body: JSON.stringify({ propertyId }),
       });
 
@@ -247,7 +246,7 @@ const Properties = () => {
                       <Badge variant="outline">{property.property_type}</Badge>
                     </div>
                     <div className="flex items-center text-2xl font-bold text-primary">
-                      R{property.price.toLocaleString()}
+                      {formatRand(property.price)}
                       <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
                     </div>
                   </CardContent>

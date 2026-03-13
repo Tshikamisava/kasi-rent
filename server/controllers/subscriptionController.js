@@ -1,5 +1,9 @@
 import Subscription from '../models/Subscription.js';
 import Payment from '../models/Payment.js';
+import axios from 'axios';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 /**
  * Create a subscription record (pending). Client should then call /api/payments/initialize
@@ -69,6 +73,106 @@ export const updateSubscription = async (req, res) => {
   } catch (error) {
     console.error('Update Subscription Error:', error);
     res.status(500).json({ error: 'Failed to update subscription', message: error.message });
+  }
+};
+
+/**
+ * Create subscription and initialize checkout with Paystack (returns authorization_url)
+ */
+export const checkoutSubscription = async (req, res) => {
+  try {
+    const user_id = req.user?.id;
+    const { plan, amount, currency = 'ZAR', email, callback_url, metadata = {} } = req.body;
+
+    if (!plan || !amount) {
+      return res.status(400).json({ error: 'Plan and amount are required' });
+    }
+
+    // Create subscription record pending
+    const subscription = await Subscription.create({
+      user_id,
+      plan,
+      amount,
+      currency,
+      status: 'pending',
+      metadata
+    });
+
+    // Create payment record tied to this subscription
+    const payment = await Payment.create({
+      user_id: user_id,
+      property_id: null,
+      amount: amount,
+      currency: currency,
+      payment_type: 'subscription',
+      payment_method: 'card',
+      status: 'pending',
+      customer_email: email || req.user?.email || null,
+      description: `Subscription: ${plan}`,
+      metadata: { ...metadata, subscription_id: subscription.id }
+    });
+
+    const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+
+    if (!paystackSecretKey) {
+      // No gateway configured - return subscription and payment info for manual flow
+      return res.json({
+        success: true,
+        message: 'Payment gateway not configured. Mock checkout returned.',
+        subscription,
+        payment
+      });
+    }
+
+    // Paystack expects amount in smallest currency unit
+    const amountInCents = Math.round(parseFloat(amount) * 100);
+
+    try {
+      const initResp = await axios.post(
+        'https://api.paystack.co/transaction/initialize',
+        {
+          email: email || req.user?.email,
+          amount: amountInCents,
+          currency,
+          reference: payment.id,
+          callback_url: callback_url || (req.protocol + '://' + req.get('host') + '/api/payments/verify'),
+          metadata: { subscription_id: subscription.id, ...metadata }
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${paystackSecretKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      // Update payment with gateway reference
+      payment.gateway_reference = initResp.data.data.reference;
+      payment.gateway_response = initResp.data.data;
+      await payment.save();
+
+      res.json({
+        success: true,
+        subscription,
+        payment: {
+          id: payment.id,
+          amount: payment.amount,
+          status: payment.status,
+          authorization_url: initResp.data.data.authorization_url,
+          access_code: initResp.data.data.access_code,
+          reference: initResp.data.data.reference
+        }
+      });
+    } catch (err) {
+      console.error('Paystack init error in checkoutSubscription:', err.response?.data || err.message || err);
+      payment.status = 'failed';
+      payment.gateway_response = { error: err.response?.data || err.message };
+      await payment.save();
+      return res.status(500).json({ error: 'Failed to initialize payment', details: err.response?.data || err.message });
+    }
+  } catch (error) {
+    console.error('checkoutSubscription error:', error);
+    res.status(500).json({ error: 'Failed to create subscription checkout', message: error.message });
   }
 };
 

@@ -3,18 +3,13 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { connectSocket, getSocket } from '@/lib/socket';
 import { supabase } from '@/lib/supabase';
+import { apiFetch } from '@/lib/api';
 import { Smile, Paperclip, Mic, Send, X, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-// Backend base URL (set VITE_API_URL in client/.env; falls back to localhost:5000)
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-// Helper to call the backend with the configured base URL (prevents blank page when frontend and API are on different origins)
-const api = async (path: string, token: string, options: any = {}) => {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    ...options,
-  });
+// Use centralized apiFetch helper which injects JWT and handles 401
+const api = async (path: string, tokenOrUnused?: string, options: any = {}) => {
+  const res = await apiFetch(path, options as any);
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `HTTP ${res.status}`);
@@ -57,7 +52,7 @@ const Chat = () => {
     if (!token) return;
 
     // Sync user to MySQL first (for chat functionality)
-    api('/api/users/sync', token, { method: 'POST' }).then(() => {
+      api('/api/users/sync', token, { method: 'POST' }).then(() => {
       console.log('User synced to database');
     }).catch((err: any) => {
       console.log('User sync skipped or failed:', err?.message ?? err);
@@ -375,9 +370,8 @@ const Chat = () => {
     if (!editingMessageId || !editText.trim() || !selected) return;
     
     try {
-      const res = await fetch(`${API_BASE}/api/messages/${editingMessageId}`, {
+      const res = await apiFetch(`/api/messages/${editingMessageId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ content: editText }),
       });
 

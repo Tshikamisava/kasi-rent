@@ -14,8 +14,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MapPin, BedDouble, Bath, Phone, Mail, User, Building2, Copy, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getFullImageUrl } from "@/lib/utils";
+import { formatRand } from '@/lib/currency';
+import placeholder from '@/assets/property-placeholder.png';
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from '@/lib/api';
 import { RecommendedProperties } from "@/components/RecommendedProperties";
 import { PropertyReviews } from "@/components/PropertyReviews";
 import { FraudDetector } from "@/components/FraudDetector";
@@ -93,17 +97,9 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
       }
 
       try {
-        const response = await fetch(
-          `${apiUrl}/api/users/landlord/${property.landlord_id}/contact`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
+        const res = await apiFetch(`/api/users/landlord/${property.landlord_id}/contact`);
+        if (res.ok) {
+          const data = await res.json();
           if (data.success && data.landlord) {
             setLandlord(data.landlord);
             return;
@@ -251,25 +247,20 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
 
       console.log('Submitting booking with payload:', bookingPayload);
 
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const response = await fetch(`${API_BASE}/api/bookings`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const res = await apiFetch('/api/bookings', {
+        method: 'POST',
         body: JSON.stringify(bookingPayload),
       });
 
-      // Check if response is JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Invalid response format from server");
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Invalid response format from server');
       }
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to create booking");
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to create booking');
       }
 
       toast({
@@ -315,17 +306,32 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Simple platform-wide stats */}
+          <div className="flex gap-4 justify-between items-center text-center text-sm md:text-base">
+            <div className="flex-1">
+              <div className="text-2xl font-bold">1000+</div>
+              <div className="text-muted-foreground">Verified Properties</div>
+            </div>
+            <div className="flex-1">
+              <div className="text-2xl font-bold">5000+</div>
+              <div className="text-muted-foreground">Happy Tenants</div>
+            </div>
+            <div className="flex-1">
+              <div className="text-2xl font-bold">500+</div>
+              <div className="text-muted-foreground">Trusted Landlords</div>
+            </div>
+          </div>
           {/* Property Image Gallery */}
           {propertyImages.length > 0 ? (
             <div className="relative">
-              <div className="h-96 md:h-[600px] w-full rounded-lg overflow-hidden">
+              <div className="h-64 md:h-96 lg:h-[600px] w-full rounded-lg overflow-hidden">
                 <img
-                  src={propertyImages[currentImageIndex]}
+                  src={getFullImageUrl(propertyImages[currentImageIndex])}
                   alt={`${property.title} - Image ${currentImageIndex + 1}`}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.src = '/property-placeholder.png';
+                    target.src = placeholder;
                   }}
                 />
               </div>
@@ -371,9 +377,10 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                       }`}
                     >
                       <img
-                        src={img}
+                        src={getFullImageUrl(img)}
                         alt={`Thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
+                        onError={(e) => (e.currentTarget.src = placeholder)}
                       />
                     </button>
                   ))}
@@ -468,10 +475,10 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                     <Badge variant="outline">{property.property_type || 'Property'}</Badge>
                   </div>
                   <div className="pt-2 border-t">
-                    <p className="text-2xl font-bold text-primary">
-                      R{property.price?.toLocaleString() || '0'}
-                      <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
-                    </p>
+                      <p className="text-2xl font-bold text-primary">
+                        {formatRand(property.price)}
+                        <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
+                      </p>
                   </div>
                 </div>
               </CardContent>

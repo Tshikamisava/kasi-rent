@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { Search, SlidersHorizontal, Save, X } from 'lucide-react';
+import { formatRand } from '@/lib/currency';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -173,7 +174,7 @@ export default function AdvancedSearch() {
 
                 {/* Price Range */}
                 <div>
-                  <Label>Price Range: R{filters.min_price.toLocaleString()} - R{filters.max_price.toLocaleString()}</Label>
+                  <Label>Price Range: {formatRand(filters.min_price)} - {formatRand(filters.max_price)}</Label>
                   <div className="space-y-2 mt-2">
                     <Slider
                       value={[filters.min_price]}

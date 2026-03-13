@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Shield, FileText, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { formatRand } from '@/lib/currency';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -453,7 +454,7 @@ export default function AdminDashboard() {
                   </div>
                   <p className="text-sm text-gray-600">Status: {selectedVerification.employment_status}</p>
                   <p className="text-sm text-gray-600">Employer: {selectedVerification.employer_name}</p>
-                  <p className="text-sm text-gray-600">Income: R{selectedVerification.monthly_income?.toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">Income: {formatRand(selectedVerification.monthly_income)}</p>
                   {selectedVerification.employment_letter_url && (
                     <a 
                       href={`${API_BASE}${selectedVerification.employment_letter_url}`}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { formatRand } from '@/lib/currency';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -105,30 +106,8 @@ export default function Profile() {
 
   const fetchProfile = async () => {
     try {
-      // Prefer token from auth store if present
-      const stored = localStorage.getItem('auth-storage');
-      let token = localStorage.getItem("token");
-      try {
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed?.state?.user?.token) token = parsed.state.user.token;
-        }
-      } catch (e) {
-        // ignore
-      }
-      if (!token) {
-        navigate("/signin");
-        return;
-      }
-
-      const response = await fetch(`${API_URL}/api/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      const response = await (await import('@/lib/api')).apiFetch('/api/profile');
+      const data = await response.json();
         setUser({
           ...data.user,
           role: data.user.role || (data.user as any).userType || (data.user as any).user_type,
@@ -142,9 +121,7 @@ export default function Profile() {
           location: data.user.location || "",
           profile_photo: data.user.profile_photo || ""
         });
-      } else {
-        throw new Error("Failed to fetch profile");
-      }
+      
     } catch (error) {
       console.error("Error fetching profile:", error);
       toast({
@@ -172,68 +149,59 @@ export default function Profile() {
 
   const fetchBookings = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/api/profile/bookings`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      const res = await (await import('@/lib/api')).apiFetch('/api/profile/bookings');
+      if (res.ok) {
+        const data = await res.json();
         setBookings(data);
+      } else {
+        console.error('Failed to fetch bookings', res.status);
       }
     } catch (error) {
-      console.error("Error fetching bookings:", error);
+      console.error('Error fetching bookings:', error);
     }
   };
 
   const handleSaveProfile = async () => {
+    setSaving(true);
     try {
-      setSaving(true);
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(`${API_URL}/api/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+      const api = await import('@/lib/api');
+      const res = await api.apiFetch('/api/profile', {
+        method: 'PUT',
         body: JSON.stringify(editForm),
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      const data = await res.json();
+
+      if (res.ok) {
         setUser({
           ...data.user,
           role: data.user.role || (data.user as any).userType || (data.user as any).user_type,
           profile_photo: data.user.profile_photo || (data.user as any).profilePhoto || null,
         });
-        
-        // Update auth store so navbar reflects changes immediately
+
         if (authUser) {
           setAuthUser({
             ...authUser,
             name: data.user.name,
-            profile_photo: data.user.profile_photo
+            profile_photo: data.user.profile_photo,
           });
         }
-        
+
         setIsEditing(false);
-        toast({
-          title: "Success",
-          description: "Profile updated successfully",
-        });
+        toast({ title: 'Success', description: 'Profile updated successfully' });
+      } else if (res.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('auth-storage');
+        if (setAuthUser) setAuthUser(null as any);
+        toast({ title: 'Session expired', description: 'Please sign in again', variant: 'destructive' });
+        navigate('/signin');
+        return;
       } else {
-        throw new Error("Failed to update profile");
+        throw new Error(data?.message || 'Failed to update profile');
       }
     } catch (error) {
-      console.error("Error updating profile:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive",
-      });
+      console.error('Error updating profile:', error);
+      toast({ title: 'Error', description: 'Failed to update profile', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -666,8 +634,8 @@ export default function Profile() {
                     {property.location}
                   </p>
                   <div className="flex justify-between items-center">
-                    <p className="text-lg font-bold text-primary">
-                      R{property.price.toLocaleString()}/mo
+                      <p className="text-lg font-bold text-primary">
+                        {formatRand(property.price)}/mo
                     </p>
                     <div className="text-sm text-gray-600">
                       ⭐ {Number(property.average_rating).toFixed(1)} ({property.review_count})
@@ -732,7 +700,7 @@ export default function Profile() {
                           Host: {booking.landlord_name}
                         </p>
                         <p className="text-lg font-bold text-primary">
-                          R{booking.total_price.toLocaleString()}
+                          {formatRand(booking.total_price)}
                         </p>
                       </div>
                     </div>

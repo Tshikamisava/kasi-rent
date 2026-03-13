@@ -35,6 +35,12 @@ dotenv.config();
 console.log('🔧 Starting KasiRent server (server.js) - PID', process.pid);
 const app = express();
 
+// Warn if JWT_SECRET is not set to help diagnose "invalid signature" issues
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️ JWT_SECRET is not set. Server will use a built-in development JWT secret.');
+  console.warn('Set JWT_SECRET in your server/.env to a consistent value to avoid "invalid signature" errors across environments.');
+}
+
 // Configure CORS to allow the frontend origin from env or localhost fallbacks
 const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:5174'].filter(Boolean);
 app.use(cors({
@@ -134,6 +140,21 @@ const startServer = async () => {
   } catch (err) {
     console.error('⚠️ Socket initialization failed:', err);
   }
+
+  // Add a graceful error handler for common listen errors
+  server.on('error', (err) => {
+    if (err && err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Kill the process using it or set a different PORT environment variable.`);
+      console.error(`On Windows: netstat -ano | findstr :${PORT}  OR use: Get-NetTCPConnection -LocalPort ${PORT} | Select-Object -ExpandProperty OwningProcess`);
+      process.exit(1);
+    }
+    if (err && err.code === 'EACCES') {
+      console.error(`Insufficient privileges to bind to port ${PORT}. Try running with elevated permissions or choose a different port.`);
+      process.exit(1);
+    }
+    console.error('Server encountered an error:', err);
+    process.exit(1);
+  });
 
   server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 };

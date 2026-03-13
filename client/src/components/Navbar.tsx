@@ -54,6 +54,9 @@ export const Navbar = () => {
             <Link to="/about" className="text-foreground hover:text-primary transition-colors">
               About
             </Link>
+            <Link to="/marketplace" className="text-foreground hover:text-primary transition-colors">
+              Marketplace
+            </Link>
             {user && user.role === 'tenant' && (
               <Link to="/verification" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
                 <Shield className="w-4 h-4" />
@@ -153,6 +156,9 @@ export const Navbar = () => {
               </Link>
               <Link to="/about" className="text-foreground hover:text-primary transition-colors py-2">
                 About
+              </Link>
+              <Link to="/marketplace" className="text-foreground hover:text-primary transition-colors py-2">
+                Marketplace
               </Link>
               {user && user.role === 'tenant' && (
                 <Link to="/verification" className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1">

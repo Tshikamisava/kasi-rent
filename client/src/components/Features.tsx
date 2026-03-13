@@ -3,6 +3,7 @@ import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 import { useNavigate } from "react-router-dom";
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { formatRand } from '@/lib/currency';
 
 const features = [
   {
@@ -165,11 +166,11 @@ const SaveMoneyCard = ({ expanded, setExpanded }: { expanded: boolean; setExpand
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <div className="text-sm text-muted-foreground">Total planned spend</div>
-              <div className="text-lg font-bold">R{total.toLocaleString()}</div>
+              <div className="text-lg font-bold">{formatRand(total)}</div>
             </div>
             <div>
               <div className="text-sm text-muted-foreground">Potential savings (no agent)</div>
-              <div className="text-lg font-bold text-emerald-600">R{saved.toLocaleString()}</div>
+              <div className="text-lg font-bold text-emerald-600">{formatRand(saved)}</div>
             </div>
             <div className="sm:w-40">
               <div className="w-full text-center py-2 rounded-md bg-gray-100 text-muted-foreground border border-dashed">
@@ -187,12 +188,8 @@ const SaveMoneyCard = ({ expanded, setExpanded }: { expanded: boolean; setExpand
                         }
 
                         // Create subscription record
-                        const subResp = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/subscriptions`, {
+                        const subResp = await (await import('@/lib/api')).apiFetch('/api/subscriptions', {
                           method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                          },
                           body: JSON.stringify({ plan: 'basic', amount: total, metadata: { note: 'KasiRent subscription' } })
                         });
                         const subJson = await subResp.json();
@@ -201,12 +198,8 @@ const SaveMoneyCard = ({ expanded, setExpanded }: { expanded: boolean; setExpand
                         const subscriptionId = subJson.subscription.id;
 
                         // Initialize payment and attach subscription id in metadata
-                        const initResp = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/payments/initialize`, {
+                        const initResp = await (await import('@/lib/api')).apiFetch('/api/payments/initialize', {
                           method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                          },
                           body: JSON.stringify({
                             amount: total,
                             email: session?.user?.user_metadata?.email || session?.user?.email || undefined,

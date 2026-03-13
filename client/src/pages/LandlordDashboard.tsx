@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Home, Plus, Users, DollarSign, Edit, Trash, MapPin, BedDouble, Bath, ShieldCheck, ArrowLeft, Images, ChevronLeft, ChevronRight, Calendar, MessageSquare } from "lucide-react";
+import { formatRand } from '@/lib/currency';
 import { useNavigate } from "react-router-dom";
 import { PropertyForm } from "@/components/PropertyForm";
 import { useState, useEffect } from "react";
@@ -288,7 +289,7 @@ const LandlordDashboard = () => {
               onClick={() => {
                 toast({
                   title: "Monthly Revenue",
-                  description: `Potential: R${totalMonthlyRevenue.toLocaleString()}`,
+                  description: `Potential: ${formatRand(totalMonthlyRevenue)}`,
                 });
               }}
             >
@@ -297,7 +298,7 @@ const LandlordDashboard = () => {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">R{totalMonthlyRevenue.toLocaleString()}</div>
+                <div className="text-2xl font-bold">{formatRand(totalMonthlyRevenue)}</div>
                 <p className="text-xs text-muted-foreground">Potential earnings</p>
               </CardContent>
             </Card>
@@ -531,7 +532,7 @@ const LandlordDashboard = () => {
                           </Badge>
                         </div>
                         <div className="flex items-baseline text-2xl font-bold text-primary mb-4">
-                          R{property.price?.toLocaleString()}
+                          {formatRand(property.price)}
                           <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
                         </div>
                         

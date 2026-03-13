@@ -7,6 +7,8 @@ import { ArrowLeft, Calendar, MapPin, Home, CheckCircle, Clock, X } from "lucide
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
+import { apiFetch } from '@/lib/api';
+import { formatRand } from '@/lib/currency';
 import { useToast } from "@/hooks/use-toast";
 
 const Bookings = () => {
@@ -29,11 +31,10 @@ const Bookings = () => {
     
     try {
       const userId = user.id || user._id;
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const response = await fetch(`${API_BASE}/api/bookings/tenant/${userId}`);
-      const data = await response.json();
+      const res = await apiFetch(`/api/bookings/tenant/${userId}`);
+      const data = await res.json();
 
-      if (!response.ok || !data.success) {
+      if (!res.ok || !data.success) {
         throw new Error(data.message || "Failed to fetch bookings");
       }
 
@@ -151,7 +152,7 @@ const Bookings = () => {
                       )}
                       <div className="pt-2 border-t">
                         <div className="flex items-center text-xl font-bold text-primary">
-                          R{booking.property?.price?.toLocaleString()}
+                          {formatRand(booking.property?.price)}
                           <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
                         </div>
                       </div>

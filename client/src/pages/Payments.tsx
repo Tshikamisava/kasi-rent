@@ -6,6 +6,7 @@ import { PaymentForm } from "@/components/PaymentForm";
 import { PaymentButton } from "@/components/PaymentButton";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from '@/lib/api';
 import { 
   CreditCard, 
   Shield, 
@@ -72,16 +73,8 @@ export default function Payments() {
 
   const fetchPayments = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const token = user?.token || localStorage.getItem("token");
-
-      const response = await fetch(`${apiUrl}/api/payments/user/${user?._id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
+      const res = await apiFetch(`/api/payments/user/${user?._id}`);
+      const data = await res.json();
       if (data.success) {
         setPayments(data.payments || []);
       }

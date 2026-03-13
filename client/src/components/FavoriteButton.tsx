@@ -3,6 +3,7 @@ import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from '@/lib/api';
 
 interface FavoriteButtonProps {
   propertyId: string;
@@ -32,12 +33,9 @@ export const FavoriteButton = ({
     if (!user?._id) return;
 
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const response = await fetch(
-        `${API_BASE}/api/favorites/check?user_id=${user._id}&property_id=${propertyId}`
-      );
-      const data = await response.json();
-      
+      const res = await apiFetch(`/api/favorites/check?user_id=${user._id}&property_id=${propertyId}`);
+      const data = await res.json();
+
       if (data.success) {
         setIsFavorited(data.isFavorited);
       }
@@ -61,19 +59,12 @@ export const FavoriteButton = ({
 
     setLoading(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
       const endpoint = isFavorited ? '/api/favorites/remove' : '/api/favorites/add';
-      
-      const response = await fetch(`${API_BASE}${endpoint}`, {
+      const res = await apiFetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: user._id,
-          property_id: propertyId
-        })
+        body: JSON.stringify({ user_id: user._id, property_id: propertyId })
       });
-
-      const data = await response.json();
+      const data = await res.json();
 
       if (data.success) {
         setIsFavorited(!isFavorited);

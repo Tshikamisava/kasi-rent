@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, BedDouble, Bath, Heart, Building2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { apiFetch } from '@/lib/api';
+import { formatRand } from '@/lib/currency';
 import { useNavigate } from "react-router-dom";
 import { PropertyDetailModal } from "@/components/PropertyDetailModal";
 import { FavoriteButton } from "@/components/FavoriteButton";
@@ -30,9 +32,8 @@ const Favorites = () => {
     if (!user?._id) return;
 
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const response = await fetch(`${API_BASE}/api/favorites/user/${user._id}`);
-      const data = await response.json();
+      const res = await apiFetch(`/api/favorites/user/${user._id}`);
+      const data = await res.json();
 
       if (data.success) {
         setFavorites(data.favorites || []);
@@ -169,7 +170,7 @@ const Favorites = () => {
                     <CardFooter className="p-4 pt-0 flex justify-between items-center">
                       <div>
                         <p className="text-2xl font-bold text-primary">
-                          R{property.price?.toLocaleString()}
+                          {formatRand(property.price)}
                         </p>
                         <p className="text-sm text-muted-foreground">/month</p>
                       </div>
