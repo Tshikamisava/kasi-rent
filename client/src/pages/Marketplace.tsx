@@ -4,9 +4,8 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/supabase';
 import { Plus, ShoppingCart, MessageCircle, Tag } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 interface MarketplaceItem {
   id: number;
@@ -32,17 +31,20 @@ const Marketplace = () => {
     image: ''
   });
 
-  // Fetch marketplace items from API
+  // Fetch marketplace items from Supabase
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/marketplace`);
-        if (!response.ok) throw new Error('Failed to fetch items');
-        const data = await response.json();
-        setItems(data);
+        const { data, error: supabaseError } = await supabase
+          .from('marketplace_items')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (supabaseError) throw supabaseError;
+        setItems(data || []);
       } catch (err) {
         console.error('Error fetching marketplace items:', err);
-        setError('Could not load items from server');
+        setError('Could not load items from database');
       } finally {
         setLoading(false);
       }
@@ -64,21 +66,22 @@ const Marketplace = () => {
     if (!form.title || !form.price || !form.seller) return;
     
     try {
-      const response = await fetch(`${API_URL}/api/marketplace`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { data, error: supabaseError } = await supabase
+        .from('marketplace_items')
+        .insert({
           title: form.title,
           description: form.description,
           price: Number(form.price),
-          seller: form.seller,
-          image: form.image
+          seller_id: form.seller,
+          images: form.image ? [form.image] : [],
+          status: 'active'
         })
-      });
+        .select();
+
+      if (supabaseError) throw supabaseError;
       
-      if (response.ok) {
-        const newItem = await response.json();
-        setItems([newItem, ...items]);
+      if (data && data[0]) {
+        setItems([data[0], ...items]);
       }
     } catch (err) {
       console.error('Error creating item:', err);
@@ -274,7 +277,7 @@ const Marketplace = () => {
                       </p>
                       <div className="flex items-center justify-between">
                         <span className="text-2xl font-bold text-primary">R{item.price}</span>
-                        <span className="text-xs text-muted-foreground">ID: {item.seller_id.substring(0, 8)}...</span>
+                        <span className="text-xs text-muted-foreground">ID: {item.seller_id?.substring(0, 8)}...</span>
                       </div>
                     </CardContent>
                     <CardFooter className="gap-2">
