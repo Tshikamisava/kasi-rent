@@ -10,6 +10,7 @@ import Property from './Property.js';
 import Favorite from './Favorite.js';
 import Booking from './Booking.js';
 import Review from './Review.js';
+import MarketplaceItem from './Marketplace.js';
 
 // Associations
 // User <-> UserRole associations
@@ -62,4 +63,5 @@ export {
   Property,
   Booking,
   Favorite,
+  MarketplaceItem,
 };

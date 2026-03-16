@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import * as marketplaceController from '../controllers/marketplaceController.js';
+
 const router = express.Router();
-const marketplaceController = require('../controllers/marketplaceController');
 
 // Get all marketplace items
 router.get('/', marketplaceController.getAllItems);
@@ -13,4 +14,4 @@ router.put('/:id', marketplaceController.updateItem);
 // Delete item
 router.delete('/:id', marketplaceController.deleteItem);
 
-module.exports = router;
+export default router;

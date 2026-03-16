@@ -27,6 +27,10 @@ const createDatabase = async () => {
         full_name VARCHAR(255) NOT NULL,
         phone VARCHAR(50),
         avatar_url TEXT,
+        oauth_provider VARCHAR(50),
+        oauth_id VARCHAR(255),
+        reset_password_token VARCHAR(255),
+        reset_password_expires DATETIME,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_email (email)
@@ -154,6 +158,24 @@ const createDatabase = async () => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
     console.log('✅ Messages table created');
+
+    // Create marketplace_items table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS marketplace_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        price DECIMAL(10, 2) NOT NULL,
+        seller_id VARCHAR(36) NOT NULL,
+        images TEXT,
+        status VARCHAR(50) DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_seller_id (seller_id),
+        INDEX idx_status (status)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    console.log('✅ Marketplace items table created');
 
     console.log('\n🎉 Database initialization completed successfully!');
   } catch (error) {

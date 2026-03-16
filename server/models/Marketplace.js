@@ -1,6 +1,6 @@
 // server/models/Marketplace.js
 import { DataTypes } from 'sequelize';
-import sequelize from '../config/mysql.js';
+import { sequelize } from '../config/mysql.js';
 
 const MarketplaceItem = sequelize.define('marketplace_items', {
   id: {
@@ -20,7 +20,7 @@ const MarketplaceItem = sequelize.define('marketplace_items', {
     allowNull: false,
   },
   seller_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.STRING,
     allowNull: false,
   },
   images: {
