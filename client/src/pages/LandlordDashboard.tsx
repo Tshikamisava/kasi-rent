@@ -57,7 +57,7 @@ const LandlordDashboard = () => {
     if (!user) return;
     
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const response = await fetch(`${API_BASE}/api/properties?landlord_id=${user._id}`);
       const data = await response.json();
 
@@ -66,7 +66,7 @@ const LandlordDashboard = () => {
       
       // Initialize image indexes for each property
       const indexes: { [key: string]: number } = {};
-      (data || []).forEach(prop => {
+      (data || []).forEach((prop: any) => {
         indexes[prop.id] = 0;
       });
       setImageIndexes(indexes);
@@ -81,7 +81,7 @@ const LandlordDashboard = () => {
     if (!user) return;
     
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const response = await fetch(`${API_BASE}/api/bookings/landlord/${user._id}`);
       
       if (response.ok) {
@@ -128,7 +128,7 @@ const LandlordDashboard = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const response = await fetch(`${API_BASE}/api/properties/${id}?landlord_id=${user?._id}`, {
         method: 'DELETE',
       });
@@ -161,7 +161,7 @@ const LandlordDashboard = () => {
 
   const handleUpdateProperty = async (updatedProperty: any) => {
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const response = await fetch(`${API_BASE}/api/properties/${editingProperty.id}`, {
         method: 'PUT',
         headers: {
@@ -475,7 +475,7 @@ const LandlordDashboard = () => {
                               
                               {/* Thumbnail dots */}
                               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                                {propertyImages.map((_, idx) => (
+                                {propertyImages.map((_: unknown, idx: number) => (
                                   <button
                                     key={idx}
                                     onClick={(e) => {

@@ -57,6 +57,11 @@ const Marketplace = () => {
 
       const data = await resp.json();
 
+      if (!resp.ok) {
+        const detailedMessage = data?.message || data?.details?.message || data?.details || data?.error;
+        throw new Error(detailedMessage || 'Failed to start subscription checkout.');
+      }
+
       if (data?.payment?.authorization_url) {
         // redirect to payment gateway
         window.location.href = data.payment.authorization_url;
@@ -68,11 +73,11 @@ const Marketplace = () => {
         return;
       }
 
-      // Fallback: show success message
-      alert('Subscription created. ' + (data.message || 'No payment gateway configured.'));
+      // Fallback for unexpected success response shape
+      alert(data?.message || 'Checkout started, but no authorization URL was returned.');
     } catch (err) {
       console.error(err);
-      alert('Failed to start subscription checkout.');
+      alert(err instanceof Error ? err.message : 'Failed to start subscription checkout.');
     } finally {
       setLoadingId(null);
     }

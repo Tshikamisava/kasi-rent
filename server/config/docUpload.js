@@ -23,12 +23,17 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowed = /\.pdf$|\.jpeg$|\.jpg$|\.png$|\.tiff$|\.jfif$/i;
+  const allowedExt = /\.pdf$|\.jpeg$|\.jpg$|\.png$|\.tiff$|\.tif$|\.jfif$|\.webp$|\.heic$|\.heif$/i;
   const ext = path.extname(file.originalname).toLowerCase();
-  if (allowed.test(ext) || /application\/pdf/.test(file.mimetype || '')) {
+  const mime = (file.mimetype || '').toLowerCase();
+
+  const isPdf = mime === 'application/pdf' || ext === '.pdf';
+  const isImage = mime.startsWith('image/') || allowedExt.test(ext);
+
+  if (isPdf || isImage) {
     cb(null, true);
   } else {
-    cb(new Error('Only PDF and common image document types are allowed'));
+    cb(new Error('Only PDF or image documents are allowed (JPG, PNG, WEBP, HEIC, etc.)'));
   }
 };
 

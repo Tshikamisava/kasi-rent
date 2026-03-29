@@ -1,7 +1,7 @@
 -- Create subscriptions table to persist subscription purchases and statuses
 CREATE TABLE IF NOT EXISTS subscriptions (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
+  id CHAR(36) PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
   plan VARCHAR(100) NOT NULL,
   amount DECIMAL(10,2) NOT NULL,
   currency VARCHAR(10) DEFAULT 'ZAR',

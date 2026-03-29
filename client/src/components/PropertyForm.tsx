@@ -469,7 +469,6 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
             });
           }
         }
-
         setUploading(false);
 
         if (uploadErrors > 0 && uploadedUrls.length === 0) {
@@ -488,16 +487,12 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
       // Use the first uploaded image as the primary image, or use the URL field
       const primaryImageUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : (formData.image_url || null);
 
-      // Upload document (required for new listings)
+      // Upload document (optional compatibility mode)
+      // NOTE: some deployed DBs may not yet have document_* columns.
+      // We still allow upload, but we don't block listing if document upload fails.
       let documentUrl = initialData?.document_url || null;
       let documentFilename = initialData?.document_filename || null;
       let documentType = initialData?.document_type || null;
-
-      if (!initialData && !documentFile) {
-        toast({ title: 'Document required', description: 'Please upload a recent utility bill (proof of address) before listing', variant: 'destructive' });
-        setLoading(false);
-        return;
-      }
 
       if (documentFile) {
         setUploading(true);
@@ -512,11 +507,8 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
           documentFilename = data.filename;
           documentType = data.originalName?.split('.').pop() || documentFile.type;
         } catch (err: any) {
-          console.error('Document upload failed', err);
-          toast({ title: 'Document upload failed', description: err.message || 'Please try again', variant: 'destructive' });
-          setUploading(false);
-          setLoading(false);
-          return;
+          console.warn('Document upload failed, continuing without document metadata:', err);
+          toast({ title: 'Document skipped', description: 'Property will be listed without document metadata for now', variant: 'default' });
         } finally {
           setUploading(false);
         }
@@ -542,9 +534,8 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
         image_url: primaryImageUrl,
         images: uploadedUrls.length > 0 ? uploadedUrls : (formData.image_url ? [formData.image_url] : []),
         video_url: videoUrl || null,
-        document_url: documentUrl,
-        document_filename: documentFilename,
-        document_type: documentType,
+        // Do not include document_* fields in listing payload until all environments
+        // have completed document schema migrations.
         wifi_available: !!formData.wifi_available,
         pets_allowed: !!formData.pets_allowed,
         furnished: !!formData.furnished,
@@ -608,11 +599,12 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
 
       onSuccess();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to list property",
-        variant: "destructive",
-      });
+        console.error('Property listing error:', error);
+        toast({
+          title: "Error",
+          description: (error as Error).message || "Failed to list property",
+          variant: "destructive",
+        });
     } finally {
       setLoading(false);
     }

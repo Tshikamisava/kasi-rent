@@ -19,20 +19,21 @@ const Favorites = () => {
   const [loading, setLoading] = useState(true);
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const currentUserId = user?.id || user?._id;
 
   useEffect(() => {
     if (!user) {
-      navigate('/login');
+      navigate('/signin');
       return;
     }
     fetchFavorites();
   }, [user]);
 
   const fetchFavorites = async () => {
-    if (!user?._id) return;
+    if (!currentUserId) return;
 
     try {
-      const res = await apiFetch(`/api/favorites/user/${user._id}`);
+      const res = await apiFetch(`/api/favorites/user/${currentUserId}`);
       const data = await res.json();
 
       if (data.success) {

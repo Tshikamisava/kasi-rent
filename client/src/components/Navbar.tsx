@@ -76,6 +76,12 @@ export const Navbar = () => {
               </Link>
             )}
             {user && (
+              <Link to="/subscriptions" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                <Badge variant="outline" className="h-5 px-2 py-0 text-[10px]">PRO</Badge>
+                Subscriptions
+              </Link>
+            )}
+            {user && (
               <Link to="/favorites" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
                 <Heart className="w-4 h-4" />
                 Favorites
@@ -176,6 +182,12 @@ export const Navbar = () => {
                 <Link to="/bookings" className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
                   Bookings
+                </Link>
+              )}
+              {user && (
+                <Link to="/subscriptions" className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1">
+                  <Badge variant="outline" className="h-5 px-2 py-0 text-[10px]">PRO</Badge>
+                  Subscriptions
                 </Link>
               )}
               {user && (

@@ -22,18 +22,19 @@ export const FavoriteButton = ({
   const { toast } = useToast();
   const [isFavorited, setIsFavorited] = useState(false);
   const [loading, setLoading] = useState(false);
+  const currentUserId = user?.id || user?._id;
 
   useEffect(() => {
-    if (user?._id) {
+    if (currentUserId) {
       checkFavoriteStatus();
     }
-  }, [propertyId, user]);
+  }, [propertyId, currentUserId]);
 
   const checkFavoriteStatus = async () => {
-    if (!user?._id) return;
+    if (!currentUserId) return;
 
     try {
-      const res = await apiFetch(`/api/favorites/check?user_id=${user._id}&property_id=${propertyId}`);
+      const res = await apiFetch(`/api/favorites/check?user_id=${currentUserId}&property_id=${propertyId}`);
       const data = await res.json();
 
       if (data.success) {
@@ -62,7 +63,7 @@ export const FavoriteButton = ({
       const endpoint = isFavorited ? '/api/favorites/remove' : '/api/favorites/add';
       const res = await apiFetch(endpoint, {
         method: 'POST',
-        body: JSON.stringify({ user_id: user._id, property_id: propertyId })
+        body: JSON.stringify({ user_id: currentUserId, property_id: propertyId })
       });
       const data = await res.json();
 

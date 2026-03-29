@@ -32,6 +32,67 @@ export default function AdvancedSearch() {
   const [totalResults, setTotalResults] = useState(0);
   const { toast } = useToast();
 
+  const filterPropertiesLocally = (items: any[]) => {
+    return items.filter((property: any) => {
+      const location = String(property?.location || '').toLowerCase();
+      const address = String(property?.address || '').toLowerCase();
+      const targetLocation = filters.location.trim().toLowerCase();
+
+      if (targetLocation && !location.includes(targetLocation) && !address.includes(targetLocation)) {
+        return false;
+      }
+
+      const price = Number(property?.price || 0);
+      if (filters.min_price > 0 && price < filters.min_price) return false;
+      if (filters.max_price < 50000 && price > filters.max_price) return false;
+
+      const bedrooms = Number(property?.bedrooms || 0);
+      if (filters.bedrooms) {
+        const minBedrooms = Number(filters.bedrooms);
+        if (!Number.isNaN(minBedrooms)) {
+          if (minBedrooms === 0) {
+            if (bedrooms !== 0) return false;
+          } else if (bedrooms < minBedrooms) {
+            return false;
+          }
+        }
+      }
+
+      const bathrooms = Number(property?.bathrooms || 0);
+      if (filters.bathrooms) {
+        const minBathrooms = Number(filters.bathrooms);
+        if (!Number.isNaN(minBathrooms) && bathrooms < minBathrooms) return false;
+      }
+
+      if (filters.property_type && property?.property_type !== filters.property_type) {
+        return false;
+      }
+
+      if (filters.furnished && property?.furnished !== true) return false;
+      if (filters.pets_allowed && property?.pets_allowed !== true) return false;
+
+      // Some deployments may not have this column; only enforce when field exists on row.
+      if (filters.utilities_included && Object.prototype.hasOwnProperty.call(property, 'utilities_included') && property?.utilities_included !== true) {
+        return false;
+      }
+
+      return true;
+    });
+  };
+
+  const runFallbackSearch = async () => {
+    const fallbackResponse = await fetch(`${API_BASE}/api/properties`);
+    if (!fallbackResponse.ok) {
+      throw new Error('Search service is unavailable right now. Please try again shortly.');
+    }
+
+    const raw = await fallbackResponse.json();
+    const list = Array.isArray(raw) ? raw : (raw?.properties || []);
+    const filtered = filterPropertiesLocally(list);
+    setProperties(filtered);
+    setTotalResults(filtered.length);
+  };
+
   useEffect(() => {
     searchProperties();
   }, []);
@@ -54,14 +115,30 @@ export default function AdvancedSearch() {
       if (filters.available_from) params.append('available_from', filters.available_from);
 
       const response = await fetch(`${API_BASE}/api/search?${params.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error('Search failed');
+
+      if (response.ok) {
+        const data = await response.json();
+        setProperties(data.properties || []);
+        setTotalResults(data.total || 0);
+        return;
       }
 
-      const data = await response.json();
-      setProperties(data.properties || []);
-      setTotalResults(data.total || 0);
+      // Parse backend error details where possible, then gracefully fallback.
+      let backendError = '';
+      try {
+        const text = await response.text();
+        try {
+          const parsed = JSON.parse(text);
+          backendError = parsed?.error || parsed?.message || '';
+        } catch {
+          backendError = text?.slice(0, 160) || '';
+        }
+      } catch {
+        // Ignore parse failures
+      }
+
+      console.warn('Advanced search endpoint failed, trying fallback:', response.status, backendError);
+      await runFallbackSearch();
     } catch (error) {
       toast({
         title: "Error",

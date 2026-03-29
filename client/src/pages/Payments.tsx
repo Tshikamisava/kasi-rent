@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PaymentForm } from "@/components/PaymentForm";
-import { PaymentButton } from "@/components/PaymentButton";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from '@/lib/api';
@@ -19,7 +21,10 @@ import {
   Info,
   Sparkles,
   Zap,
-  Globe
+  Globe,
+  User,
+  Home,
+  Loader2
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +69,80 @@ export default function Payments() {
   const [loading, setLoading] = useState(true);
   const [paymentFormOpen, setPaymentFormOpen] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+
+  // Tenant payment form state
+  const [tenantPayment, setTenantPayment] = useState({
+    tenantName: user?.name || "",
+    tenantEmail: user?.email || "",
+    tenantPhone: "",
+    landlordName: "",
+    propertyTitle: "",
+    propertyId: "",
+    amount: "",
+    paymentType: "rent" as "deposit" | "rent" | "application_fee" | "service_fee",
+    description: "",
+  });
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [paymentResult, setPaymentResult] = useState<"idle" | "success" | "failed">("idle");
+
+  useEffect(() => {
+    if (user) {
+      setTenantPayment(prev => ({
+        ...prev,
+        tenantName: user.name || "",
+        tenantEmail: user.email || "",
+      }));
+    }
+  }, [user]);
+
+  const handleTenantPaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tenantPayment.tenantEmail || !tenantPayment.tenantName || !tenantPayment.amount) {
+      toast({ title: "Missing fields", description: "Please fill in your name, email and amount.", variant: "destructive" });
+      return;
+    }
+    const amountNum = parseFloat(tenantPayment.amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      toast({ title: "Invalid amount", description: "Please enter a valid payment amount.", variant: "destructive" });
+      return;
+    }
+    setPaymentSubmitting(true);
+    setPaymentResult("idle");
+    try {
+      const res = await apiFetch('/api/payments/initialize', {
+        method: 'POST',
+        body: JSON.stringify({
+          amount: amountNum,
+          email: tenantPayment.tenantEmail,
+          name: tenantPayment.tenantName,
+          phone: tenantPayment.tenantPhone,
+          property_id: tenantPayment.propertyId || undefined,
+          payment_type: tenantPayment.paymentType,
+          description: tenantPayment.description ||
+            `${tenantPayment.paymentType.replace(/_/g, ' ')} payment${tenantPayment.propertyTitle ? ` for ${tenantPayment.propertyTitle}` : ''}`,
+          metadata: {
+            landlord_name: tenantPayment.landlordName,
+            property_title: tenantPayment.propertyTitle,
+            user_id: user?._id,
+          },
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to initialize payment");
+      if (data.success && data.payment?.authorization_url) {
+        window.location.href = data.payment.authorization_url;
+      } else {
+        setPaymentResult("success");
+        toast({ title: "Payment initiated", description: "Your payment has been recorded." });
+        fetchPayments();
+      }
+    } catch (err: any) {
+      setPaymentResult("failed");
+      toast({ title: "Payment failed", description: err.message || "Unable to process payment.", variant: "destructive" });
+    } finally {
+      setPaymentSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (user?._id) {
@@ -461,78 +540,221 @@ export default function Payments() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-6">
-                <Card className="border-2 shadow-xl overflow-hidden">
-                  <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-secondary/10 p-6">
-                    <CardHeader>
-                      <CardTitle className="text-2xl">Make a Payment</CardTitle>
-                      <CardDescription className="text-base">
-                        Select a payment type and amount to proceed
-                      </CardDescription>
-                    </CardHeader>
-                  </div>
-                  <CardContent className="p-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Card className="border-2 hover:border-primary hover:shadow-xl transition-all duration-300 group cursor-pointer animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '100ms' }}>
-                        <CardHeader className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
-                          <CardTitle className="text-xl flex items-center gap-2">
-                            <CreditCard className="h-5 w-5 text-blue-600" />
-                            Rent Payment
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-6">
-                          <p className="text-sm text-muted-foreground mb-2">Pay your monthly rent</p>
-                          <p className="text-2xl font-bold mb-4 text-blue-600">R5,000</p>
-                          <PaymentButton
-                            amount={5000}
-                            paymentType="rent"
-                            variant="default"
-                            className="w-full group-hover:scale-105 transition-transform"
-                          >
-                            Pay Rent
-                          </PaymentButton>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="border-2 hover:border-primary hover:shadow-xl transition-all duration-300 group cursor-pointer animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '200ms' }}>
-                        <CardHeader className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
-                          <CardTitle className="text-xl flex items-center gap-2">
-                            <Shield className="h-5 w-5 text-green-600" />
-                            Deposit
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-6">
-                          <p className="text-sm text-muted-foreground mb-2">Pay security deposit</p>
-                          <p className="text-2xl font-bold mb-4 text-green-600">R10,000</p>
-                          <PaymentButton
-                            amount={10000}
-                            paymentType="deposit"
-                            variant="default"
-                            className="w-full group-hover:scale-105 transition-transform"
-                          >
-                            Pay Deposit
-                          </PaymentButton>
-                        </CardContent>
-                      </Card>
+              <Card className="border-2 shadow-xl overflow-hidden">
+                <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-secondary/10 p-6">
+                  <CardHeader>
+                    <CardTitle className="text-2xl flex items-center gap-2">
+                      <CreditCard className="h-6 w-6 text-primary" />
+                      Tenant Payment Details
+                    </CardTitle>
+                    <CardDescription className="text-base">
+                      Enter your details and the payment information to pay your landlord
+                    </CardDescription>
+                  </CardHeader>
+                </div>
+                <CardContent className="p-6">
+                  {paymentResult === "success" && (
+                    <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-950 rounded-lg mb-6">
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="font-medium text-green-900 dark:text-green-100">Payment Initiated!</p>
+                        <p className="text-sm text-green-700 dark:text-green-300">Your payment has been recorded.</p>
+                      </div>
+                    </div>
+                  )}
+                  {paymentResult === "failed" && (
+                    <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-950 rounded-lg mb-6">
+                      <XCircle className="h-5 w-5 text-red-600" />
+                      <p className="font-medium text-red-900 dark:text-red-100">Payment failed. Please try again.</p>
+                    </div>
+                  )}
+                  <form onSubmit={handleTenantPaymentSubmit} className="space-y-6">
+                    {/* Tenant Details */}
+                    <div>
+                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                        <User className="h-5 w-5 text-primary" />
+                        Your Details
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="tenantName">Full Name *</Label>
+                          <Input
+                            id="tenantName"
+                            placeholder="Your full name"
+                            value={tenantPayment.tenantName}
+                            onChange={(e) => setTenantPayment(p => ({ ...p, tenantName: e.target.value }))}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="tenantEmail">Email Address *</Label>
+                          <Input
+                            id="tenantEmail"
+                            type="email"
+                            placeholder="your@email.com"
+                            value={tenantPayment.tenantEmail}
+                            onChange={(e) => setTenantPayment(p => ({ ...p, tenantEmail: e.target.value }))}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="tenantPhone">Phone Number</Label>
+                          <Input
+                            id="tenantPhone"
+                            type="tel"
+                            placeholder="+27 XX XXX XXXX"
+                            value={tenantPayment.tenantPhone}
+                            onChange={(e) => setTenantPayment(p => ({ ...p, tenantPhone: e.target.value }))}
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="pt-6 border-t">
-                      <p className="text-sm text-muted-foreground mb-4 text-center">
-                        Or specify a custom amount:
-                      </p>
-                      <Button
-                        onClick={() => setPaymentFormOpen(true)}
-                        variant="outline"
-                        size="lg"
-                        className="w-full hover:scale-105 transition-transform"
-                      >
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        Custom Payment
-                      </Button>
+                    {/* Property / Landlord Details */}
+                    <div className="border-t pt-6">
+                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                        <Home className="h-5 w-5 text-primary" />
+                        Property & Landlord Details
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="landlordName">Landlord Name</Label>
+                          <Input
+                            id="landlordName"
+                            placeholder="Landlord's full name"
+                            value={tenantPayment.landlordName}
+                            onChange={(e) => setTenantPayment(p => ({ ...p, landlordName: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="propertyTitle">Property Name / Address</Label>
+                          <Input
+                            id="propertyTitle"
+                            placeholder="e.g. Flat 3B, Sandton Complex"
+                            value={tenantPayment.propertyTitle}
+                            onChange={(e) => setTenantPayment(p => ({ ...p, propertyTitle: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="propertyId">Property ID (optional)</Label>
+                          <Input
+                            id="propertyId"
+                            placeholder="Property ID from listing"
+                            value={tenantPayment.propertyId}
+                            onChange={(e) => setTenantPayment(p => ({ ...p, propertyId: e.target.value }))}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+
+                    {/* Payment Details */}
+                    <div className="border-t pt-6">
+                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                        <CreditCard className="h-5 w-5 text-primary" />
+                        Payment Details
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="paymentType">Payment Type *</Label>
+                          <Select
+                            value={tenantPayment.paymentType}
+                            onValueChange={(val) => setTenantPayment(p => ({ ...p, paymentType: val as any }))}
+                          >
+                            <SelectTrigger id="paymentType">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="rent">Monthly Rent</SelectItem>
+                              <SelectItem value="deposit">Security Deposit</SelectItem>
+                              <SelectItem value="application_fee">Application Fee</SelectItem>
+                              <SelectItem value="service_fee">Service Fee</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="amount">Amount (ZAR) *</Label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">R</span>
+                            <Input
+                              id="amount"
+                              type="number"
+                              min="1"
+                              step="0.01"
+                              placeholder="0.00"
+                              className="pl-7"
+                              value={tenantPayment.amount}
+                              onChange={(e) => setTenantPayment(p => ({ ...p, amount: e.target.value }))}
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label htmlFor="description">Description (optional)</Label>
+                          <Input
+                            id="description"
+                            placeholder="e.g. March 2026 rent payment"
+                            value={tenantPayment.description}
+                            onChange={(e) => setTenantPayment(p => ({ ...p, description: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Summary */}
+                    {tenantPayment.amount && parseFloat(tenantPayment.amount) > 0 && (
+                      <div className="border rounded-lg p-4 bg-muted/30">
+                        <h4 className="font-semibold mb-2">Payment Summary</h4>
+                        <div className="space-y-1 text-sm">
+                          {tenantPayment.propertyTitle && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Property:</span>
+                              <span>{tenantPayment.propertyTitle}</span>
+                            </div>
+                          )}
+                          {tenantPayment.landlordName && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Landlord:</span>
+                              <span>{tenantPayment.landlordName}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Type:</span>
+                            <span className="capitalize">{tenantPayment.paymentType.replace(/_/g, ' ')}</span>
+                          </div>
+                          <div className="flex justify-between font-bold text-base pt-1 border-t">
+                            <span>Total:</span>
+                            <span className="text-primary">
+                              {new Intl.NumberFormat("en-ZA", { style: "currency", currency: "ZAR" }).format(parseFloat(tenantPayment.amount))}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <Button
+                      type="submit"
+                      size="lg"
+                      className="w-full"
+                      disabled={paymentSubmitting}
+                    >
+                      {paymentSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="mr-2 h-4 w-4" />
+                          Pay via Paystack
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-center text-muted-foreground">
+                      Secured by Paystack · SSL encrypted · PCI compliant
+                    </p>
+                  </form>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
         </Tabs>
