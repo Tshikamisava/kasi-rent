@@ -233,12 +233,8 @@ How can I assist you today?`,
           content: msg.content,
         }));
 
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const response = await fetch(`${apiUrl}/api/ai/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const res = await (await import('@/lib/api')).apiFetch('/api/ai/chat', {
+        method: 'POST',
         body: JSON.stringify({
           message: lastUserMessage.content,
           conversationHistory: conversationHistory,
@@ -247,11 +243,11 @@ How can I assist you today?`,
         }),
       });
 
-      if (!response.ok) {
+      if (!res.ok) {
         // Try to surface server-provided error message
         let errMsg = "Failed to get AI response";
         try {
-          const errJson = await response.json();
+          const errJson = await res.json();
           errMsg = errJson?.error || errJson?.message || errJson?.response || errMsg;
         } catch (e) {
           // ignore JSON parse errors
@@ -259,7 +255,7 @@ How can I assist you today?`,
         throw new Error(errMsg);
       }
 
-      const data = await response.json();
+      const data = await res.json();
       const assistantMessage: Message = {
         id: `msg-${Date.now()}`,
         role: "assistant",
@@ -309,12 +305,8 @@ How can I assist you today?`,
         content: msg.content,
       }));
 
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const response = await fetch(`${apiUrl}/api/ai/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const res = await (await import('@/lib/api')).apiFetch('/api/ai/chat', {
+        method: 'POST',
         body: JSON.stringify({
           message: userMessage.content,
           conversationHistory: conversationHistory,
@@ -324,10 +316,10 @@ How can I assist you today?`,
         }),
       });
 
-      if (!response.ok) {
+      if (!res.ok) {
         let errMsg = "Failed to get AI response";
         try {
-          const errJson = await response.json();
+          const errJson = await res.json();
           errMsg = errJson?.error || errJson?.message || errJson?.response || errMsg;
         } catch (e) {
           // ignore JSON parse errors
@@ -335,7 +327,7 @@ How can I assist you today?`,
         throw new Error(errMsg);
       }
 
-      const data = await response.json();
+      const data = await res.json();
       const assistantMessage: Message = {
         id: `msg-${Date.now()}`,
         role: "assistant",

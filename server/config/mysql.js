@@ -16,7 +16,8 @@ if (useDatabaseUrl) {
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
     protocol: 'postgres',
-    logging: false,
+    // Enable Sequelize logging when SEQ_DEBUG=true
+    logging: process.env.SEQ_DEBUG === 'true' ? (msg) => console.log('[sequelize]', msg) : false,
     pool: {
       max: poolMax,
       min: poolMin,
@@ -37,7 +38,8 @@ if (useDatabaseUrl) {
     {
       host: process.env.DB_HOST,
       dialect: 'mysql',
-      logging: false,
+      // Enable Sequelize logging when SEQ_DEBUG=true
+      logging: process.env.SEQ_DEBUG === 'true' ? (msg) => console.log('[sequelize]', msg) : false,
       pool: {
         max: poolMax,
         min: poolMin,
@@ -49,6 +51,23 @@ if (useDatabaseUrl) {
 }
 
 const connectDB = async () => {
+  // Diagnostic: print effective DB connection settings (avoid printing password)
+  try {
+    console.log('🔎 DB config (effective):', {
+      useDatabaseUrl,
+      DB_HOST: process.env.DB_HOST,
+      DB_USER: process.env.DB_USER,
+      DB_NAME: process.env.DB_NAME,
+      DB_POOL_MAX: poolMax,
+      DB_POOL_MIN: poolMin,
+      DB_POOL_ACQUIRE: poolAcquire,
+      DB_POOL_IDLE: poolIdle,
+      NODE_ENV: process.env.NODE_ENV,
+      DATABASE_URL: !!process.env.DATABASE_URL
+    });
+  } catch (diagErr) {
+    console.error('Error printing DB diagnostic info:', diagErr && diagErr.message);
+  }
   const retries = parseInt(process.env.DB_CONNECT_RETRIES, 10) || 5;
   const delayMs = parseInt(process.env.DB_CONNECT_RETRY_DELAY, 10) || 5000;
 
@@ -56,11 +75,14 @@ const connectDB = async () => {
     try {
       await sequelize.authenticate();
       console.log('✅ Database connected successfully');
-      // Optionally sync model changes to DB when SEQ_SYNC=true is set in env.
-      // WARNING: This will ALTER your tables to match the models. Use only for local/dev environments.
-      if (process.env.SEQ_SYNC === 'true') {
+      // Optionally sync model changes to DB. By default we enable sync in
+      // non-production environments unless explicitly disabled via SEQ_SYNC=false.
+      // WARNING: This will ALTER your tables to match the models. Use with care.
+      const shouldSync = (process.env.SEQ_SYNC === 'true') ||
+        (typeof process.env.SEQ_SYNC === 'undefined' && process.env.NODE_ENV !== 'production');
+      if (shouldSync) {
         try {
-          console.log('🔁 SEQ_SYNC=true: running sequelize.sync({ alter: true }) to update schema');
+          console.log('🔁 SEQ_SYNC enabled: running sequelize.sync({ alter: true }) to update schema');
           await sequelize.sync({ alter: true });
           console.log('✅ Database schema synced (alter applied)');
         } catch (syncErr) {
@@ -71,6 +93,9 @@ const connectDB = async () => {
       return;
     } catch (error) {
       console.error(`❌ Database connection error (attempt ${attempt}/${retries}):`, error.message || error);
+      if (process.env.SEQ_DEBUG === 'true') {
+        console.error('Full error stack:', error.stack);
+      }
       if (attempt < retries) {
         console.log(`Waiting ${delayMs}ms before retrying...`);
         await new Promise((res) => setTimeout(res, delayMs));

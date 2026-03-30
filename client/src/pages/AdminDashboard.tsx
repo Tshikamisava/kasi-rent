@@ -6,9 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Shield, FileText, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { Shield, FileText, CheckCircle, XCircle, Eye, Upload, Building2, ImageIcon, Download } from 'lucide-react';
+import { formatRand } from '@/lib/currency';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -41,6 +43,41 @@ interface TenantVerification {
   rejection_reason: string;
   admin_notes: string;
   created_at: string;
+}
+
+interface PropertyUpload {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  address: string;
+  price: number;
+  property_type: string;
+  bedrooms: number;
+  bathrooms: number;
+  image_url: string;
+  images: string[];
+  video_url: string;
+  is_verified: boolean;
+  status: string;
+  wifi_available: boolean;
+  pets_allowed: boolean;
+  furnished: boolean;
+  parking_available: boolean;
+  amenities: string[];
+  document_url: string;
+  document_filename: string;
+  document_type: string;
+  document_uploaded_at: string;
+  document_verified: boolean;
+  document_review_notes: string;
+  created_at: string;
+  landlord: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+  };
 }
 
 export default function AdminDashboard() {
@@ -79,6 +116,13 @@ export default function AdminDashboard() {
     rejection_reason: '',
     admin_notes: ''
   });
+
+  // Landlord uploads / properties state
+  const [landlordUploads, setLandlordUploads] = useState<PropertyUpload[]>([]);
+  const [selectedUpload, setSelectedUpload] = useState<PropertyUpload | null>(null);
+  const [uploadsLoading, setUploadsLoading] = useState(false);
+  const [uploadReviewNotes, setUploadReviewNotes] = useState('');
+  const [propertiesFilter, setPropertiesFilter] = useState<'all' | 'pending' | 'approved'>('pending');
 
   useEffect(() => {
     fetchVerifications();
@@ -238,6 +282,167 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchLandlordUploads = async (filter = propertiesFilter) => {
+    try {
+      setUploadsLoading(true);
+      const token = user?.token || localStorage.getItem('token');
+      const verifiedParam = filter === 'approved' ? 'true' : filter === 'pending' ? 'false' : '';
+      const adminUrl = verifiedParam
+        ? `${API_BASE}/api/admin/properties?verified=${verifiedParam}`
+        : `${API_BASE}/api/admin/properties`;
+      let response = await fetch(adminUrl, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      // Backward compatibility fallback for servers that don't yet expose /api/admin/properties
+      if (response.status === 404) {
+        const legacyUrl = verifiedParam
+          ? `${API_BASE}/api/properties?is_verified=${verifiedParam}`
+          : `${API_BASE}/api/properties`;
+        response = await fetch(legacyUrl, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => null);
+        throw new Error(text || `Failed to fetch properties (${response.status})`);
+      }
+      const data = await response.json();
+      setLandlordUploads(data.properties || data || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to load landlord properties",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadsLoading(false);
+    }
+  };
+
+  const handleVerifyUpload = async (verified: boolean) => {
+    if (!selectedUpload) return;
+    try {
+      const token = user?.token || localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/api/admin/documents/${selectedUpload.id}/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ verified, notes: uploadReviewNotes })
+      });
+      if (!response.ok) {
+        const text = await response.text().catch(() => null);
+        throw new Error(text || `Failed to update document (${response.status})`);
+      }
+      toast({
+        title: "Success",
+        description: verified ? "Document verified successfully" : "Document rejected"
+      });
+      setSelectedUpload(null);
+      setUploadReviewNotes('');
+      fetchLandlordUploads();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update document",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleApproveProperty = async (approved: boolean) => {
+    if (!selectedUpload) return;
+    try {
+      const token = user?.token || localStorage.getItem('token');
+      let response = await fetch(`${API_BASE}/api/admin/properties/${selectedUpload.id}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ approved })
+      });
+
+      // Backward compatibility fallback for servers without admin approval route
+      if (response.status === 404) {
+        response = await fetch(`${API_BASE}/api/properties/${selectedUpload.id}/verify`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ is_verified: approved })
+        });
+      }
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => null);
+        throw new Error(text || `Failed to update property (${response.status})`);
+      }
+      toast({
+        title: "Success",
+        description: approved ? "Property approved successfully" : "Property approval revoked"
+      });
+      setLandlordUploads(prev => prev.map(p => p.id === selectedUpload.id ? { ...p, is_verified: approved } : p));
+      setSelectedUpload(prev => prev ? { ...prev, is_verified: approved } : null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update property",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getDocumentUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const handleDownloadDocument = async () => {
+    if (!selectedUpload?.document_url) return;
+
+    const fileUrl = getDocumentUrl(selectedUpload.document_url);
+    const token = user?.token || localStorage.getItem('token');
+
+    try {
+      const response = await fetch(fileUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to download file (${response.status})`);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const fileName = selectedUpload.document_filename || `utility-document-${selectedUpload.id}`;
+
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+
+      toast({
+        title: 'Download started',
+        description: `Downloading ${fileName}`
+      });
+    } catch (error) {
+      toast({
+        title: 'Download failed',
+        description: error instanceof Error ? error.message : 'Could not download document',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const changeUserRole = async () => {
     if (!roleEmail.trim()) {
       toast({ title: 'Error', description: 'Please provide an email', variant: 'destructive' });
@@ -286,7 +491,7 @@ export default function AdminDashboard() {
             <Shield className="w-8 h-8 text-primary" />
             Admin Dashboard
           </h1>
-          <p className="text-gray-600 mt-1">Manage tenant verification requests</p>
+          <p className="text-gray-600 mt-1">Manage users, verifications, and landlord uploads</p>
         </div>
       </div>
 
@@ -327,76 +532,98 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 mb-6">
-        <Button 
-          variant={filter === 'pending' ? 'default' : 'outline'}
-          onClick={() => setFilter('pending')}
-        >
-          Pending ({verifications.filter(v => v.status === 'pending').length})
-        </Button>
-        <Button 
-          variant={filter === 'all' ? 'default' : 'outline'}
-          onClick={() => setFilter('all')}
-        >
-          All
-        </Button>
-        <Button 
-          variant={filter === 'verified' ? 'default' : 'outline'}
-          onClick={() => setFilter('verified')}
-        >
-          Verified
-        </Button>
-        <Button 
-          variant={filter === 'rejected' ? 'default' : 'outline'}
-          onClick={() => setFilter('rejected')}
-        >
-          Rejected
-        </Button>
-      </div>
+      <Tabs defaultValue="verifications">
+        <TabsList className="mb-6">
+          <TabsTrigger value="verifications">
+            <Shield className="w-4 h-4 mr-2" />
+            Tenant Verifications
+          </TabsTrigger>
+          <TabsTrigger value="uploads" onClick={() => fetchLandlordUploads()}>
+            <Upload className="w-4 h-4 mr-2" />
+            Landlord Uploads
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Verifications List */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Verification Requests</h2>
-          
-          {verifications.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-gray-500">
-                No verifications found
-              </CardContent>
-            </Card>
+        {/* ── Tenant Verifications Tab ── */}
+        <TabsContent value="verifications">
+          {/* Filter Tabs */}
+          <div className="flex gap-2 mb-6">
+            <Button
+              variant={filter === 'pending' ? 'default' : 'outline'}
+              onClick={() => setFilter('pending')}
+            >
+              Pending ({verifications.filter(v => v.status === 'pending').length})
+            </Button>
+            <Button
+              variant={filter === 'all' ? 'default' : 'outline'}
+              onClick={() => setFilter('all')}
+            >
+              All
+            </Button>
+            <Button
+              variant={filter === 'verified' ? 'default' : 'outline'}
+              onClick={() => setFilter('verified')}
+            >
+              Verified
+            </Button>
+            <Button
+              variant={filter === 'rejected' ? 'default' : 'outline'}
+              onClick={() => setFilter('rejected')}
+            >
+              Rejected
+            </Button>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading verifications...</p>
+              </div>
+            </div>
           ) : (
-            verifications.map((verification) => (
-              <Card 
-                key={verification.id} 
-                className={`cursor-pointer hover:shadow-lg transition-shadow ${
-                  selectedVerification?.id === verification.id ? 'ring-2 ring-primary' : ''
-                }`}
-                onClick={() => viewVerification(verification.id)}
-              >
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{verification.tenant.name}</CardTitle>
-                      <CardDescription>{verification.tenant.email}</CardDescription>
-                    </div>
-                    {getStatusBadge(verification.status)}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between text-sm text-gray-600">
-                    <span>Submitted: {new Date(verification.created_at).toLocaleDateString()}</span>
-                    <Button size="sm" variant="ghost">
-                      <Eye className="w-4 h-4 mr-1" />
-                      View Details
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Verifications List */}
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Verification Requests</h2>
+
+                {verifications.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-8 text-center text-gray-500">
+                      No verifications found
+                    </CardContent>
+                  </Card>
+                ) : (
+                  verifications.map((verification) => (
+                    <Card
+                      key={verification.id}
+                      className={`cursor-pointer hover:shadow-lg transition-shadow ${
+                        selectedVerification?.id === verification.id ? 'ring-2 ring-primary' : ''
+                      }`}
+                      onClick={() => viewVerification(verification.id)}
+                    >
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="text-lg">{verification.tenant.name}</CardTitle>
+                            <CardDescription>{verification.tenant.email}</CardDescription>
+                          </div>
+                          {getStatusBadge(verification.status)}
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between text-sm text-gray-600">
+                          <span>Submitted: {new Date(verification.created_at).toLocaleDateString()}</span>
+                          <Button size="sm" variant="ghost">
+                            <Eye className="w-4 h-4 mr-1" />
+                            View Details
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
 
         {/* Verification Details */}
         <div>
@@ -453,7 +680,7 @@ export default function AdminDashboard() {
                   </div>
                   <p className="text-sm text-gray-600">Status: {selectedVerification.employment_status}</p>
                   <p className="text-sm text-gray-600">Employer: {selectedVerification.employer_name}</p>
-                  <p className="text-sm text-gray-600">Income: R{selectedVerification.monthly_income?.toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">Income: {formatRand(selectedVerification.monthly_income)}</p>
                   {selectedVerification.employment_letter_url && (
                     <a 
                       href={`${API_BASE}${selectedVerification.employment_letter_url}`}
@@ -602,6 +829,303 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+          )}
+        </TabsContent>
+
+        {/* ── Landlord Uploads Tab ── */}
+        <TabsContent value="uploads">
+          {/* Filter Buttons */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            {(['pending', 'all', 'approved'] as const).map((f) => (
+              <Button
+                key={f}
+                variant={propertiesFilter === f ? 'default' : 'outline'}
+                onClick={() => { setPropertiesFilter(f); fetchLandlordUploads(f); }}
+              >
+                {f === 'pending' ? 'Pending Approval' : f === 'approved' ? 'Approved' : 'All Properties'}
+              </Button>
+            ))}
+            <Button variant="outline" size="sm" onClick={() => fetchLandlordUploads()} className="ml-auto">
+              Refresh
+            </Button>
+          </div>
+
+          {uploadsLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading properties...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Property List */}
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Landlord Properties ({landlordUploads.length})</h2>
+
+                {landlordUploads.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-8 text-center text-gray-500">
+                      No properties found
+                    </CardContent>
+                  </Card>
+                ) : (
+                  landlordUploads.map((upload) => (
+                    <Card
+                      key={upload.id}
+                      className={`cursor-pointer hover:shadow-lg transition-shadow ${
+                        selectedUpload?.id === upload.id ? 'ring-2 ring-primary' : ''
+                      }`}
+                      onClick={() => { setSelectedUpload(upload); setUploadReviewNotes(''); }}
+                    >
+                      <CardHeader className="pb-2">
+                        <div className="flex gap-3">
+                          {(upload.image_url || upload.images?.[0]) ? (
+                            <img
+                              src={upload.image_url || upload.images[0]}
+                              alt={upload.title}
+                              className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          ) : (
+                            <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Building2 className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start gap-2">
+                              <CardTitle className="text-base truncate">{upload.title}</CardTitle>
+                              <div className="flex flex-col gap-1 flex-shrink-0">
+                                <Badge variant={upload.is_verified ? 'default' : 'outline'} className="text-xs">
+                                  {upload.is_verified ? '✓ Approved' : 'Pending'}
+                                </Badge>
+                                {upload.document_url && (
+                                  <Badge variant={upload.document_verified ? 'default' : 'secondary'} className="text-xs">
+                                    {upload.document_verified ? 'Doc ✓' : 'Doc Pending'}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <CardDescription className="truncate">{upload.location}</CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="text-sm text-gray-600 space-y-0.5">
+                          <p><strong>Landlord:</strong> {upload.landlord?.name} — {upload.landlord?.email}</p>
+                          <p><strong>Price:</strong> {formatRand(upload.price)}/month · {upload.property_type} · {upload.bedrooms}bd/{upload.bathrooms}ba</p>
+                          <p className="text-xs text-gray-400">Listed: {upload.created_at ? new Date(upload.created_at).toLocaleDateString() : 'N/A'}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+
+              {/* Detail / Review Panel */}
+              <div>
+                {selectedUpload ? (
+                  <Card className="sticky top-4 max-h-[90vh] overflow-y-auto">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Building2 className="w-5 h-5" />
+                        {selectedUpload.title}
+                      </CardTitle>
+                      <CardDescription>
+                        {selectedUpload.location}
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          <Badge variant={selectedUpload.is_verified ? 'default' : 'outline'}>
+                            {selectedUpload.is_verified ? 'Property Approved' : 'Awaiting Approval'}
+                          </Badge>
+                          <Badge variant="secondary">{selectedUpload.status || 'available'}</Badge>
+                        </div>
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+
+                      {/* Property Images */}
+                      {(selectedUpload.images?.length > 0 || selectedUpload.image_url) && (
+                        <div>
+                          <h3 className="font-semibold mb-2 flex items-center gap-1">
+                            <ImageIcon className="w-4 h-4" /> Property Images
+                          </h3>
+                          <div className="grid grid-cols-3 gap-2">
+                            {(selectedUpload.images?.length > 0
+                              ? selectedUpload.images
+                              : [selectedUpload.image_url]
+                            ).filter(Boolean).map((img, idx) => (
+                              <a key={idx} href={img} target="_blank" rel="noopener noreferrer">
+                                <img
+                                  src={img}
+                                  alt={`Property ${idx + 1}`}
+                                  className="w-full h-20 object-cover rounded-lg hover:opacity-80 transition-opacity"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Property Details */}
+                      <div className="border-t pt-4">
+                        <h3 className="font-semibold mb-2">Property Details</h3>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                          <p><strong>Type:</strong> {selectedUpload.property_type}</p>
+                          <p><strong>Price:</strong> {formatRand(selectedUpload.price)}/month</p>
+                          <p><strong>Bedrooms:</strong> {selectedUpload.bedrooms}</p>
+                          <p><strong>Bathrooms:</strong> {selectedUpload.bathrooms}</p>
+                          {selectedUpload.address && (
+                            <p className="col-span-2"><strong>Address:</strong> {selectedUpload.address}</p>
+                          )}
+                        </div>
+                        {selectedUpload.description && (
+                          <p className="mt-2 text-sm text-gray-600 whitespace-pre-line">{selectedUpload.description}</p>
+                        )}
+                      </div>
+
+                      {/* Amenities */}
+                      {(selectedUpload.amenities?.length > 0 || selectedUpload.wifi_available || selectedUpload.pets_allowed || selectedUpload.furnished || selectedUpload.parking_available) && (
+                        <div className="border-t pt-4">
+                          <h3 className="font-semibold mb-2">Amenities & Features</h3>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedUpload.wifi_available && <Badge variant="secondary">WiFi</Badge>}
+                            {selectedUpload.pets_allowed && <Badge variant="secondary">Pets Allowed</Badge>}
+                            {selectedUpload.furnished && <Badge variant="secondary">Furnished</Badge>}
+                            {selectedUpload.parking_available && <Badge variant="secondary">Parking</Badge>}
+                            {selectedUpload.amenities?.map((amenity, idx) => (
+                              <Badge key={idx} variant="outline">{amenity}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Video */}
+                      {selectedUpload.video_url && (
+                        <div className="border-t pt-4">
+                          <h3 className="font-semibold mb-2">Property Video</h3>
+                          <a href={selectedUpload.video_url} target="_blank" rel="noopener noreferrer"
+                            className="text-primary text-sm hover:underline flex items-center gap-1">
+                            <FileText className="w-4 h-4" /> View Video
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Landlord Info */}
+                      <div className="border-t pt-4">
+                        <h3 className="font-semibold mb-2">Landlord Information</h3>
+                        <p className="text-sm"><strong>Name:</strong> {selectedUpload.landlord?.name}</p>
+                        <p className="text-sm"><strong>Email:</strong> {selectedUpload.landlord?.email}</p>
+                        {selectedUpload.landlord?.phone && (
+                          <p className="text-sm"><strong>Phone:</strong> {selectedUpload.landlord.phone}</p>
+                        )}
+                      </div>
+
+                      {/* Utility / Verification Document */}
+                      <div className="border-t pt-4">
+                        <h3 className="font-semibold mb-2 flex items-center gap-1">
+                          <FileText className="w-4 h-4" /> Utility / Verification Document
+                        </h3>
+                        {selectedUpload.document_url ? (
+                          <>
+                            <p className="text-sm text-gray-600 mb-1">
+                              {selectedUpload.document_filename || 'Document'}
+                              {selectedUpload.document_type && ` (${selectedUpload.document_type})`}
+                            </p>
+                            <p className="text-xs text-gray-400 mb-2">
+                              Uploaded: {selectedUpload.document_uploaded_at ? new Date(selectedUpload.document_uploaded_at).toLocaleDateString() : 'N/A'}
+                            </p>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => window.open(getDocumentUrl(selectedUpload.document_url), '_blank', 'noopener,noreferrer')}
+                              >
+                                <Eye className="w-4 h-4 mr-1" /> View Document
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleDownloadDocument}
+                              >
+                                <Download className="w-4 h-4 mr-1" /> Download
+                              </Button>
+                            </div>
+                            {selectedUpload.document_review_notes && (
+                              <p className="text-xs text-gray-500 mb-2">Notes: {selectedUpload.document_review_notes}</p>
+                            )}
+                            {selectedUpload.document_verified ? (
+                              <Badge className="bg-green-600">
+                                <CheckCircle className="w-4 h-4 mr-1" /> Document Verified
+                              </Badge>
+                            ) : (
+                              <>
+                                <Textarea
+                                  placeholder="Document review notes (optional)..."
+                                  value={uploadReviewNotes}
+                                  onChange={(e) => setUploadReviewNotes(e.target.value)}
+                                  rows={2}
+                                  className="mb-2"
+                                />
+                                <div className="flex gap-2">
+                                  <Button size="sm" onClick={() => handleVerifyUpload(true)} className="flex-1">
+                                    <CheckCircle className="w-4 h-4 mr-1" /> Verify Doc
+                                  </Button>
+                                  <Button size="sm" variant="destructive" onClick={() => handleVerifyUpload(false)} className="flex-1">
+                                    <XCircle className="w-4 h-4 mr-1" /> Reject Doc
+                                  </Button>
+                                </div>
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">No document uploaded by landlord yet.</p>
+                        )}
+                      </div>
+
+                      {/* Property Approval */}
+                      <div className="border-t pt-4">
+                        <h3 className="font-semibold mb-3">Property Approval</h3>
+                        {selectedUpload.is_verified ? (
+                          <div className="flex items-center justify-between">
+                            <Badge className="bg-green-600">
+                              <CheckCircle className="w-4 h-4 mr-1" /> Approved & Live
+                            </Badge>
+                            <Button size="sm" variant="outline" onClick={() => handleApproveProperty(false)}>
+                              Revoke Approval
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-sm text-gray-500 mb-3">
+                              Approve this property to make it visible to tenants on the platform.
+                            </p>
+                            <div className="flex gap-2">
+                              <Button onClick={() => handleApproveProperty(true)} className="flex-1">
+                                <CheckCircle className="w-4 h-4 mr-2" /> Approve Property
+                              </Button>
+                              <Button onClick={() => handleApproveProperty(false)} variant="destructive" className="flex-1">
+                                <XCircle className="w-4 h-4 mr-2" /> Reject
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="py-12 text-center text-gray-500">
+                      Select a property to review its details, images, and documents
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

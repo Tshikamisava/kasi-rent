@@ -34,7 +34,8 @@ const FindAgents = lazy(() => import("./pages/FindAgents"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const SafetyTips = lazy(() => import("./pages/SafetyTips"));
 const SaveMoney = lazy(() => import("./pages/SaveMoney"));
-import Marketplace from "./pages/Marketplace";
+const Marketplace = lazy(() => import("./pages/Marketplace"));
+const MySubscriptions = lazy(() => import("./pages/MySubscriptions"));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -191,14 +192,21 @@ const App = () => (
             <Route path="/search" element={<AdvancedSearch />} />
             {/* Map Search - pick a point on the map to search nearby */}
             <Route path="/map-search" element={<MapSearch />} />
+            <Route path="/marketplace" element={<Marketplace />} />
+            <Route
+              path="/subscriptions"
+              element={
+                <ProtectedRoute>
+                  <MySubscriptions />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/list-property" element={<ListProperty />} />
             <Route path="/save-money" element={<SaveMoney />} />
             <Route path="/agents" element={<FindAgents />} />
             <Route path="/help" element={<HelpCenter />} />
             <Route path="/safety" element={<SafetyTips />} />
             
-            {/* Marketplace - public access */}
-            <Route path="/marketplace" element={<Marketplace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

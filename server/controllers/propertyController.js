@@ -3,13 +3,61 @@ import { Op } from 'sequelize';
 import User from '../models/User.js';
 import { geocodeAddress } from '../utils/geocoding.js';
 
+let cachedPropertyColumns = null;
+
+const getExistingPropertyColumns = async () => {
+  if (cachedPropertyColumns) return cachedPropertyColumns;
+
+  try {
+    const queryInterface = Property.sequelize.getQueryInterface();
+    const tableName = Property.getTableName();
+    const described = await queryInterface.describeTable(tableName);
+    cachedPropertyColumns = new Set(Object.keys(described || {}));
+    return cachedPropertyColumns;
+  } catch (error) {
+    console.warn('Unable to describe properties table. Continuing without column filtering:', error.message);
+    return null;
+  }
+};
+
+const filterByExistingColumns = (data, columnSet) => {
+  if (!columnSet) return data;
+
+  const filtered = {};
+  const removedKeys = [];
+
+  for (const [key, value] of Object.entries(data)) {
+    if (columnSet.has(key)) {
+      filtered[key] = value;
+    } else {
+      removedKeys.push(key);
+    }
+  }
+
+  if (removedKeys.length > 0) {
+    console.warn('Skipping missing columns in properties table:', removedKeys.join(', '));
+  }
+
+  return filtered;
+};
+
+const getSafePropertyAttributes = async () => {
+  const existingColumns = await getExistingPropertyColumns();
+  return existingColumns ? Array.from(existingColumns) : undefined;
+};
+
 export const getProperties = async (req, res) => {
   try {
     const { landlord_id, limit, is_verified } = req.query;
+    const safeAttributes = await getSafePropertyAttributes();
     
     const queryOptions = {
       order: [['created_at', 'DESC']]
     };
+
+    if (safeAttributes) {
+      queryOptions.attributes = safeAttributes;
+    }
     
     // Build where clause
     const whereClause = {};
@@ -29,9 +77,18 @@ export const getProperties = async (req, res) => {
       queryOptions.limit = parseInt(limit);
     }
     
-    // include landlord info when returning properties
-    queryOptions.include = [{ model: User, as: 'landlord', attributes: ['id', 'name', 'email'] }];
-    const properties = await Property.findAll(queryOptions);
+    // include landlord info when returning properties (best-effort)
+    let properties = [];
+    try {
+      queryOptions.include = [{ model: User, as: 'landlord', attributes: ['id', 'name', 'email'] }];
+      properties = await Property.findAll(queryOptions);
+    } catch (includeError) {
+      console.warn('Property include(join landlord) failed, retrying without include:', includeError.message);
+      const fallbackOptions = { ...queryOptions };
+      delete fallbackOptions.include;
+      properties = await Property.findAll(fallbackOptions);
+    }
+
     res.json(properties);
   } catch (error) {
     console.error('Get properties error:', error);
@@ -110,9 +167,14 @@ export const createProperty = async (req, res) => {
       console.log('Geocoding failed, continuing without coordinates:', geocodeError.message);
     }
     
-    console.log('Creating property with data:', propertyData);
+    const existingColumns = await getExistingPropertyColumns();
+    const safePropertyData = filterByExistingColumns(propertyData, existingColumns);
+
+    console.log('Creating property with data:', safePropertyData);
     
-    const property = await Property.create(propertyData);
+    const property = await Property.create(safePropertyData, {
+      fields: Object.keys(safePropertyData)
+    });
     
     console.log('Property created successfully:', property.id);
     
@@ -134,8 +196,9 @@ export const verifyProperty = async (req, res) => {
   try {
     const { id } = req.params;
     const { is_verified } = req.body;
+    const safeAttributes = await getSafePropertyAttributes();
     
-    const property = await Property.findByPk(id);
+    const property = await Property.findByPk(id, safeAttributes ? { attributes: safeAttributes } : undefined);
     
     if (!property) {
       return res.status(404).json({ message: 'Property not found' });
@@ -158,7 +221,8 @@ export const verifyProperty = async (req, res) => {
 export const updateProperty = async (req, res) => {
   try {
     const { id } = req.params;
-    const property = await Property.findByPk(id);
+    const safeAttributes = await getSafePropertyAttributes();
+    const property = await Property.findByPk(id, safeAttributes ? { attributes: safeAttributes } : undefined);
     
     if (!property) {
       return res.status(404).json({ 
@@ -250,7 +314,12 @@ export const updateProperty = async (req, res) => {
       }
     }
     
-    await property.update(updateData);
+    const existingColumns = await getExistingPropertyColumns();
+    const safeUpdateData = filterByExistingColumns(updateData, existingColumns);
+
+    await property.update(safeUpdateData, {
+      fields: Object.keys(safeUpdateData)
+    });
     
     res.json({ 
       success: true,
@@ -268,7 +337,8 @@ export const updateProperty = async (req, res) => {
 export const deleteProperty = async (req, res) => {
   try {
     const { id } = req.params;
-    const property = await Property.findByPk(id);
+    const safeAttributes = await getSafePropertyAttributes();
+    const property = await Property.findByPk(id, safeAttributes ? { attributes: safeAttributes } : undefined);
     
     if (!property) {
       return res.status(404).json({ 
@@ -304,11 +374,20 @@ export const deleteProperty = async (req, res) => {
 // Admin: list properties with uploaded documents pending verification
 export const getPendingDocuments = async (req, res) => {
   try {
+    const existingColumns = await getExistingPropertyColumns();
+    const hasDocumentColumns = !existingColumns || (existingColumns.has('document_url') && existingColumns.has('document_verified'));
+
+    if (!hasDocumentColumns) {
+      return res.json({ success: true, pending: [], message: 'Document verification columns are not available in this database yet.' });
+    }
+
+    const safeAttributes = existingColumns ? Array.from(existingColumns) : undefined;
     const pending = await Property.findAll({
       where: {
         document_url: { [Op.ne]: null },
         document_verified: false
       },
+      ...(safeAttributes ? { attributes: safeAttributes } : {}),
       include: [{ model: User, as: 'landlord', attributes: ['id', 'name', 'email'] }],
       order: [['document_uploaded_at', 'DESC']]
     });
@@ -325,11 +404,23 @@ export const verifyDocument = async (req, res) => {
   try {
     const { id } = req.params; // property id
     const { verified, notes } = req.body;
+    const existingColumns = await getExistingPropertyColumns();
+    const hasDocumentColumns = !existingColumns || (
+      existingColumns.has('document_verified') &&
+      existingColumns.has('document_verified_by') &&
+      existingColumns.has('document_review_notes')
+    );
+
+    if (!hasDocumentColumns) {
+      return res.status(400).json({ success: false, message: 'Document verification columns are missing in database. Run migrations first.' });
+    }
+
+    const safeAttributes = existingColumns ? Array.from(existingColumns) : undefined;
 
     // only admin
     if (req.user?.role !== 'admin') return res.status(403).json({ success: false, message: 'Not authorized' });
 
-    const property = await Property.findByPk(id);
+    const property = await Property.findByPk(id, safeAttributes ? { attributes: safeAttributes } : undefined);
     if (!property) return res.status(404).json({ success: false, message: 'Property not found' });
 
     property.document_verified = !!verified;
@@ -340,6 +431,58 @@ export const verifyDocument = async (req, res) => {
     res.json({ success: true, property });
   } catch (error) {
     console.error('Verify document error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Admin: get all properties with full landlord data for review
+export const getAllPropertiesAdmin = async (req, res) => {
+  try {
+    const { verified } = req.query;
+    const existingColumns = await getExistingPropertyColumns();
+    const safeAttributes = existingColumns ? Array.from(existingColumns) : undefined;
+
+    const where = {};
+    if (verified !== undefined && verified !== '') {
+      where.is_verified = verified === 'true';
+    }
+
+    const properties = await Property.findAll({
+      ...(safeAttributes ? { attributes: safeAttributes } : {}),
+      where: Object.keys(where).length ? where : undefined,
+      include: [{ model: User, as: 'landlord', attributes: ['id', 'name', 'email', 'phone'] }],
+      order: [['created_at', 'DESC']]
+    });
+
+    res.json({ success: true, properties });
+  } catch (error) {
+    console.error('Get all properties admin error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Admin: approve or reject a property listing
+export const approveProperty = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approved } = req.body;
+
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    const existingColumns = await getExistingPropertyColumns();
+    const safeAttributes = existingColumns ? Array.from(existingColumns) : undefined;
+    const property = await Property.findByPk(id, safeAttributes ? { attributes: safeAttributes } : undefined);
+
+    if (!property) return res.status(404).json({ success: false, message: 'Property not found' });
+
+    property.is_verified = !!approved;
+    await property.save();
+
+    res.json({ success: true, property });
+  } catch (error) {
+    console.error('Approve property error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

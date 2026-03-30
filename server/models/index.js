@@ -1,6 +1,5 @@
 // Import models and setup associations
 import User from './User.js';
-import UserRole from './UserRole.js';
 import Conversation from './Conversation.js';
 import ConversationParticipant from './ConversationParticipant.js';
 import Message from './Message.js';
@@ -8,15 +7,11 @@ import Attachment from './Attachment.js';
 import Reaction from './Reaction.js';
 import Property from './Property.js';
 import Favorite from './Favorite.js';
+import Subscription from './Subscription.js';
 import Booking from './Booking.js';
 import Review from './Review.js';
-import MarketplaceItem from './Marketplace.js';
 
 // Associations
-// User <-> UserRole associations
-User.hasMany(UserRole, { foreignKey: 'user_id', as: 'userRoles' });
-UserRole.belongsTo(User, { foreignKey: 'user_id' });
-
 Conversation.hasMany(Message, { foreignKey: 'conversation_id', as: 'messages' });
 Message.belongsTo(Conversation, { foreignKey: 'conversation_id' });
 
@@ -51,9 +46,12 @@ Property.belongsTo(User, { foreignKey: 'landlord_id', as: 'landlord' });
 Favorite.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
 Favorite.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
+// Subscriptions
+User.hasMany(Subscription, { foreignKey: 'user_id', as: 'subscriptions' });
+Subscription.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
 export {
   User,
-  UserRole,
   Conversation,
   ConversationParticipant,
   Message,
@@ -63,5 +61,5 @@ export {
   Property,
   Booking,
   Favorite,
-  MarketplaceItem,
+  Subscription,
 };

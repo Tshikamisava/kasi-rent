@@ -2,18 +2,15 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { connectSocket, getSocket } from '@/lib/socket';
+import { apiFetch } from '@/lib/api';
 import { Smile, Paperclip, Mic, Send, X, ArrowLeft } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-// Backend base URL (set VITE_API_URL in client/.env; falls back to localhost:5000)
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
-// Helper to call the backend with the configured base URL (prevents blank page when frontend and API are on different origins)
-const api = async (path: string, token: string, options: any = {}) => {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    ...options,
-  });
+// Use centralized apiFetch helper which injects JWT and handles 401
+const api = async (path: string, _tokenOrUnused?: string, options: any = {}) => {
+  const res = await apiFetch(path, options as any);
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `HTTP ${res.status}`);
@@ -22,7 +19,6 @@ const api = async (path: string, token: string, options: any = {}) => {
 };
 
 const Chat = () => {
-  const location = useLocation();
   const { user } = useAuth();
   const token = user?.token || '';
   const toast = useToast().toast;
@@ -42,8 +38,19 @@ const Chat = () => {
   const [uploading, setUploading] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
   const [editText, setEditText] = useState('');
+  const [imageActionTarget, setImageActionTarget] = useState<{
+    messageId: string;
+    imageUrl: string;
+    fileName: string;
+    isMine: boolean;
+  } | null>(null);
+  const imageLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const imageLongPressTriggeredRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -57,7 +64,7 @@ const Chat = () => {
     if (!token) return;
 
     // Sync user to MySQL first (for chat functionality)
-    api('/api/users/sync', token, { method: 'POST' }).then(() => {
+      api('/api/users/sync', token, { method: 'POST' }).then(() => {
       console.log('User synced to database');
     }).catch((err: any) => {
       console.log('User sync skipped or failed:', err?.message ?? err);
@@ -78,7 +85,7 @@ const Chat = () => {
 
     const onMessage = (message: any) => {
       if (selected && message.conversation_id === selected.id) {
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => mergeIncomingMessage(prev, message));
         scrollToBottom();
       }
 
@@ -119,40 +126,148 @@ const Chat = () => {
     };
   }, [token, selected]);
 
-  // Enhancement: Auto-select seller if seller param is present
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const sellerId = params.get('seller');
-    if (!sellerId || !token) return;
-    // Wait for conversations to load
-    if (conversations.length === 0) return;
-    // Try to find existing conversation with seller
-    const convo = conversations.find(c =>
-      c.participants?.some((p: any) => p.user_id === sellerId)
-    );
-    if (convo) {
-      selectConversation(convo);
-    } else {
-      // Start new conversation with seller
-      (async () => {
-        try {
-          const createRes = await api('/api/chats', token, {
-            method: 'POST',
-            body: JSON.stringify({ participantIds: [sellerId], type: 'private' })
-          });
-          setConversations((prev) => [createRes, ...prev]);
-          selectConversation(createRes);
-        } catch (err) {
-          toast({ title: 'Failed to start chat with seller', variant: 'destructive' });
-        }
-      })();
-    }
-    // eslint-disable-next-line
-  }, [location.search, conversations, token]);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  const mergeIncomingMessage = (prev: any[], incoming: any) => {
+    const byId = prev.findIndex((m) => String(m.id) === String(incoming.id));
+    if (byId >= 0) {
+      const updated = [...prev];
+      updated[byId] = { ...updated[byId], ...incoming, is_temp: false };
+      return updated;
+    }
+
+    const currentUserId = user?.id || user?._id;
+    const incomingType = incoming.content_type || incoming.contentType;
+
+    if (String(incoming.sender_id) === String(currentUserId)) {
+      const tempIdx = prev.findIndex((m) =>
+        m?.is_temp &&
+        m.content === incoming.content &&
+        (m.content_type || m.contentType) === incomingType
+      );
+
+      if (tempIdx >= 0) {
+        const updated = [...prev];
+        updated[tempIdx] = { ...updated[tempIdx], ...incoming, is_temp: false };
+        return updated;
+      }
+    }
+
+    return [...prev, incoming];
+  };
+
+  const resolveAttachmentUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const uploadChatAttachment = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await apiFetch('/api/upload/chat-attachment', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      let errorMessage = 'Upload failed';
+      try {
+        const text = await res.text();
+        const data = JSON.parse(text);
+        errorMessage = data.message || errorMessage;
+      } catch {
+        // Server returned non-JSON (e.g. HTML error page) — use generic message
+      }
+      throw new Error(errorMessage);
+    }
+
+    return res.json();
+  };
+
+  const openImageActions = (msg: any) => {
+    const imageUrl = resolveAttachmentUrl(msg.attachment_url);
+    setImageActionTarget({
+      messageId: String(msg.id),
+      imageUrl,
+      fileName: msg.content || `image_${msg.id}`,
+      isMine: String(msg.sender_id) === String(user?.id || user?._id),
+    });
+  };
+
+  const clearImageLongPressTimer = () => {
+    if (imageLongPressTimerRef.current) {
+      clearTimeout(imageLongPressTimerRef.current);
+      imageLongPressTimerRef.current = null;
+    }
+  };
+
+  const startImageLongPress = (msg: any) => {
+    clearImageLongPressTimer();
+    imageLongPressTriggeredRef.current = false;
+
+    imageLongPressTimerRef.current = setTimeout(() => {
+      imageLongPressTriggeredRef.current = true;
+      openImageActions(msg);
+    }, 450);
+  };
+
+  const endImageLongPress = () => {
+    clearImageLongPressTimer();
+  };
+
+  const closeImageActions = () => setImageActionTarget(null);
+
+  const openImageInFull = () => {
+    if (!imageActionTarget?.imageUrl) return;
+    window.open(imageActionTarget.imageUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const downloadImage = async () => {
+    if (!imageActionTarget?.imageUrl) return;
+
+    try {
+      const res = await fetch(imageActionTarget.imageUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+
+      if (!res.ok) throw new Error('Failed to download image');
+
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = imageActionTarget.fileName || 'chat-image';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+      toast({ title: 'Image download started' });
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Download failed', description: 'Unable to download image', variant: 'destructive' });
+    }
+  };
+
+  useEffect(() => {
+    if (!imageActionTarget) return;
+
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeImageActions();
+    };
+
+    window.addEventListener('keydown', onEsc);
+    return () => window.removeEventListener('keydown', onEsc);
+  }, [imageActionTarget]);
+
+  useEffect(() => {
+    return () => {
+      clearImageLongPressTimer();
+    };
+  }, []);
 
   const selectConversation = async (convo: any) => {
     setSelected(convo);
@@ -165,7 +280,10 @@ const Chat = () => {
     // fetch messages
     try {
       const res = await api(`/api/chats/${convo.id}/messages`, token);
-      if (Array.isArray(res)) setMessages(res);
+      if (Array.isArray(res)) {
+        const deduped = res.filter((m, idx, arr) => arr.findIndex((x) => String(x.id) === String(m.id)) === idx);
+        setMessages(deduped);
+      }
       setTimeout(scrollToBottom, 50);
     } catch (err) {
       console.error(err);
@@ -183,9 +301,10 @@ const Chat = () => {
     }
 
     const tempMessage = {
-      id: Date.now(),
+      id: `temp-${Date.now()}`,
+      is_temp: true,
       content: messageText,
-      contentType: 'text',
+      content_type: 'text',
       sender_id: user?._id || user?.id,
       conversation_id: selected.id,
       created_at: new Date().toISOString(),
@@ -200,15 +319,14 @@ const Chat = () => {
     socket.emit('send_message', { conversationId: selected.id, content: sentText, contentType: 'text' }, (ack: any) => {
       if (ack?.error) {
         // Remove temp message on error
-        setMessages((prev) => prev.filter(m => m.id !== tempMessage.id));
+        setMessages((prev) => prev.filter((m) => m.id !== tempMessage.id));
         setMessageText(sentText); // Restore text
         toast({ title: 'Send failed', description: ack.error, variant: 'destructive' });
         return;
       }
 
-      // Replace temp message with real one from server
-      if (ack.message) {
-        setMessages((prev) => prev.map(m => m.id === tempMessage.id ? ack.message : m));
+      if (ack?.message) {
+        setMessages((prev) => mergeIncomingMessage(prev, ack.message));
       }
     });
   };
@@ -290,69 +408,100 @@ const Chat = () => {
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !selected) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ title: 'File too large', description: 'Max 10MB', variant: 'destructive' });
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: 'File too large', description: 'Max 20MB', variant: 'destructive' });
       return;
     }
 
     setUploading(true);
     try {
-      // Upload file to backend API
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await fetch(`${API_BASE}/api/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error('Upload failed');
-
-      const { url: publicUrl } = await res.json();
+      const uploadRes = await uploadChatAttachment(file);
 
       // Send as message
       const socket = getSocket();
-      socket?.emit('send_message', { conversationId: selected.id, content: 'Image', contentType: 'image', attachmentUrl: publicUrl }, (ack: any) => {
+      socket?.emit('send_message', {
+        conversationId: selected.id,
+        content: file.name,
+        contentType: uploadRes.contentType || 'file',
+        attachmentUrl: uploadRes.attachmentUrl,
+      }, (ack: any) => {
         if (ack?.error) {
-          toast({ title: 'Send failed', variant: 'destructive' });
+          toast({ title: 'Send failed', description: ack.error, variant: 'destructive' });
         } else if (ack.message) {
-          setMessages((prev) => [...prev, ack.message]);
+          setMessages((prev) => mergeIncomingMessage(prev, ack.message));
           scrollToBottom();
         }
       });
 
-      toast({ title: 'Image uploaded' });
+      toast({ title: 'Attachment sent' });
     } catch (err) {
       console.error(err);
-      toast({ title: 'Upload failed', variant: 'destructive' });
+      toast({ title: 'Upload failed', description: err instanceof Error ? err.message : 'Unable to upload attachment', variant: 'destructive' });
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }
+      });
+
+      recordingStreamRef.current = stream;
+
+      const mimeCandidates = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg;codecs=opus',
+      ];
+      const supportedMime = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m));
+
+      const mediaRecorder = supportedMime
+        ? new MediaRecorder(stream, { mimeType: supportedMime, audioBitsPerSecond: 128000 })
+        : new MediaRecorder(stream);
+
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
+      setRecordingSeconds(0);
+
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds((s) => s + 1);
+      }, 1000);
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const blobType = supportedMime || 'audio/webm';
+        const blob = new Blob(audioChunksRef.current, { type: blobType });
         setAudioBlob(blob);
-        stream.getTracks().forEach((track) => track.stop());
+
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+
+        if (recordingStreamRef.current) {
+          recordingStreamRef.current.getTracks().forEach((track) => track.stop());
+          recordingStreamRef.current = null;
+        }
       };
 
-      mediaRecorder.start();
+      // Request chunk data every second for long recordings stability
+      mediaRecorder.start(1000);
       setIsRecording(true);
     } catch (err) {
       console.error(err);
@@ -372,26 +521,22 @@ const Chat = () => {
 
     setUploading(true);
     try {
-      // Upload audio to backend API
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'audio.webm');
-
-      const res = await fetch(`${API_BASE}/api/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error('Upload failed');
-
-      const { url: publicUrl } = await res.json();
+      const extFromMime = audioBlob.type?.includes('ogg') ? 'ogg' : audioBlob.type?.includes('mp4') ? 'm4a' : 'webm';
+      const fileName = `audio_${Date.now()}.${extFromMime}`;
+      const audioFile = new File([audioBlob], fileName, { type: audioBlob.type || 'audio/webm' });
+      const uploadRes = await uploadChatAttachment(audioFile);
 
       const socket = getSocket();
-      socket?.emit('send_message', { conversationId: selected.id, content: 'Voice message', contentType: 'audio', attachmentUrl: publicUrl }, (ack: any) => {
+      socket?.emit('send_message', {
+        conversationId: selected.id,
+        content: 'Voice message',
+        contentType: uploadRes.contentType || 'audio',
+        attachmentUrl: uploadRes.attachmentUrl,
+      }, (ack: any) => {
         if (ack?.error) {
-          toast({ title: 'Send failed', variant: 'destructive' });
+          toast({ title: 'Send failed', description: ack.error, variant: 'destructive' });
         } else if (ack.message) {
-          setMessages((prev) => [...prev, ack.message]);
+          setMessages((prev) => mergeIncomingMessage(prev, ack.message));
           scrollToBottom();
         }
       });
@@ -400,7 +545,7 @@ const Chat = () => {
       toast({ title: 'Voice message sent' });
     } catch (err) {
       console.error(err);
-      toast({ title: 'Upload failed', variant: 'destructive' });
+      toast({ title: 'Upload failed', description: err instanceof Error ? err.message : 'Unable to upload audio', variant: 'destructive' });
     } finally {
       setUploading(false);
     }
@@ -419,9 +564,8 @@ const Chat = () => {
     if (!editingMessageId || !editText.trim() || !selected) return;
     
     try {
-      const res = await fetch(`${API_BASE}/api/messages/${editingMessageId}`, {
+      const res = await apiFetch(`/api/messages/${editingMessageId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ content: editText }),
       });
 
@@ -448,9 +592,8 @@ const Chat = () => {
     if (!confirm('🗑️ Are you sure you want to delete this message?\n\nThis action cannot be undone.')) return;
 
     try {
-      const res = await fetch(`${API_BASE}/api/messages/${messageId}`, {
+      const res = await apiFetch(`/api/messages/${messageId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) throw new Error('Delete failed');
@@ -621,13 +764,35 @@ const Chat = () => {
                                 {m.attachment_url && (
                                   <div className="mt-2">
                                     {m.content_type === 'image' && (
-                                      <img src={m.attachment_url} alt="attachment" className="max-w-xs rounded-lg" />
+                                      <img
+                                        src={resolveAttachmentUrl(m.attachment_url)}
+                                        alt="attachment"
+                                        className="max-w-xs rounded-lg cursor-pointer hover:opacity-95 transition-opacity"
+                                        onClick={() => {
+                                          if (imageLongPressTriggeredRef.current) {
+                                            imageLongPressTriggeredRef.current = false;
+                                            return;
+                                          }
+                                          openImageActions(m);
+                                        }}
+                                        onContextMenu={(e) => {
+                                          e.preventDefault();
+                                          openImageActions(m);
+                                        }}
+                                        onTouchStart={() => startImageLongPress(m)}
+                                        onTouchEnd={endImageLongPress}
+                                        onTouchCancel={endImageLongPress}
+                                        onMouseDown={() => startImageLongPress(m)}
+                                        onMouseUp={endImageLongPress}
+                                        onMouseLeave={endImageLongPress}
+                                        title="Click for image options"
+                                      />
                                     )}
                                     {m.content_type === 'audio' && (
-                                      <audio controls src={m.attachment_url} className="max-w-xs" />
+                                      <audio controls src={resolveAttachmentUrl(m.attachment_url)} className="max-w-xs" />
                                     )}
                                     {m.content_type === 'file' && (
-                                      <a href={m.attachment_url} target="_blank" rel="noreferrer" className="underline text-sm">Download attachment</a>
+                                      <a href={resolveAttachmentUrl(m.attachment_url)} target="_blank" rel="noreferrer" className="underline text-sm">Download attachment</a>
                                     )}
                                   </div>
                                 )}
@@ -713,15 +878,29 @@ const Chat = () => {
 
                     <label className="p-2 hover:bg-muted rounded-lg cursor-pointer">
                       <Paperclip className="w-5 h-5" />
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
+                      <input
+                        type="file"
+                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z,audio/*"
+                        onChange={handleAttachmentUpload}
+                        className="hidden"
+                        disabled={uploading}
+                      />
                     </label>
 
-                    <button 
-                      onClick={isRecording ? stopRecording : startRecording} 
-                      className={`p-2 rounded-lg ${isRecording ? 'bg-red-500 text-white' : 'hover:bg-muted'}`}
-                    >
-                      <Mic className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={isRecording ? stopRecording : startRecording} 
+                        className={`p-2 rounded-lg ${isRecording ? 'bg-red-500 text-white' : 'hover:bg-muted'}`}
+                        title={isRecording ? 'Stop recording' : 'Start recording'}
+                      >
+                        <Mic className="w-5 h-5" />
+                      </button>
+                      {isRecording && (
+                        <span className="text-xs font-medium text-red-600 whitespace-nowrap">
+                          REC {String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:{String(recordingSeconds % 60).padStart(2, '0')}
+                        </span>
+                      )}
+                    </div>
 
                     <input 
                       value={messageText} 
@@ -781,6 +960,44 @@ const Chat = () => {
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Actions Modal */}
+      {imageActionTarget && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={closeImageActions}>
+          <div className="bg-card rounded-2xl w-full max-w-2xl shadow-2xl border border-border overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="text-sm font-semibold truncate pr-4">{imageActionTarget.fileName}</h3>
+              <button onClick={closeImageActions} className="text-muted-foreground hover:text-foreground" aria-label="Close image actions">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 bg-muted/20 flex items-center justify-center max-h-[60vh] overflow-auto">
+              <img src={imageActionTarget.imageUrl} alt="Full preview" className="max-h-[55vh] w-auto rounded-lg" />
+            </div>
+
+            <div className="p-4 border-t border-border flex flex-wrap gap-2 justify-end">
+              <button onClick={openImageInFull} className="px-3 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors">
+                Open full
+              </button>
+              <button onClick={downloadImage} className="px-3 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors">
+                Download
+              </button>
+              {imageActionTarget.isMine && (
+                <button
+                  onClick={async () => {
+                    await deleteMessage(imageActionTarget.messageId);
+                    closeImageActions();
+                  }}
+                  className="px-3 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
+                >
+                  Delete
+                </button>
+              )}
             </div>
           </div>
         </div>

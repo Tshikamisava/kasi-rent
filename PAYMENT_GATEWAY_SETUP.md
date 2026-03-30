@@ -28,6 +28,10 @@ Add to your `server/.env` file:
 PAYSTACK_SECRET_KEY=sk_test_your_secret_key_here
 PAYSTACK_PUBLIC_KEY=pk_test_your_public_key_here
 PAYSTACK_CALLBACK_URL=http://localhost:5000/api/payments/verify
+PAYSTACK_WEBHOOK_SECRET=your_webhook_secret
+
+# Recurring subscription interval (days)
+SUBSCRIPTION_BILLING_CYCLE_DAYS=30
 
 # For production, use:
 # PAYSTACK_SECRET_KEY=sk_live_your_live_secret_key
@@ -169,6 +173,18 @@ Content-Type: application/json
 X-Paystack-Signature: <signature>
 ```
 
+### Charge One Subscription (Owner/Admin)
+```
+POST /api/subscriptions/:id/charge
+Authorization: Bearer <token>
+```
+
+### Process Due Recurring Subscriptions (Admin)
+```
+POST /api/subscriptions/process/due
+Authorization: Bearer <admin-token>
+```
+
 ## Payment Types
 
 - `deposit` - Security deposit
@@ -186,6 +202,16 @@ X-Paystack-Signature: <signature>
 6. **Payment verified** → Status updated to `completed`
 7. **Frontend polls status** → Checks payment status
 8. **Success callback** → `onSuccess` called with payment ID
+
+## Recurring Subscription Flow
+
+1. User checks out on `/api/subscriptions/checkout`
+2. First successful charge sends webhook (`charge.success`)
+3. Backend stores reusable Paystack `authorization_code` in subscription metadata
+4. Backend sets `next_billing_at` using `SUBSCRIPTION_BILLING_CYCLE_DAYS`
+5. On due date, admin/scheduler calls `/api/subscriptions/process/due`
+6. Backend charges saved authorization via Paystack `charge_authorization`
+7. Subscription remains `active` on success, moves to `past_due` on failure
 
 ## Testing
 

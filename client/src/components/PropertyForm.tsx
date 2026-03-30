@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 // supabase not used here; backend API used instead
 import { useToast } from "@/hooks/use-toast";
+import { formatRand } from '@/lib/currency';
 import { useAuth } from "@/hooks/use-auth";
 import { Copy, AlertTriangle, ShieldCheck, ShieldAlert, Sparkles, Zap } from "lucide-react";
 
@@ -160,21 +161,21 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
 
     setUploadingVideo(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const videoFormData = new FormData();
       videoFormData.append('video', selectedVideo);
 
-      const response = await fetch(`${API_BASE}/api/upload/video`, {
+      const res = await (await import('@/lib/api')).apiFetch('/api/upload/video', {
         method: 'POST',
         body: videoFormData,
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok || !data.success) {
+      if (!res.ok || !data.success) {
         throw new Error(data.message || 'Video upload failed');
       }
 
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const fullUrl = `${API_BASE}${data.videoUrl}`;
       setFormData({ ...formData, video_url: fullUrl });
       
@@ -208,10 +209,8 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
   const analyzeFraud = async () => {
     setAnalyzing(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-      const response = await fetch(`${API_BASE}/api/fraud-detection/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await (await import('@/lib/api')).apiFetch('/api/fraud-detection/analyze', {
+        method: 'POST',
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
@@ -223,7 +222,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
         }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
       if (data.success) {
         setFraudAnalysis(data.analysis);
         setShowFraudWarning(data.analysis.isSuspicious);
@@ -247,10 +246,8 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
 
     setGeneratingDescription(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-      const response = await fetch(`${API_BASE}/api/description-generator/description`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await (await import('@/lib/api')).apiFetch('/api/description-generator/description', {
+        method: 'POST',
         body: JSON.stringify({
           title: formData.title,
           property_type: formData.property_type,
@@ -262,7 +259,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
         }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
       if (data.success) {
         setFormData({ ...formData, description: data.description });
         toast({
@@ -294,10 +291,8 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
 
     setGeneratingTitle(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-      const response = await fetch(`${API_BASE}/api/description-generator/title`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await (await import('@/lib/api')).apiFetch('/api/description-generator/title', {
+        method: 'POST',
         body: JSON.stringify({
           property_type: formData.property_type,
           bedrooms: parseInt(formData.bedrooms) || 0,
@@ -306,7 +301,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
         }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
       if (data.success) {
         setFormData({ ...formData, title: data.title });
         toast({
@@ -338,10 +333,8 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
 
     setSuggestingPrice(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-      const response = await fetch(`${API_BASE}/api/description-generator/suggest-price`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await (await import('@/lib/api')).apiFetch('/api/description-generator/suggest-price', {
+        method: 'POST',
         body: JSON.stringify({
           property_type: formData.property_type,
           bedrooms: parseInt(formData.bedrooms) || 0,
@@ -350,7 +343,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
         }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
       if (data.success) {
         setPriceSuggestion(data.suggestion);
         toast({
@@ -442,31 +435,29 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
       if (selectedFiles.length > 0) {
         setUploading(true);
         
-        const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-        
-        // Upload each file to the server
-        for (const file of selectedFiles) {
+          // Upload each file to the server
+          for (const file of selectedFiles) {
           try {
             const uploadFormData = new FormData();
             uploadFormData.append('image', file);
 
             console.log(`Uploading ${file.name}...`);
+              const res = await (await import('@/lib/api')).apiFetch('/api/upload/single', {
+                method: 'POST',
+                body: uploadFormData,
+              });
 
-            const response = await fetch(`${API_BASE}/api/upload/single`, {
-              method: 'POST',
-              body: uploadFormData,
-            });
+              const data = await res.json();
 
-            const data = await response.json();
+              if (!res.ok || !data.success) {
+                throw new Error(data.message || 'Upload failed');
+              }
 
-            if (!response.ok || !data.success) {
-              throw new Error(data.message || 'Upload failed');
-            }
-
-            // Construct full URL
-            const fullUrl = `${API_BASE}${data.imageUrl}`;
-            uploadedUrls.push(fullUrl);
-            console.log(`Successfully uploaded: ${fullUrl}`);
+              // Construct full URL
+              const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
+              const fullUrl = `${API_BASE}${data.imageUrl}`;
+              uploadedUrls.push(fullUrl);
+              console.log(`Successfully uploaded: ${fullUrl}`);
 
           } catch (fileError) {
             console.error('Error uploading file:', file.name, fileError);
@@ -478,7 +469,6 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
             });
           }
         }
-
         setUploading(false);
 
         if (uploadErrors > 0 && uploadedUrls.length === 0) {
@@ -497,35 +487,28 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
       // Use the first uploaded image as the primary image, or use the URL field
       const primaryImageUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : (formData.image_url || null);
 
-      // Upload document (required for new listings)
+      // Upload document (optional compatibility mode)
+      // NOTE: some deployed DBs may not yet have document_* columns.
+      // We still allow upload, but we don't block listing if document upload fails.
       let documentUrl = initialData?.document_url || null;
       let documentFilename = initialData?.document_filename || null;
       let documentType = initialData?.document_type || null;
 
-      if (!initialData && !documentFile) {
-        toast({ title: 'Document required', description: 'Please upload your Municipality Rates Statement before listing', variant: 'destructive' });
-        setLoading(false);
-        return;
-      }
-
       if (documentFile) {
         setUploading(true);
         try {
-          const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
           const form = new FormData();
           form.append('document', documentFile);
-          const res = await fetch(`${API_BASE}/api/upload/document`, { method: 'POST', body: form });
+          const res = await (await import('@/lib/api')).apiFetch('/api/upload/document', { method: 'POST', body: form });
           const data = await res.json();
           if (!res.ok || !data.success) throw new Error(data.message || 'Document upload failed');
+          const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
           documentUrl = `${API_BASE}${data.documentUrl}`;
           documentFilename = data.filename;
           documentType = data.originalName?.split('.').pop() || documentFile.type;
         } catch (err: any) {
-          console.error('Document upload failed', err);
-          toast({ title: 'Document upload failed', description: err.message || 'Please try again', variant: 'destructive' });
-          setUploading(false);
-          setLoading(false);
-          return;
+          console.warn('Document upload failed, continuing without document metadata:', err);
+          toast({ title: 'Document skipped', description: 'Property will be listed without document metadata for now', variant: 'default' });
         } finally {
           setUploading(false);
         }
@@ -538,11 +521,6 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
       });
 
       // Submit to MySQL API instead of Supabase
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-      const apiUrl = `${API_BASE}/api/properties`;
-      
-      console.log('Posting to:', apiUrl);
-      
       const propertyData = {
         landlord_id: user._id,
         title: formData.title,
@@ -556,9 +534,8 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
         image_url: primaryImageUrl,
         images: uploadedUrls.length > 0 ? uploadedUrls : (formData.image_url ? [formData.image_url] : []),
         video_url: videoUrl || null,
-        document_url: documentUrl,
-        document_filename: documentFilename,
-        document_type: documentType,
+        // Do not include document_* fields in listing payload until all environments
+        // have completed document schema migrations.
         wifi_available: !!formData.wifi_available,
         pets_allowed: !!formData.pets_allowed,
         furnished: !!formData.furnished,
@@ -568,21 +545,18 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
       
       console.log('Property data:', propertyData);
       
-      const response = await fetch(apiUrl, {
+      const res = await (await import('@/lib/api')).apiFetch('/api/properties', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(propertyData)
+        body: JSON.stringify(propertyData),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
+      console.log('Response status:', res.status);
+      console.log('Response ok:', res.ok);
       
-      const result = await response.json();
+      const result = await res.json();
       console.log('Response data:', result);
 
-      if (!response.ok || !result.success) {
+      if (!res.ok || !result.success) {
         console.error('Database insert error:', result);
         throw new Error(result.message || 'Failed to create property');
       }
@@ -625,11 +599,12 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
 
       onSuccess();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to list property",
-        variant: "destructive",
-      });
+        console.error('Property listing error:', error);
+        toast({
+          title: "Error",
+          description: (error as Error).message || "Failed to list property",
+          variant: "destructive",
+        });
     } finally {
       setLoading(false);
     }
@@ -734,8 +709,6 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
                   <SelectItem value="House">House</SelectItem>
                   <SelectItem value="Townhouse">Townhouse</SelectItem>
                   <SelectItem value="Studio">Studio</SelectItem>
-                  <SelectItem value="Bachelor">Bachelor</SelectItem>
-                  <SelectItem value="Room">Room</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -748,10 +721,10 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
               <AlertTitle className="text-blue-900">Price Suggestion</AlertTitle>
               <AlertDescription className="text-blue-800">
                 <p className="mb-2">
-                  <strong>Recommended:</strong> R{priceSuggestion.recommendedPrice}/month
+                  <strong>Recommended:</strong> {formatRand(priceSuggestion.recommendedPrice)}/month
                 </p>
                 <p className="mb-2 text-sm">
-                  Range: R{priceSuggestion.minPrice} - R{priceSuggestion.maxPrice}
+                  Range: {formatRand(priceSuggestion.minPrice)} - {formatRand(priceSuggestion.maxPrice)}
                 </p>
                 <p className="text-sm italic">{priceSuggestion.reasoning}</p>
               </AlertDescription>
@@ -922,7 +895,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
               </div>
 
               <div className="mt-4">
-                <Label>Upload Proof of Ownership (required)</Label>
+                <Label>Proof of recent utility bill (required)</Label>
                 <input
                   type="file"
                   accept="image/*,application/pdf"
@@ -930,7 +903,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
                   className="mt-2"
                   disabled={uploading || loading}
                 />
-                <p className="text-sm text-muted-foreground mt-1">Upload your Municipality Rates Statement (not older than 3 months). Admin will verify before the listing goes live.</p>
+                <p className="text-sm text-muted-foreground mt-1">Upload a recent utility bill (electricity, water, or gas) that shows your name and address. Admin will verify before the listing goes live.</p>
 
                 {documentPreviewUrl && (
                   <div className="mt-3">

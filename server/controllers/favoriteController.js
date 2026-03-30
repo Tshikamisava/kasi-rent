@@ -3,6 +3,23 @@ import Property from '../models/Property.js';
 import User from '../models/User.js';
 import { Op } from 'sequelize';
 
+let cachedPropertyColumns = null;
+
+const getSafePropertyAttributes = async () => {
+  if (cachedPropertyColumns) return cachedPropertyColumns;
+
+  try {
+    const queryInterface = Property.sequelize.getQueryInterface();
+    const tableName = Property.getTableName();
+    const described = await queryInterface.describeTable(tableName);
+    cachedPropertyColumns = Object.keys(described || {});
+    return cachedPropertyColumns;
+  } catch (error) {
+    console.warn('Unable to describe properties table for favorites. Falling back to model attributes:', error.message);
+    return undefined;
+  }
+};
+
 // Add to favorites
 export const addFavorite = async (req, res) => {
   try {
@@ -91,26 +108,36 @@ export const getUserFavorites = async (req, res) => {
       });
     }
 
-    const favorites = await Favorite.findAll({
-      where: { user_id },
-      include: [
-        {
-          model: Property,
-          as: 'property'
-        },
-        {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'name', 'email']
-        }
-      ]
-    });
+    const safePropertyAttributes = await getSafePropertyAttributes();
+
+    let favorites = [];
+    try {
+      favorites = await Favorite.findAll({
+        where: { user_id },
+        include: [
+          {
+            model: Property,
+            as: 'property',
+            ...(safePropertyAttributes ? { attributes: safePropertyAttributes } : {})
+          },
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'name', 'email']
+          }
+        ]
+      });
+    } catch (includeError) {
+      console.warn('Favorites include query failed, retrying with manual relation fetch:', includeError.message);
+      favorites = await Favorite.findAll({ where: { user_id } });
+    }
 
     // If associations aren't present (older DB), fetch properties and user separately
     if (favorites.length > 0 && (!favorites[0].property || !favorites[0].user)) {
       const propertyIds = favorites.map(f => f.property_id);
       const properties = await Property.findAll({
-        where: { id: { [Op.in]: propertyIds } }
+        where: { id: { [Op.in]: propertyIds } },
+        ...(safePropertyAttributes ? { attributes: safePropertyAttributes } : {})
       });
 
       const userRecord = await User.findByPk(user_id);

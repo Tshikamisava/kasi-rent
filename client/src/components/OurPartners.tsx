@@ -45,7 +45,7 @@ export const OurPartners = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {partners.map((partner, index) => (
-            <a key={index} href={partner.url} target="_blank" rel="noreferrer" className="group">
+            <div key={index} className="group">
               <Card className="border-border hover:border-primary/50 transition-all group-hover:shadow-lg hover:scale-[1.01]">
                 <CardContent className="p-6 text-center">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform">
@@ -60,14 +60,19 @@ export const OurPartners = () => {
                       </a>
                     )}
                     {partner.url && (
-                      <span className="text-sm text-muted-foreground flex items-center gap-2">
+                      <a
+                        href={partner.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm text-muted-foreground flex items-center gap-2 hover:underline"
+                      >
                         <ExternalLink className="w-4 h-4" /> <span className="hidden sm:inline">Visit</span>
-                      </span>
+                      </a>
                     )}
                   </div>
                 </CardContent>
               </Card>
-            </a>
+            </div>
           ))}
         </div>
       </div>

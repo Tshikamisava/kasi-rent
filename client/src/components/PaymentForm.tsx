@@ -19,6 +19,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { apiFetch } from '@/lib/api';
 import { CreditCard, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -77,15 +78,8 @@ export const PaymentForm = ({
     setPaymentStatus("processing");
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const token = user?.token || localStorage.getItem("token");
-
-      const response = await fetch(`${apiUrl}/api/payments/initialize`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
+      const res = await apiFetch('/api/payments/initialize', {
+        method: 'POST',
         body: JSON.stringify({
           amount: amount,
           email: formData.email,
@@ -98,12 +92,12 @@ export const PaymentForm = ({
             property_title: propertyTitle,
             user_id: user?._id,
           },
-        }),
+        })
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok) {
+      if (!res.ok) {
         throw new Error(data.message || "Failed to initialize payment");
       }
 
@@ -144,9 +138,8 @@ export const PaymentForm = ({
 
     const checkStatus = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-        const response = await fetch(`${apiUrl}/api/payments/verify?reference=${reference}`);
-        const data = await response.json();
+        const res = await apiFetch(`/api/payments/verify?reference=${reference}`);
+        const data = await res.json();
 
         if (data.success && data.payment?.status === "completed") {
           setPaymentStatus("success");

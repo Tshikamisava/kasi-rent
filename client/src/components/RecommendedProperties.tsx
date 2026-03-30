@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin, Zap, Star, Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from '@/lib/api';
+import { formatRand } from '@/lib/currency';
 
 interface RecommendedProperty {
   id: string;
@@ -54,9 +56,7 @@ export const RecommendedProperties = ({
 
   const fetchRecommendations = async () => {
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      
-      let endpoint = `${API_BASE}/api/recommendations`;
+      let endpoint = `/api/recommendations`;
       let body: any = { limit };
 
       if (type === "trending") {
@@ -72,13 +72,8 @@ export const RecommendedProperties = ({
         body.viewedProperties = viewedFromStorage ? JSON.parse(viewedFromStorage) : [];
       }
 
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
+      const res = await apiFetch(endpoint, { method: 'POST', body: JSON.stringify(body) });
+      const data = await res.json();
       if (data.success) {
         setRecommendations(data.recommendations || data.similar || data.trending || []);
       }
@@ -102,12 +97,7 @@ export const RecommendedProperties = ({
 
   const trackPropertyView = async (propertyId: string) => {
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      await fetch(`${API_BASE}/api/recommendations/track-view`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ propertyId }),
-      });
+      await apiFetch('/api/recommendations/track-view', { method: 'POST', body: JSON.stringify({ propertyId }) });
 
       // Also store in localStorage
       const viewed = localStorage.getItem("viewedProperties");
@@ -220,7 +210,7 @@ export const RecommendedProperties = ({
                 {/* Price */}
                 <div className="border-t pt-3">
                   <p className="text-2xl font-bold text-primary">
-                    R{property.price?.toLocaleString()}
+                    {formatRand(property.price)}
                     <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
                   </p>
                 </div>

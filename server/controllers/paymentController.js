@@ -1,6 +1,7 @@
 import Payment from '../models/Payment.js';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -294,7 +295,7 @@ export const getPaymentById = async (req, res) => {
  */
 export const paymentWebhook = async (req, res) => {
   try {
-    const hash = req.headers['x-paystack-signature'];
+    const signature = req.headers['x-paystack-signature'];
     const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
 
     if (!paystackSecretKey) {
@@ -302,23 +303,30 @@ export const paymentWebhook = async (req, res) => {
     }
 
     // Parse raw body (already parsed as raw in server.js)
+    const rawBody = Buffer.isBuffer(req.body)
+      ? req.body.toString('utf8')
+      : (typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {}));
+
+    const webhookSecret = process.env.PAYSTACK_WEBHOOK_SECRET || paystackSecretKey;
+    if (webhookSecret && signature) {
+      const expectedSignature = crypto
+        .createHmac('sha512', webhookSecret)
+        .update(rawBody)
+        .digest('hex');
+
+      if (expectedSignature !== signature) {
+        console.error('Invalid Paystack webhook signature');
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+    }
+
     let event;
     try {
-      event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      event = JSON.parse(rawBody);
     } catch (parseError) {
       console.error('Webhook body parse error:', parseError);
       return res.status(400).json({ error: 'Invalid webhook payload' });
     }
-
-    // Verify webhook signature (simplified - in production, use crypto to verify)
-    // For production, implement proper signature verification:
-    // const crypto = require('crypto');
-    // const hash = crypto.createHmac('sha512', paystackSecretKey)
-    //   .update(JSON.stringify(req.body))
-    //   .digest('hex');
-    // if (hash !== req.headers['x-paystack-signature']) {
-    //   return res.status(401).json({ error: 'Invalid signature' });
-    // }
 
     console.log('Webhook received:', event.event);
 
@@ -335,13 +343,21 @@ export const paymentWebhook = async (req, res) => {
         await payment.save();
 
         console.log(`Payment ${payment.id} marked as completed via webhook`);
-
         // Here you can trigger additional actions like:
         // - Send confirmation email
         // - Update property status
         // - Notify landlord
         // - Update user subscription
-        // etc.
+        // Attempt to update related subscription when metadata contains subscription id
+        try {
+          const { markSubscriptionFromPayment } = await import('./subscriptionController.js');
+          const updated = await markSubscriptionFromPayment(reference, event.data);
+          if (updated) {
+            console.log('Subscription updated from webhook:', updated.id);
+          }
+        } catch (err) {
+          console.error('Subscription update from webhook failed:', err.message || err);
+        }
       }
     } else if (event.event === 'charge.failed') {
       const reference = event.data.reference;
@@ -356,6 +372,15 @@ export const paymentWebhook = async (req, res) => {
         await payment.save();
 
         console.log(`Payment ${payment.id} marked as failed via webhook`);
+        try {
+          const { markSubscriptionFromPayment } = await import('./subscriptionController.js');
+          const updated = await markSubscriptionFromPayment(reference, event.data);
+          if (updated) {
+            console.log('Subscription updated (failed) from webhook:', updated.id);
+          }
+        } catch (err) {
+          console.error('Subscription update (failed) from webhook failed:', err.message || err);
+        }
       }
     }
 

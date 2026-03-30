@@ -2,7 +2,7 @@ import express from 'express';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 import { authorizeRole } from '../middleware/authorizeRole.js';
 import User from '../models/User.js';
-import { getPendingDocuments, verifyDocument } from '../controllers/propertyController.js';
+import { getPendingDocuments, verifyDocument, getAllPropertiesAdmin, approveProperty } from '../controllers/propertyController.js';
 
 const router = express.Router();
 
@@ -56,5 +56,9 @@ router.put('/user/role', authenticateToken, authorizeRole('admin'), async (req, 
 // Admin: document verification endpoints
 router.get('/documents/pending', authenticateToken, authorizeRole('admin'), getPendingDocuments);
 router.post('/documents/:id/verify', authenticateToken, authorizeRole('admin'), verifyDocument);
+
+// Admin: all property listings + approval
+router.get('/properties', authenticateToken, authorizeRole('admin'), getAllPropertiesAdmin);
+router.post('/properties/:id/approve', authenticateToken, authorizeRole('admin'), approveProperty);
 
 export default router;

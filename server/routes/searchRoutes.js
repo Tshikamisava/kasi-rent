@@ -80,6 +80,7 @@ router.get('/', async (req, res) => {
     } = req.query;
 
     const where = { status: 'available' };
+    const hasPropertyAttr = (attr) => !!Property.rawAttributes?.[attr];
 
     // Location filter (city or address)
     if (location) {
@@ -99,12 +100,22 @@ router.get('/', async (req, res) => {
 
     // Bedrooms
     if (bedrooms) {
-      where.bedrooms = parseInt(bedrooms);
+      const minBedrooms = parseInt(bedrooms);
+      if (!Number.isNaN(minBedrooms)) {
+        if (minBedrooms === 0) {
+          where.bedrooms = 0;
+        } else {
+          where.bedrooms = { [Op.gte]: minBedrooms };
+        }
+      }
     }
 
     // Bathrooms
     if (bathrooms) {
-      where.bathrooms = { [Op.gte]: parseInt(bathrooms) };
+      const minBathrooms = parseInt(bathrooms);
+      if (!Number.isNaN(minBathrooms)) {
+        where.bathrooms = { [Op.gte]: minBathrooms };
+      }
     }
 
     // Property type
@@ -113,19 +124,22 @@ router.get('/', async (req, res) => {
     }
 
     // Boolean filters
-    if (furnished === 'true') {
+    if (furnished === 'true' && hasPropertyAttr('furnished')) {
       where.furnished = true;
     }
-    if (pets_allowed === 'true') {
+    if (pets_allowed === 'true' && hasPropertyAttr('pets_allowed')) {
       where.pets_allowed = true;
     }
-    if (utilities_included === 'true') {
+    if (utilities_included === 'true' && hasPropertyAttr('utilities_included')) {
       where.utilities_included = true;
     }
 
     // Available from date
-    if (available_from) {
-      where.available_from = { [Op.lte]: new Date(available_from) };
+    if (available_from && hasPropertyAttr('available_from')) {
+      const parsedDate = new Date(available_from);
+      if (!Number.isNaN(parsedDate.getTime())) {
+        where.available_from = { [Op.lte]: parsedDate };
+      }
     }
 
     // Execute search
@@ -277,6 +291,7 @@ router.get('/saved/:id/results', authenticateToken, async (req, res) => {
 
     // Build where clause from saved search
     const where = { status: 'available' };
+  const hasPropertyAttr = (attr) => !!Property.rawAttributes?.[attr];
 
     if (savedSearch.location) {
       where[Op.or] = [
@@ -300,13 +315,13 @@ router.get('/saved/:id/results', authenticateToken, async (req, res) => {
     if (savedSearch.property_type) {
       where.property_type = savedSearch.property_type;
     }
-    if (savedSearch.furnished !== null) {
+    if (savedSearch.furnished !== null && hasPropertyAttr('furnished')) {
       where.furnished = savedSearch.furnished;
     }
-    if (savedSearch.pets_allowed !== null) {
+    if (savedSearch.pets_allowed !== null && hasPropertyAttr('pets_allowed')) {
       where.pets_allowed = savedSearch.pets_allowed;
     }
-    if (savedSearch.utilities_included !== null) {
+    if (savedSearch.utilities_included !== null && hasPropertyAttr('utilities_included')) {
       where.utilities_included = savedSearch.utilities_included;
     }
 

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Home, Plus, Users, DollarSign, Edit, Trash, MapPin, BedDouble, Bath, ShieldCheck, ArrowLeft, Images, ChevronLeft, ChevronRight, Calendar, MessageSquare } from "lucide-react";
+import { formatRand } from '@/lib/currency';
 import { useNavigate } from "react-router-dom";
 import { PropertyForm } from "@/components/PropertyForm";
 import { useState, useEffect } from "react";
@@ -57,7 +58,7 @@ const LandlordDashboard = () => {
     if (!user) return;
     
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const response = await fetch(`${API_BASE}/api/properties?landlord_id=${user._id}`);
       const data = await response.json();
 
@@ -66,7 +67,7 @@ const LandlordDashboard = () => {
       
       // Initialize image indexes for each property
       const indexes: { [key: string]: number } = {};
-      (data || []).forEach(prop => {
+      (data || []).forEach((prop: any) => {
         indexes[prop.id] = 0;
       });
       setImageIndexes(indexes);
@@ -81,7 +82,7 @@ const LandlordDashboard = () => {
     if (!user) return;
     
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const response = await fetch(`${API_BASE}/api/bookings/landlord/${user._id}`);
       
       if (response.ok) {
@@ -128,7 +129,7 @@ const LandlordDashboard = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const response = await fetch(`${API_BASE}/api/properties/${id}?landlord_id=${user?._id}`, {
         method: 'DELETE',
       });
@@ -161,7 +162,7 @@ const LandlordDashboard = () => {
 
   const handleUpdateProperty = async (updatedProperty: any) => {
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const response = await fetch(`${API_BASE}/api/properties/${editingProperty.id}`, {
         method: 'PUT',
         headers: {
@@ -289,7 +290,7 @@ const LandlordDashboard = () => {
               onClick={() => {
                 toast({
                   title: "Monthly Revenue",
-                  description: `Potential: R${totalMonthlyRevenue.toLocaleString()}`,
+                  description: `Potential: ${formatRand(totalMonthlyRevenue)}`,
                 });
               }}
             >
@@ -298,7 +299,7 @@ const LandlordDashboard = () => {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">R{totalMonthlyRevenue.toLocaleString()}</div>
+                <div className="text-2xl font-bold">{formatRand(totalMonthlyRevenue)}</div>
                 <p className="text-xs text-muted-foreground">Potential earnings</p>
               </CardContent>
             </Card>
@@ -475,7 +476,7 @@ const LandlordDashboard = () => {
                               
                               {/* Thumbnail dots */}
                               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                                {propertyImages.map((_, idx) => (
+                                {propertyImages.map((_: unknown, idx: number) => (
                                   <button
                                     key={idx}
                                     onClick={(e) => {
@@ -532,7 +533,7 @@ const LandlordDashboard = () => {
                           </Badge>
                         </div>
                         <div className="flex items-baseline text-2xl font-bold text-primary mb-4">
-                          R{property.price?.toLocaleString()}
+                          {formatRand(property.price)}
                           <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
                         </div>
                         

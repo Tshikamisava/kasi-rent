@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin, BedDouble, Bath, Building2, Images, Wifi } from "lucide-react";
+import { getFullImageUrl } from "@/lib/utils";
+import { formatRand } from '@/lib/currency';
+import placeholder from '@/assets/property-placeholder.png';
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PropertyDetailModal } from "@/components/PropertyDetailModal";
@@ -21,7 +24,7 @@ export const FeaturedProperties = () => {
 
   const fetchProperties = async () => {
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const response = await fetch(`${API_BASE}/api/properties?limit=3`);
       const data = await response.json();
 
@@ -98,14 +101,14 @@ export const FeaturedProperties = () => {
             return (
             <Card key={property.id} className="overflow-hidden group transition-transform hover:-translate-y-1 hover:shadow-lg">
               {displayImage ? (
-                <div className="h-80 overflow-hidden relative">
+                <div className="h-56 md:h-80 overflow-hidden relative">
                   <img 
-                    src={displayImage} 
+                    src={getFullImageUrl(displayImage)} 
                     alt={property.title}
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src = '/property-placeholder.png';
+                      target.src = placeholder;
                     }}
                   />
                   {/* Favorite Button */}
@@ -163,7 +166,7 @@ export const FeaturedProperties = () => {
                   </div>
                 </div>
                 <div className="flex items-center text-2xl font-bold text-primary">
-                  R{property.price.toLocaleString()}
+                  {formatRand(property.price)}
                   <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
                 </div>
               </CardContent>
