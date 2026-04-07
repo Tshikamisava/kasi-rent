@@ -36,6 +36,7 @@ const SafetyTips = lazy(() => import("./pages/SafetyTips"));
 const SaveMoney = lazy(() => import("./pages/SaveMoney"));
 const Marketplace = lazy(() => import("./pages/Marketplace"));
 const MySubscriptions = lazy(() => import("./pages/MySubscriptions"));
+const PaymentCallback = lazy(() => import("./pages/PaymentCallback"));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -206,6 +207,7 @@ const App = () => (
             <Route path="/agents" element={<FindAgents />} />
             <Route path="/help" element={<HelpCenter />} />
             <Route path="/safety" element={<SafetyTips />} />
+            <Route path="/payment/callback" element={<PaymentCallback />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

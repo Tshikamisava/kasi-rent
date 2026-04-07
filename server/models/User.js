@@ -22,8 +22,7 @@ const User = sequelize.define('User', {
   },
   name: {
     type: DataTypes.STRING,
-    allowNull: true,
-    field: 'full_name'  // Maps to full_name column in database
+    allowNull: true
   },
   phone: {
     type: DataTypes.STRING,

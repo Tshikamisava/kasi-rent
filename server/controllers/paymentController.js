@@ -183,55 +183,62 @@ export const verifyPayment = async (req, res) => {
 
       const paystackData = verifyResponse.data.data;
 
+      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5174';
+
       // Update payment status
       if (paystackData.status === 'success') {
         payment.status = 'completed';
         payment.gateway_response = paystackData;
         await payment.save();
 
-        res.json({
-          success: true,
-          payment: {
-            id: payment.id,
-            amount: payment.amount,
-            status: payment.status,
-            paid_at: paystackData.paid_at,
-            message: 'Payment verified successfully'
+        // Activate the subscription if this payment is linked to one
+        try {
+          const subscriptionId = payment.metadata?.subscription_id;
+          if (subscriptionId) {
+            const { markSubscriptionFromPayment } = await import('./subscriptionController.js');
+            await markSubscriptionFromPayment(reference, paystackData);
           }
+        } catch (subErr) {
+          console.error('Subscription activation error after payment verify:', subErr.message);
+        }
+
+        const params = new URLSearchParams({
+          status: 'success',
+          reference: payment.id,
+          amount: String(payment.amount),
+          currency: payment.currency || 'ZAR',
+          type: payment.payment_type || 'payment',
         });
+        const subscriptionId = payment.metadata?.subscription_id;
+        if (subscriptionId) params.set('subscriptionId', subscriptionId);
+
+        return res.redirect(`${clientUrl}/payment/callback?${params.toString()}`);
       } else {
         payment.status = 'failed';
         payment.gateway_response = paystackData;
         await payment.save();
 
-        res.json({
-          success: false,
-          payment: {
-            id: payment.id,
-            amount: payment.amount,
-            status: payment.status,
-            message: 'Payment verification failed'
-          }
+        const params = new URLSearchParams({
+          status: 'failed',
+          reference: payment.id,
+          type: payment.payment_type || 'payment',
         });
+        return res.redirect(`${clientUrl}/payment/callback?${params.toString()}`);
       }
     } catch (paystackError) {
       console.error('Paystack Verification Error:', paystackError.response?.data || paystackError.message);
-      
+
       payment.status = 'failed';
       payment.gateway_response = { error: paystackError.response?.data || paystackError.message };
       await payment.save();
 
-      return res.status(500).json({
-        error: 'Payment verification failed',
-        message: paystackError.response?.data?.message || 'Unable to verify payment'
-      });
+      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5174';
+      return res.redirect(`${clientUrl}/payment/callback?status=failed&reference=${payment.id}&type=${payment.payment_type || 'payment'}`);
     }
   } catch (error) {
     console.error('Payment Verification Error:', error);
-    res.status(500).json({
-      error: 'Failed to verify payment',
-      message: error.message
-    });
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5174';
+    return res.redirect(`${clientUrl}/payment/callback?status=failed&error=${encodeURIComponent(error.message)}`);
   }
 };
 
