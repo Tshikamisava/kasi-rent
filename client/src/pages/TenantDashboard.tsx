@@ -51,10 +51,11 @@ const TenantDashboard = () => {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card 
               ref={card1Ref}
-              className={`hover:shadow-lg transition-all ${
+              className={`hover:shadow-lg transition-all cursor-pointer ${
                 card1Visible ? 'animate-in fade-in slide-in-from-bottom-4' : 'opacity-0'
               }`}
               style={{ animationDelay: '0ms', animationFillMode: 'both' }}
+              onClick={() => navigate('/properties')}
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Browse Properties</CardTitle>
@@ -68,10 +69,11 @@ const TenantDashboard = () => {
 
             <Card 
               ref={card2Ref}
-              className={`hover:shadow-lg transition-all ${
+              className={`hover:shadow-lg transition-all cursor-pointer ${
                 card2Visible ? 'animate-in fade-in slide-in-from-bottom-4' : 'opacity-0'
               }`}
               style={{ animationDelay: '100ms', animationFillMode: 'both' }}
+              onClick={() => navigate('/bookings')}
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">My Bookings</CardTitle>
@@ -85,10 +87,11 @@ const TenantDashboard = () => {
 
             <Card 
               ref={card3Ref}
-              className={`hover:shadow-lg transition-all ${
+              className={`hover:shadow-lg transition-all cursor-pointer ${
                 card3Visible ? 'animate-in fade-in slide-in-from-bottom-4' : 'opacity-0'
               }`}
               style={{ animationDelay: '200ms', animationFillMode: 'both' }}
+              onClick={() => navigate('/chat')}
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Messages</CardTitle>
@@ -102,10 +105,11 @@ const TenantDashboard = () => {
 
             <Card 
               ref={card4Ref}
-              className={`hover:shadow-lg transition-all ${
+              className={`hover:shadow-lg transition-all cursor-pointer ${
                 card4Visible ? 'animate-in fade-in slide-in-from-bottom-4' : 'opacity-0'
               }`}
               style={{ animationDelay: '300ms', animationFillMode: 'both' }}
+              onClick={() => navigate('/bookings')}
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Applications</CardTitle>
@@ -125,15 +129,15 @@ const TenantDashboard = () => {
                 <CardDescription>Get started with your rental search</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full justify-start" variant="outline">
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/search')}>
                   <Search className="mr-2 h-4 w-4" />
                   Search Properties
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/favorites')}>
                   <Home className="mr-2 h-4 w-4" />
                   View Saved Properties
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/chat')}>
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Contact Support
                 </Button>
@@ -154,7 +158,7 @@ const TenantDashboard = () => {
                   <p className="text-sm font-medium text-muted-foreground">Account Type</p>
                   <p className="text-sm">Tenant</p>
                 </div>
-                <Button variant="outline" className="w-full">Edit Profile</Button>
+                <Button variant="outline" className="w-full" onClick={() => navigate('/profile')}>Edit Profile</Button>
               </CardContent>
             </Card>
           </div>

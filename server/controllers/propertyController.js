@@ -1,6 +1,7 @@
 import Property from '../models/Property.js';
 import { Op } from 'sequelize';
 import User from '../models/User.js';
+import Subscription from '../models/Subscription.js';
 import { geocodeAddress } from '../utils/geocoding.js';
 
 let cachedPropertyColumns = null;
@@ -89,7 +90,21 @@ export const getProperties = async (req, res) => {
       properties = await Property.findAll(fallbackOptions);
     }
 
-    res.json(properties);
+    // Mark boosted properties (landlords with active subscriptions) and sort them first
+    let result = properties.map(p => (p.toJSON ? p.toJSON() : p));
+    try {
+      const activeSubs = await Subscription.findAll({
+        where: { status: 'active' },
+        attributes: ['user_id'],
+      });
+      const boostedIds = new Set(activeSubs.map(s => s.user_id));
+      result = result.map(p => ({ ...p, is_boosted: boostedIds.has(p.landlord_id) }));
+      result.sort((a, b) => (b.is_boosted ? 1 : 0) - (a.is_boosted ? 1 : 0));
+    } catch (boostErr) {
+      console.warn('Boost lookup failed, returning unordered results:', boostErr.message);
+    }
+
+    res.json(result);
   } catch (error) {
     console.error('Get properties error:', error);
     res.status(500).json({ message: error.message });

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, BedDouble, Bath, Search, Building2, ArrowLeft } from "lucide-react";
+import { MapPin, BedDouble, Bath, Search, Building2, ArrowLeft, Star } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { PropertyDetailModal } from "@/components/PropertyDetailModal";
@@ -97,7 +97,7 @@ const Properties = () => {
     }
 
     return matchesSearch && matchesType && matchesPrice;
-  });
+  }).sort((a, b) => (b.is_boosted ? 1 : 0) - (a.is_boosted ? 1 : 0));
 
   return (
     <div className="min-h-screen">
@@ -192,7 +192,7 @@ const Properties = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredProperties.map((property) => (
-                <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-shadow">
+                <Card key={property.id} className={`overflow-hidden hover:shadow-xl transition-shadow ${property.is_boosted ? 'ring-2 ring-amber-400' : ''}`}>
                   {property.image_url ? (
                     <div className="h-48 overflow-hidden relative">
                       <img 
@@ -212,10 +212,23 @@ const Properties = () => {
                           className="bg-white/90 hover:bg-white shadow-md"
                         />
                       </div>
+                      {/* Featured badge on image */}
+                      {property.is_boosted && (
+                        <div className="absolute top-2 left-2 flex items-center gap-1 bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded-full shadow">
+                          <Star className="w-3 h-3 fill-amber-900" />
+                          Featured
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                    <div className="h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center relative">
                       <Building2 className="w-20 h-20 text-primary/40" />
+                      {property.is_boosted && (
+                        <div className="absolute top-2 left-2 flex items-center gap-1 bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded-full shadow">
+                          <Star className="w-3 h-3 fill-amber-900" />
+                          Featured
+                        </div>
+                      )}
                     </div>
                   )}
                   <CardHeader>
