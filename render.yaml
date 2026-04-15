@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: kasi-rent-server
+    runtime: node
+    rootDir: server
+    buildCommand: rm -rf node_modules && npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
