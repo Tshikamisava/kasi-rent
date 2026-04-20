@@ -31,11 +31,8 @@ export default defineConfig({
         manualChunks(id) {
           // Vendor chunks
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
               return 'react-vendor';
-            }
-            if (id.includes('react-router')) {
-              return 'router-vendor';
             }
             if (id.includes('lucide-react')) {
               return 'ui-vendor';
