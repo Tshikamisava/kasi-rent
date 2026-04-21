@@ -3,6 +3,7 @@
   "outputDirectory": "dist",
   "installCommand": "npm install --legacy-peer-deps",
   "framework": "vite",
+  "rootDirectory": "client",
   "rewrites": [
     {
       "source": "/(.*)",
