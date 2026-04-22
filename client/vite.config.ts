@@ -9,6 +9,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    dedupe: ['react', 'react-dom', 'react-router', 'react-router-dom'],
   },
   server: {
     port: 5174,
@@ -27,40 +28,6 @@ export default defineConfig({
             return `assets/images/[name]-[hash][extname]`;
           }
           return `assets/[name]-[hash][extname]`;
-        },
-        manualChunks(id) {
-          // Vendor chunks
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'react-vendor';
-            }
-            if (id.includes('lucide-react')) {
-              return 'ui-vendor';
-            }
-            if (id.includes('zustand')) {
-              return 'state-vendor';
-            }
-            if (id.includes('clsx') || id.includes('tailwind-merge')) {
-              return 'utils-vendor';
-            }
-            // Other vendor packages
-            return 'vendor';
-          }
-          
-          // Feature-based chunks
-          if (id.includes('/pages/SignIn') || id.includes('/pages/GetStarted') || 
-              id.includes('/hooks/use-auth') || id.includes('/lib/auth')) {
-            return 'auth-components';
-          }
-          
-          if (id.includes('/pages/TenantDashboard') || id.includes('/pages/LandlordDashboard') || 
-              id.includes('/components/PropertyForm')) {
-            return 'dashboard-components';
-          }
-          
-          if (id.includes('/components/ui/')) {
-            return 'ui-components';
-          }
         }
       }
     }
