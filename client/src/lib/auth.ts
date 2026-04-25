@@ -1,5 +1,6 @@
 // MySQL-based authentication (no Supabase)
-const API_URL = 'http://localhost:5001/api/auth';
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5001').replace(/\/$/, '');
+const API_URL = `${API_BASE}/api/auth`;
 
 interface LoginData {
   email: string;
@@ -236,7 +237,7 @@ export const register = async (email: string, password: string, name: string, ph
 // Reset password - sends email with reset link (MySQL backend)
 export const resetPassword = async (email: string) => {
   try {
-    const response = await fetch('http://localhost:5001/api/users/forgot-password', {
+    const response = await fetch(`${API_BASE}/api/users/forgot-password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -259,7 +260,7 @@ export const resetPassword = async (email: string) => {
 // Update password - called after user clicks reset link (MySQL backend)
 export const updatePassword = async (token: string, newPassword: string) => {
   try {
-    const response = await fetch('http://localhost:5001/api/users/reset-password', {
+    const response = await fetch(`${API_BASE}/api/users/reset-password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
