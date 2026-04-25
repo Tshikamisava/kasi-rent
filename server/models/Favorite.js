@@ -8,11 +8,11 @@ const Favorite = sequelize.define('Favorite', {
     primaryKey: true
   },
   user_id: {
-    type: DataTypes.CHAR(36),
+    type: DataTypes.UUID,
     allowNull: false
   },
   property_id: {
-    type: DataTypes.CHAR(36),
+    type: DataTypes.UUID,
     allowNull: false
   }
 }, {
