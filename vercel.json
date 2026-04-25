@@ -1,23 +1,23 @@
 {
-    "buildCommand":  "npm run build",
-    "outputDirectory":  "dist",
-    "installCommand":  "npm install --legacy-peer-deps --include=dev; chmod +x node_modules/.bin/vite",
-    "framework":  "vite",
-    "rewrites":  [
-                     {
-                         "source":  "/(.*)",
-                         "destination":  "/index.html"
-                     }
-                 ],
-    "headers":  [
-                    {
-                        "source":  "/(.*)",
-                        "headers":  [
-                                        {
-                                            "key":  "Cache-Control",
-                                            "value":  "public, max-age=0, must-revalidate"
-                                        }
-                                    ]
-                    }
-                ]
+    "buildCommand": "cd client && npm run build",
+    "outputDirectory": "client/dist",
+    "installCommand": "cd client && npm install --include=dev",
+    "framework": "vite",
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ],
+    "headers": [
+        {
+            "source": "/(.*)",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=0, must-revalidate"
+                }
+            ]
+        }
+    ]
 }
