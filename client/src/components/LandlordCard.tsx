@@ -50,9 +50,9 @@ export const LandlordCard = () => {
   };
 
   return (
-    <section className="py-12">
+    <section className="py-10 sm:py-12">
       <div className="container mx-auto px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto w-full bg-card rounded-2xl p-4 sm:p-6 md:p-8 shadow-md border border-border flex flex-col md:flex-row items-stretch md:items-center gap-4 md:gap-6">
+        <div className="max-w-4xl mx-auto w-full bg-card rounded-2xl p-4 sm:p-6 md:p-8 shadow-md border border-border flex flex-col md:flex-row items-stretch md:items-center gap-4 md:gap-6 overflow-hidden">
           <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white shrink-0 mx-auto md:mx-0">
             <Building2 className="w-6 h-6 md:w-8 md:h-8" />
           </div>

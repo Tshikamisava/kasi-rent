@@ -65,7 +65,7 @@ export const Hero = () => {
   };
 
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[100svh] sm:min-h-[90vh] flex items-center justify-center overflow-hidden pt-20 sm:pt-24">
       {/* Background Image Carousel */}
       {heroSlides.map((slide, index) => (
         <div
@@ -91,7 +91,7 @@ export const Hero = () => {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNnoiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLW9wYWNpdHk9Ii4xIi8+PC9nPjwvc3ZnPg==')] opacity-10" />
       
       {/* Slide Indicators */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
+      <div className="absolute bottom-6 sm:bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
         {heroSlides.map((_, index) => (
           <button
             key={index}
@@ -106,50 +106,50 @@ export const Hero = () => {
         ))}
       </div>
       
-      <div className="container mx-auto px-6 relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <div className="max-w-4xl mx-auto text-center text-white">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl leading-tight font-bold mb-4 sm:mb-6 animate-fade-in break-words">
             Welcome to <span className="text-white drop-shadow-lg">KasiRent</span>
           </h1>
-          <p className="text-xl md:text-2xl mb-8 text-white/90 animate-fade-in">
+          <p className="text-base sm:text-xl md:text-2xl mb-6 sm:mb-8 text-white/90 animate-fade-in max-w-2xl mx-auto px-2 sm:px-0">
             South Africa's most trusted digital rental platform connecting tenants and landlords directly - no agents needed
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
-            <Link to="/properties">
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-6 bg-white text-primary hover:bg-white/90">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center animate-fade-in w-full max-w-md sm:max-w-none mx-auto">
+            <Link to="/properties" className="w-full sm:w-auto">
+              <Button size="lg" variant="secondary" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 bg-white text-primary hover:bg-white/90 whitespace-normal text-center">
                 Find a Property
               </Button>
             </Link>
-            <Link to="/get-started">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white/10">
+            <Link to="/get-started" className="w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 border-2 border-white text-white hover:bg-white/10 whitespace-normal text-center">
                 List Your Property
               </Button>
             </Link>
           </div>
 
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          <div className="mt-10 sm:mt-16 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 max-w-3xl mx-auto px-2 sm:px-0">
             <button
               type="button"
               onClick={() => navigate('/properties')}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/properties'); }}
-              className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all text-left cursor-pointer"
+              className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-white/20 hover:bg-white/20 transition-all text-center md:text-left cursor-pointer"
               aria-label="For Tenants - Find verified properties"
             >
-              <Home className="w-12 h-12 mb-4 mx-auto" />
-              <h3 className="text-xl font-semibold mb-2">For Tenants</h3>
-              <p className="text-white/80">Find verified properties, book securely, and pay safely without agent fees</p>
+              <Home className="w-10 h-10 sm:w-12 sm:h-12 mb-4 mx-auto md:mx-0" />
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">For Tenants</h3>
+              <p className="text-sm sm:text-base text-white/80 leading-relaxed">Find verified properties, book securely, and pay safely without agent fees</p>
             </button>
 
             <button
               type="button"
               onClick={handleLandlordClick}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleLandlordClick(); }}
-              className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all text-left cursor-pointer"
+              className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-white/20 hover:bg-white/20 transition-all text-center md:text-left cursor-pointer"
               aria-label="For Landlords - List properties"
             >
-              <Building2 className="w-12 h-12 mb-4 mx-auto" />
-              <h3 className="text-xl font-semibold mb-2">For Landlords</h3>
-              <p className="text-white/80">List properties, connect directly with tenants, and receive payments instantly</p>
+              <Building2 className="w-10 h-10 sm:w-12 sm:h-12 mb-4 mx-auto md:mx-0" />
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">For Landlords</h3>
+              <p className="text-sm sm:text-base text-white/80 leading-relaxed">List properties, connect directly with tenants, and receive payments instantly</p>
             </button>
           </div>
         </div>
