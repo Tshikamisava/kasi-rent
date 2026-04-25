@@ -9,6 +9,16 @@ Required env vars (set these in Render -> Your Service -> Environment):
 - REDIS_URL (required for socket scaling)
 - DB_POOL_MAX, DB_POOL_MIN, DB_POOL_ACQUIRE, DB_POOL_IDLE
 
+CORS env vars (recommended)
+- `CLIENT_URL`: your primary frontend URL (e.g., `https://kasi-rent.vercel.app`)
+- `CORS_ALLOWED_ORIGINS`: comma-separated extra allowed origins (e.g., preview/custom domains)
+- `CORS_ALLOW_VERCEL_PREVIEWS`: set to `true` to allow `https://*.vercel.app` preview URLs
+
+Example:
+- `CLIENT_URL=https://kasi-rent.vercel.app`
+- `CORS_ALLOWED_ORIGINS=https://kasi-rent-seven.vercel.app`
+- `CORS_ALLOW_VERCEL_PREVIEWS=true`
+
 Install runtime deps (already applied locally):
 ```bash
 cd server

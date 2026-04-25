@@ -42,16 +42,38 @@ if (!process.env.JWT_SECRET) {
   console.warn('Set JWT_SECRET in your server/.env to a consistent value to avoid "invalid signature" errors across environments.');
 }
 
-// Configure CORS to allow the frontend origin from env or localhost fallbacks
-const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'].filter(Boolean);
+// Configure CORS to allow frontend origins from env, with localhost fallbacks.
+// Supported env vars:
+// - CLIENT_URL: single URL (existing behavior)
+// - CORS_ALLOWED_ORIGINS: comma-separated origins
+// - CORS_ALLOW_VERCEL_PREVIEWS: true/false (allow *.vercel.app)
+const corsAllowedOrigins = [
+  ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
+  ...(process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+];
+
+const allowVercelPreviews = String(process.env.CORS_ALLOW_VERCEL_PREVIEWS || '').toLowerCase() === 'true';
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // allow non-browser clients (curl, mobile apps, server-to-server)
+  if (corsAllowedOrigins.includes(origin)) return true;
+  if (allowVercelPreviews && /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return true;
+  return false;
+};
+
 app.use(cors({
   origin: (origin, callback) => {
-    // allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
-    return callback(new Error('CORS policy: This origin is not allowed'));
+    return callback(new Error(`CORS policy: This origin is not allowed (${origin})`));
   },
   credentials: true
 }));
