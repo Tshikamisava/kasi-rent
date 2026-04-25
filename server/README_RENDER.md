@@ -9,6 +9,13 @@ Required env vars (set these in Render -> Your Service -> Environment):
 - REDIS_URL (required for socket scaling)
 - DB_POOL_MAX, DB_POOL_MIN, DB_POOL_ACQUIRE, DB_POOL_IDLE
 
+Database bootstrap / schema sync
+- If `DATABASE_URL` is set (Render Postgres), the app now auto-runs `sequelize.sync({ alter: true })` on startup by default.
+- This prevents first-boot errors like `relation "properties" does not exist`.
+- Optional override:
+  - `SEQ_SYNC=true` force-enable sync
+  - `SEQ_SYNC=false` disable sync
+
 CORS env vars (recommended)
 - `CLIENT_URL`: your primary frontend URL (e.g., `https://kasi-rent.vercel.app`)
 - `CORS_ALLOWED_ORIGINS`: comma-separated extra allowed origins (e.g., preview/custom domains)

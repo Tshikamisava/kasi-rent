@@ -75,19 +75,29 @@ const connectDB = async () => {
     try {
       await sequelize.authenticate();
       console.log('✅ Database connected successfully');
-      // Optionally sync model changes to DB. By default we enable sync in
-      // non-production environments unless explicitly disabled via SEQ_SYNC=false.
-      // WARNING: This will ALTER your tables to match the models. Use with care.
-      const shouldSync = (process.env.SEQ_SYNC === 'true') ||
-        (typeof process.env.SEQ_SYNC === 'undefined' && process.env.NODE_ENV !== 'production');
+      // Optionally sync model changes to DB.
+      // Defaults:
+      // - non-production: enabled
+      // - production + DATABASE_URL (e.g. Render Postgres): enabled
+      //   This prevents first-boot "relation does not exist" failures when
+      //   schema has not been created yet.
+      // Override with:
+      // - SEQ_SYNC=true  -> force enable
+      // - SEQ_SYNC=false -> force disable
+      // WARNING: This uses ALTER to match models. Use with care.
+      const seqSyncValue = process.env.SEQ_SYNC;
+      const shouldSync = seqSyncValue === 'true' ||
+        (typeof seqSyncValue === 'undefined' && (process.env.NODE_ENV !== 'production' || useDatabaseUrl));
       if (shouldSync) {
         try {
-          console.log('🔁 SEQ_SYNC enabled: running sequelize.sync({ alter: true }) to update schema');
+          console.log('🔁 Running sequelize.sync({ alter: true }) to ensure schema is up to date');
           await sequelize.sync({ alter: true });
           console.log('✅ Database schema synced (alter applied)');
         } catch (syncErr) {
           console.error('❌ sequelize.sync failed:', syncErr.message);
         }
+      } else {
+        console.log('ℹ️ Schema sync skipped (set SEQ_SYNC=true to force, SEQ_SYNC=false to disable)');
       }
       console.log('✅ Database ready');
       return;
