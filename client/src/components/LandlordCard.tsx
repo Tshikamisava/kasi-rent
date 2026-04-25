@@ -51,17 +51,17 @@ export const LandlordCard = () => {
 
   return (
     <section className="py-12">
-      <div className="container mx-auto px-6">
-        <div className="max-w-4xl mx-auto bg-card rounded-2xl p-8 shadow-md border border-border flex items-center gap-6">
-          <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white">
-            <Building2 className="w-8 h-8" />
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto bg-card rounded-2xl p-4 sm:p-8 shadow-md border border-border flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+          <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white shrink-0">
+            <Building2 className="w-6 h-6 sm:w-8 sm:h-8" />
           </div>
-          <div className="flex-1">
-            <h3 className="text-2xl font-bold">Are you a landlord?</h3>
-            <p className="text-muted-foreground">List and manage properties, view applications, and connect with tenants on KasiRent.</p>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-xl sm:text-2xl font-bold">Are you a landlord?</h3>
+            <p className="text-sm sm:text-base text-muted-foreground">List and manage properties, view applications, and connect with tenants on KasiRent.</p>
           </div>
-          <div>
-            <Button onClick={handleClick} size="lg">Go to Dashboard</Button>
+          <div className="w-full sm:w-auto">
+            <Button onClick={handleClick} size="lg" className="w-full sm:w-auto">Go to Dashboard</Button>
           </div>
         </div>
       </div>
