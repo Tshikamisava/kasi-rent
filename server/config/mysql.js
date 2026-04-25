@@ -89,12 +89,39 @@ const connectDB = async () => {
       const shouldSync = seqSyncValue === 'true' ||
         (typeof seqSyncValue === 'undefined' && (process.env.NODE_ENV !== 'production' || useDatabaseUrl));
       if (shouldSync) {
+        let globalSyncSucceeded = false;
         try {
           console.log('🔁 Running sequelize.sync({ alter: true }) to ensure schema is up to date');
           await sequelize.sync({ alter: true });
+          globalSyncSucceeded = true;
           console.log('✅ Database schema synced (alter applied)');
         } catch (syncErr) {
           console.error('❌ sequelize.sync failed:', syncErr.message);
+        }
+
+        try {
+          const models = await import('../models/index.js');
+          const criticalModels = [
+            models.User,
+            models.Property,
+            models.Booking,
+            models.Favorite,
+            models.Subscription,
+            models.Review,
+          ].filter((model) => model && typeof model.sync === 'function');
+
+          if (!globalSyncSucceeded) {
+            console.log('🩹 Global sync was partial/failed, ensuring critical tables exist with per-model sync()');
+          } else {
+            console.log('🔎 Ensuring critical tables exist after global sync');
+          }
+
+          for (const model of criticalModels) {
+            await model.sync();
+            console.log(`✅ Ensured table exists for model: ${model.name}`);
+          }
+        } catch (modelSyncErr) {
+          console.error('❌ Per-model sync fallback failed:', modelSyncErr.message);
         }
       } else {
         console.log('ℹ️ Schema sync skipped (set SEQ_SYNC=true to force, SEQ_SYNC=false to disable)');
