@@ -52,16 +52,16 @@ export const LandlordCard = () => {
   return (
     <section className="py-12">
       <div className="container mx-auto px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto bg-card rounded-2xl p-4 sm:p-8 shadow-md border border-border flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-          <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white shrink-0">
-            <Building2 className="w-6 h-6 sm:w-8 sm:h-8" />
+        <div className="max-w-4xl mx-auto w-full bg-card rounded-2xl p-4 sm:p-6 md:p-8 shadow-md border border-border flex flex-col md:flex-row items-stretch md:items-center gap-4 md:gap-6">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white shrink-0 mx-auto md:mx-0">
+            <Building2 className="w-6 h-6 md:w-8 md:h-8" />
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-xl sm:text-2xl font-bold">Are you a landlord?</h3>
-            <p className="text-sm sm:text-base text-muted-foreground">List and manage properties, view applications, and connect with tenants on KasiRent.</p>
+          <div className="flex-1 min-w-0 text-center md:text-left">
+            <h3 className="text-xl sm:text-2xl font-bold leading-tight">Are you a landlord?</h3>
+            <p className="mt-2 text-sm sm:text-base leading-relaxed text-muted-foreground break-words">List and manage properties, view applications, and connect with tenants on KasiRent.</p>
           </div>
-          <div className="w-full sm:w-auto">
-            <Button onClick={handleClick} size="lg" className="w-full sm:w-auto">Go to Dashboard</Button>
+          <div className="w-full md:w-auto md:self-center">
+            <Button onClick={handleClick} size="lg" className="w-full md:w-auto px-6">Go to Dashboard</Button>
           </div>
         </div>
       </div>
