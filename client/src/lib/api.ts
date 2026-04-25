@@ -1,13 +1,12 @@
 import { useAuth } from "@/hooks/use-auth";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+import { API_BASE_URL } from "@/lib/apiBase";
 
 export type ApiOptions = RequestInit & { absolute?: boolean };
 
 export async function apiFetch(path: string, opts: ApiOptions = {}) {
   const { absolute = false, ...init } = opts;
 
-  const url = absolute ? path : `${API_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+  const url = absolute ? path : `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
 
   // Prefer token from zustand store, fall back to localStorage
   const state = useAuth.getState();

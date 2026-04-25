@@ -3,10 +3,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { connectSocket, getSocket } from '@/lib/socket';
 import { apiFetch } from '@/lib/api';
+import { API_BASE_URL } from '@/lib/apiBase';
 import { Smile, Paperclip, Mic, Send, X, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 // Use centralized apiFetch helper which injects JWT and handles 401
 const api = async (path: string, _tokenOrUnused?: string, options: any = {}) => {
@@ -161,7 +160,7 @@ const Chat = () => {
   const resolveAttachmentUrl = (url?: string) => {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+    return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
   const uploadChatAttachment = async (file: File) => {

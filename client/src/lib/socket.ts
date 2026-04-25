@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '@/lib/apiBase';
+
 let socket = null;
 
 export async function connectSocket(token: string) {
@@ -6,7 +8,7 @@ export async function connectSocket(token: string) {
   try {
     const mod = await import('socket.io-client');
     const io = mod.io || mod.default?.io || mod;
-    socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5001', {
+    socket = io(API_BASE_URL, {
       auth: { token },
       transports: ['websocket'],
     });
