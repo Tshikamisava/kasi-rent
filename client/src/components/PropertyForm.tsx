@@ -206,6 +206,13 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
     }
   };
 
+  const toStoredImageUrl = (url: string) => {
+    if (!url) return url;
+    if (/^(https?:)?\/\//i.test(url) || url.startsWith('data:')) return url;
+    const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
+    return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
   const analyzeFraud = async () => {
     setAnalyzing(true);
     try {
@@ -454,8 +461,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
               }
 
               // Construct full URL
-              const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-              const fullUrl = `${API_BASE}${data.imageUrl}`;
+              const fullUrl = toStoredImageUrl(data.imageUrl);
               uploadedUrls.push(fullUrl);
               console.log(`Successfully uploaded: ${fullUrl}`);
 

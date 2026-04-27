@@ -2,6 +2,7 @@ import express from 'express';
 import { upload, compressImage } from '../config/upload.js';
 import { docUpload, finalizeDocument } from '../config/docUpload.js';
 import { videoUpload } from '../config/videoUpload.js';
+import { isCloudinaryConfigured, uploadPropertyImageToCloudinary } from '../config/cloudinary.js';
 import { protect } from '../middleware/authMiddleware.js';
 import multer from 'multer';
 import path from 'path';
@@ -112,10 +113,20 @@ router.post('/single', upload.single('image'), async (req, res) => {
     // Compress and optimize the image
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const filename = 'property-' + uniqueSuffix + '.jpg';
-    
-    await compressImage(req.file.path, filename);
+    const compressedPath = await compressImage(req.file.path, filename);
 
-    const imageUrl = `/uploads/properties/${filename}`;
+    let imageUrl = `/uploads/properties/${filename}`;
+    if (isCloudinaryConfigured) {
+      const uploaded = await uploadPropertyImageToCloudinary(compressedPath, 'property');
+      imageUrl = uploaded.secure_url;
+
+      // Best-effort cleanup of local file after successful cloud upload
+      try {
+        if (fs.existsSync(compressedPath)) fs.unlinkSync(compressedPath);
+      } catch (cleanupError) {
+        console.warn('Failed to cleanup local compressed upload:', cleanupError.message);
+      }
+    }
     
     res.json({
       success: true,
@@ -151,10 +162,23 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
     for (const file of req.files) {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
       const filename = 'property-' + uniqueSuffix + '.jpg';
-      
-      await compressImage(file.path, filename);
-      
-      imageUrls.push(`/uploads/properties/${filename}`);
+
+      const compressedPath = await compressImage(file.path, filename);
+      let imageUrl = `/uploads/properties/${filename}`;
+
+      if (isCloudinaryConfigured) {
+        const uploaded = await uploadPropertyImageToCloudinary(compressedPath, 'property');
+        imageUrl = uploaded.secure_url;
+
+        // Best-effort cleanup of local file after successful cloud upload
+        try {
+          if (fs.existsSync(compressedPath)) fs.unlinkSync(compressedPath);
+        } catch (cleanupError) {
+          console.warn('Failed to cleanup local compressed upload:', cleanupError.message);
+        }
+      }
+
+      imageUrls.push(imageUrl);
       compressedFiles.push({
         filename: filename,
         originalSize: file.size,
