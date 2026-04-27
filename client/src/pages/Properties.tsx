@@ -14,6 +14,8 @@ import { FavoriteButton } from "@/components/FavoriteButton";
 import PropertyMap from "@/components/PropertyMap";
 import { apiFetch } from '@/lib/api';
 import { formatRand } from '@/lib/currency';
+import { getFullImageUrl } from "@/lib/utils";
+import placeholder from '@/assets/property-placeholder.png';
 
 const Properties = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -98,6 +100,14 @@ const Properties = () => {
 
     return matchesSearch && matchesType && matchesPrice;
   }).sort((a, b) => (b.is_boosted ? 1 : 0) - (a.is_boosted ? 1 : 0));
+
+  const getPropertyCardImage = (property: any) => {
+    const firstImage = Array.isArray(property?.images) && property.images.length > 0
+      ? property.images[0]
+      : null;
+    const source = firstImage || property?.image_url || null;
+    return source ? getFullImageUrl(source) : null;
+  };
 
   return (
     <div className="min-h-screen">
@@ -193,15 +203,16 @@ const Properties = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredProperties.map((property) => (
                 <Card key={property.id} className={`overflow-hidden hover:shadow-xl transition-shadow ${property.is_boosted ? 'ring-2 ring-amber-400' : ''}`}>
-                  {property.image_url ? (
+                  {getPropertyCardImage(property) ? (
                     <div className="h-48 overflow-hidden relative">
                       <img 
-                        src={property.image_url} 
+                        src={getPropertyCardImage(property) || placeholder}
                         alt={property.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.src = '/property-placeholder.png';
+                          target.onerror = null;
+                          target.src = placeholder;
                         }}
                       />
                       {/* Favorite Button */}

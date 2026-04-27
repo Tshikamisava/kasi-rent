@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import MapPicker from "./MapPicker";
+import { getFullImageUrl } from "@/lib/utils";
+import placeholder from "@/assets/property-placeholder.png";
 
 type Prop = {
   id: number | string;
@@ -220,6 +222,14 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
     return R * c;
   };
 
+  const getPropertyThumb = (property: any) => {
+    const firstImage = Array.isArray(property?.images) && property.images.length > 0
+      ? property.images[0]
+      : null;
+    const source = firstImage || property?.image_url || null;
+    return source ? getFullImageUrl(source) : placeholder;
+  };
+
   return (
     <div className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 relative">
@@ -438,7 +448,7 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
             if (meters >= 1000) distanceText = `${(meters/1000).toFixed(1)} km`;
             else distanceText = `${Math.round(meters)} m`;
           }
-          const thumb = (p as any).image_url || ((p as any).images && (p as any).images[0]) || '/property-placeholder.png';
+          const thumb = getPropertyThumb(p);
           return (
             <button
               key={String(p.id)}
@@ -453,7 +463,16 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
               }}
               className="w-full text-left p-3 rounded-lg bg-card hover:shadow flex gap-3 items-center"
             >
-              <img src={thumb} alt={p.title} className="w-16 h-12 rounded object-cover flex-shrink-0" />
+              <img
+                src={thumb}
+                alt={p.title}
+                className="w-16 h-12 rounded object-cover flex-shrink-0"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = placeholder;
+                }}
+              />
               <div className="flex-1">
                 <div className="font-medium">{p.title || locStr}</div>
                 <div className="text-sm text-muted-foreground">{locStr}</div>
