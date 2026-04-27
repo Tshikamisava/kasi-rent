@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import session from "express-session";
 import * as connectRedisModule from 'connect-redis';
@@ -111,7 +112,36 @@ app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 
 // Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const uploadsRoot = path.join(__dirname, 'uploads');
+const propertiesUploadsDir = path.join(uploadsRoot, 'properties');
+const placeholderUploadImage = path.join(uploadsRoot, 'property-placeholder.svg');
+
+if (!fs.existsSync(placeholderUploadImage)) {
+  fs.writeFileSync(
+    placeholderUploadImage,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-label="Property image placeholder"><defs><linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="#f8fafc"/><stop offset="100%" stop-color="#e2e8f0"/></linearGradient></defs><rect width="1200" height="800" fill="url(#bg)"/><g fill="#94a3b8"><path d="M220 560l180-210 120 120 160-190 300 280v120H220z" opacity=".4"/><circle cx="410" cy="330" r="48" opacity=".55"/></g><text x="50%" y="72%" text-anchor="middle" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="38">Property image unavailable</text></svg>`
+  );
+}
+
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
+
+// Return image placeholder for missing property images instead of HTML 404
+app.get('/uploads/properties/:filename', (req, res) => {
+  const safeFilename = path.basename(req.params.filename || '');
+  const requestedImage = path.join(propertiesUploadsDir, safeFilename);
+
+  if (safeFilename && fs.existsSync(requestedImage)) {
+    return res.sendFile(requestedImage);
+  }
+
+  return res.sendFile(placeholderUploadImage);
+});
+
+app.use('/uploads', express.static(uploadsRoot));
 
 app.use("/api/properties", propertyRoutes);
 app.use("/api/marketplace", marketplaceRoutes);
