@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getFullImageUrl } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { formatRand } from '@/lib/currency';
+import placeholder from '@/assets/property-placeholder.png';
 
 const Marketplace = () => {
   const { user } = useAuth();
@@ -28,6 +29,14 @@ const Marketplace = () => {
 
     fetchListings();
   }, []);
+
+  const getListingImage = (listing: any) => {
+    const firstImage = Array.isArray(listing?.images) && listing.images.length > 0
+      ? listing.images[0]
+      : null;
+    const source = firstImage || listing?.image || listing?.image_url || null;
+    return source ? getFullImageUrl(source) : placeholder;
+  };
 
   const handleSubscribe = async (listing: any) => {
     if (!user) {
@@ -104,7 +113,16 @@ const Marketplace = () => {
             listings.map((l) => (
               <div key={l.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
                 <div className="h-48 w-full relative">
-                  <img src={getFullImageUrl(l.image || l.image_url || '')} alt={l.title} className="w-full h-full object-cover" />
+                  <img
+                    src={getListingImage(l)}
+                    alt={l.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = placeholder;
+                    }}
+                  />
                 </div>
                 <div className="p-4">
                   <div className="flex items-center justify-between">

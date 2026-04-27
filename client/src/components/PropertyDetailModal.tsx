@@ -45,12 +45,17 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
   const [submitting, setSubmitting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Get all images from the property
-  const propertyImages = property?.images && Array.isArray(property.images) && property.images.length > 0
-    ? property.images
-    : property?.image_url
-    ? [property.image_url]
-    : [];
+  // Get all images from the property (normalized with fallback sources)
+  const propertyImages = [
+    ...(Array.isArray(property?.images) ? property.images : []),
+    property?.image_url,
+  ]
+    .filter((img): img is string => typeof img === "string" && img.trim().length > 0)
+    .map((img) => img.trim());
+
+  const activeImageIndex = propertyImages.length > 0
+    ? Math.min(currentImageIndex, propertyImages.length - 1)
+    : 0;
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % propertyImages.length);
@@ -70,6 +75,17 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
       fetchLandlordInfo();
     }
   }, [open, property]);
+
+  useEffect(() => {
+    if (!open) return;
+    setCurrentImageIndex(0);
+  }, [open, property?.id]);
+
+  useEffect(() => {
+    if (currentImageIndex >= propertyImages.length && propertyImages.length > 0) {
+      setCurrentImageIndex(0);
+    }
+  }, [currentImageIndex, propertyImages.length]);
 
   const fetchLandlordInfo = async () => {
     try {
@@ -326,8 +342,8 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
             <div className="relative">
               <div className="h-64 md:h-96 lg:h-[600px] w-full rounded-lg overflow-hidden">
                 <img
-                  src={getFullImageUrl(propertyImages[currentImageIndex])}
-                  alt={`${property.title} - Image ${currentImageIndex + 1}`}
+                  src={getFullImageUrl(propertyImages[activeImageIndex])}
+                  alt={`${property.title} - Image ${activeImageIndex + 1}`}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -358,7 +374,7 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                   
                   {/* Image Counter */}
                   <div className="absolute bottom-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
-                    {currentImageIndex + 1} / {propertyImages.length}
+                    {activeImageIndex + 1} / {propertyImages.length}
                   </div>
                 </>
               )}
@@ -371,7 +387,7 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
                       className={`flex-shrink-0 h-20 w-28 rounded overflow-hidden border-2 transition-all ${
-                        index === currentImageIndex
+                        index === activeImageIndex
                           ? 'border-primary ring-2 ring-primary scale-105'
                           : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105'
                       }`}

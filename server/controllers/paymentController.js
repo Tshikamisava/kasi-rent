@@ -5,6 +5,10 @@ import crypto from 'crypto';
 
 dotenv.config();
 
+const getPaystackSecretKey = () => {
+  return process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET || process.env.PAYSTACK_SECRETKEY || '';
+};
+
 /**
  * Initialize Payment - Creates payment intent with Paystack
  */
@@ -43,7 +47,7 @@ export const initializePayment = async (req, res) => {
     });
 
     // Initialize Paystack payment
-    const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+    const paystackSecretKey = getPaystackSecretKey();
 
     if (!paystackSecretKey) {
       // Fallback mode - return payment record without gateway
@@ -162,7 +166,7 @@ export const verifyPayment = async (req, res) => {
       });
     }
 
-    const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+    const paystackSecretKey = getPaystackSecretKey();
 
     if (!paystackSecretKey) {
       return res.status(500).json({
@@ -303,7 +307,7 @@ export const getPaymentById = async (req, res) => {
 export const paymentWebhook = async (req, res) => {
   try {
     const signature = req.headers['x-paystack-signature'];
-    const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+    const paystackSecretKey = getPaystackSecretKey();
 
     if (!paystackSecretKey) {
       return res.status(500).json({ error: 'Payment gateway not configured' });

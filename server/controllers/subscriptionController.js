@@ -7,6 +7,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const getPaystackSecretKey = () => {
+  return process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET || process.env.PAYSTACK_SECRETKEY || '';
+};
+
 const DEFAULT_BILLING_CYCLE_DAYS = Number(process.env.SUBSCRIPTION_BILLING_CYCLE_DAYS || 30);
 
 const safeDate = (value) => {
@@ -63,7 +67,7 @@ const chargeAuthorizedSubscription = async (subscription, { initiatedBy = 'syste
     };
   }
 
-  const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+  const paystackSecretKey = getPaystackSecretKey();
   if (!paystackSecretKey) {
     return { ok: false, reason: 'PAYSTACK_SECRET_KEY is not configured' };
   }
@@ -388,7 +392,7 @@ export const checkoutSubscription = async (req, res) => {
   try {
     const user_id = req.user?.id;
     const { plan, amount, currency = 'ZAR', email, callback_url, metadata = {}, billing_cycle_days = DEFAULT_BILLING_CYCLE_DAYS } = req.body;
-    const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+    const paystackSecretKey = getPaystackSecretKey();
 
     if (!plan || !amount) {
       return res.status(400).json({ error: 'Plan and amount are required' });
