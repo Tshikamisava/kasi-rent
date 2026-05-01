@@ -7,6 +7,8 @@ import { MapPin, Zap, Star, Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from '@/lib/api';
 import { formatRand } from '@/lib/currency';
+import { getFullImageUrl } from "@/lib/utils";
+import placeholder from '@/assets/property-placeholder.png';
 
 interface RecommendedProperty {
   id: string;
@@ -14,6 +16,7 @@ interface RecommendedProperty {
   location: string;
   price: number;
   image_url: string;
+  images?: string[];
   property_type: string;
   bedrooms: number;
   bathrooms: number;
@@ -111,6 +114,14 @@ export const RecommendedProperties = ({
     }
   };
 
+  const getPropertyCardImage = (property: RecommendedProperty) => {
+    const firstImage = Array.isArray(property?.images) && property.images.length > 0
+      ? property.images[0]
+      : null;
+    const source = firstImage || property?.image_url || null;
+    return source ? getFullImageUrl(source) : null;
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -151,14 +162,15 @@ export const RecommendedProperties = ({
             >
               {/* Image */}
               <div className="relative h-48 overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20">
-                {property.image_url ? (
+                {getPropertyCardImage(property) ? (
                   <img
-                    src={property.image_url}
+                    src={getPropertyCardImage(property) || placeholder}
                     alt={property.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 will-change-transform"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src = '/property-placeholder.png';
+                      target.onerror = null;
+                      target.src = placeholder;
                     }}
                   />
                 ) : (
