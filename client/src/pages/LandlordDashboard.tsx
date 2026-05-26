@@ -129,8 +129,8 @@ const LandlordDashboard = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-      const response = await fetch(`${API_BASE}/api/properties/${id}?landlord_id=${user?._id}`, {
+      const api = await import('@/lib/api');
+      const response = await api.apiFetch(`/api/properties/${id}`, {
         method: 'DELETE',
       });
 
@@ -162,12 +162,9 @@ const LandlordDashboard = () => {
 
   const handleUpdateProperty = async (updatedProperty: any) => {
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-      const response = await fetch(`${API_BASE}/api/properties/${editingProperty.id}`, {
+      const api = await import('@/lib/api');
+      const response = await api.apiFetch(`/api/properties/${editingProperty.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           ...updatedProperty,
           landlord_id: user?._id

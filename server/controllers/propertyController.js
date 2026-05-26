@@ -47,6 +47,38 @@ const getSafePropertyAttributes = async () => {
   return existingColumns ? Array.from(existingColumns) : undefined;
 };
 
+const getFrontendBaseUrl = () => {
+  const base = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'https://kasi-rent.vercel.app';
+  return String(base).trim().replace(/\/+$/, '');
+};
+
+const absolutizeLegacyRootImagePath = (value) => {
+  if (!value || typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed) return value;
+
+  // Legacy DB data can contain root-level filenames like "/riverside-townhouse-1.jpg".
+  // Some deployed frontend bundles treat these as backend paths, so return absolute
+  // frontend URLs to make rendering deterministic across versions.
+  const isRootRelativePublicFile = /^\/[^/]+\.[a-zA-Z0-9]+$/.test(trimmed);
+  if (!isRootRelativePublicFile) return value;
+
+  return `${getFrontendBaseUrl()}${trimmed}`;
+};
+
+const normalizeLegacyPropertyImages = (property) => {
+  if (!property || typeof property !== 'object') return property;
+
+  const normalized = { ...property };
+  normalized.image_url = absolutizeLegacyRootImagePath(property.image_url);
+
+  if (Array.isArray(property.images)) {
+    normalized.images = property.images.map((img) => absolutizeLegacyRootImagePath(img));
+  }
+
+  return normalized;
+};
+
 export const getProperties = async (req, res) => {
   try {
     const { landlord_id, limit, is_verified } = req.query;
@@ -103,6 +135,8 @@ export const getProperties = async (req, res) => {
     } catch (boostErr) {
       console.warn('Boost lookup failed, returning unordered results:', boostErr.message);
     }
+
+    result = result.map((property) => normalizeLegacyPropertyImages(property));
 
     res.json(result);
   } catch (error) {
@@ -246,8 +280,9 @@ export const updateProperty = async (req, res) => {
       });
     }
     
-    // Only allow landlord owner to update
-    if (property.landlord_id !== req.body.landlord_id && req.user?.role !== 'admin') {
+    // Only allow landlord owner (from auth token) or admin to update
+    const requesterId = req.user?.id || req.body?.landlord_id;
+    if (String(property.landlord_id) !== String(requesterId) && req.user?.role !== 'admin') {
       return res.status(403).json({ 
         success: false,
         message: 'Not authorized to update this property' 
@@ -362,9 +397,9 @@ export const deleteProperty = async (req, res) => {
       });
     }
     
-    // Only allow landlord owner or admin to delete
-    const landlordId = req.body.landlord_id || req.query.landlord_id;
-    if (property.landlord_id !== landlordId && req.user?.role !== 'admin') {
+    // Only allow landlord owner (from auth token) or admin to delete
+    const requesterId = req.user?.id || req.body?.landlord_id || req.query?.landlord_id;
+    if (String(property.landlord_id) !== String(requesterId) && req.user?.role !== 'admin') {
       return res.status(403).json({ 
         success: false,
         message: 'Not authorized to delete this property' 

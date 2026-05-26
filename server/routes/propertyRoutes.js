@@ -6,9 +6,9 @@ import { authorizeRole } from "../middleware/authorizeRole.js";
 const router = express.Router();
 
 router.get("/", getProperties);
-	router.post("/", protect, createProperty);
-	router.put("/:id", protect, updateProperty);
-router.delete("/:id", deleteProperty);
+router.post("/", protect, createProperty);
+router.put("/:id", protect, updateProperty);
+router.delete("/:id", protect, deleteProperty);
 router.patch("/:id/verify", protect, verifyProperty);
 
 export default router;
