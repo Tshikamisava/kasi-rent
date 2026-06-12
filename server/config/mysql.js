@@ -8,12 +8,52 @@ const poolMin = parseInt(process.env.DB_POOL_MIN, 10) || 0;
 const poolAcquire = parseInt(process.env.DB_POOL_ACQUIRE, 10) || 30000;
 const poolIdle = parseInt(process.env.DB_POOL_IDLE, 10) || 10000;
 
-let sequelize;
-const useDatabaseUrl = !!process.env.DATABASE_URL;
+const normalizeEnvValue = (value) => {
+  if (typeof value !== 'string') return '';
+  return value.trim().replace(/^['"]|['"]$/g, '');
+};
 
-if (useDatabaseUrl) {
-  // Use a single DATABASE_URL (e.g., Render Postgres) when provided
-  sequelize = new Sequelize(process.env.DATABASE_URL, {
+const rawDatabaseUrl = normalizeEnvValue(process.env.DATABASE_URL);
+const dbUrlLower = rawDatabaseUrl.toLowerCase();
+const isBooleanLikeDbUrl = ['true', 'false', '1', '0', 'yes', 'no'].includes(dbUrlLower);
+const databaseUrl = isBooleanLikeDbUrl ? '' : rawDatabaseUrl;
+
+const pgHost = normalizeEnvValue(process.env.PGHOST);
+const pgPort = parseInt(process.env.PGPORT, 10) || 5432;
+const pgUser = normalizeEnvValue(process.env.PGUSER);
+const pgPassword = normalizeEnvValue(process.env.PGPASSWORD);
+const pgDatabase = normalizeEnvValue(process.env.PGDATABASE);
+const hasPgDiscreteConfig = Boolean(pgHost && pgUser && pgDatabase);
+
+const connectionWarnings = [];
+let connectionMode = 'mysql-env';
+
+if (rawDatabaseUrl && isBooleanLikeDbUrl) {
+  connectionWarnings.push('DATABASE_URL appears to be a boolean-like value and will be ignored.');
+}
+
+if (databaseUrl) {
+  try {
+    const parsed = new URL(databaseUrl);
+    const protocol = parsed.protocol.replace(':', '').toLowerCase();
+    if (protocol === 'postgres' || protocol === 'postgresql') {
+      connectionMode = 'postgres-url';
+    } else {
+      connectionWarnings.push(`DATABASE_URL protocol "${protocol}" is not postgres/postgresql and will be ignored.`);
+    }
+  } catch {
+    connectionWarnings.push('DATABASE_URL is malformed and will be ignored.');
+  }
+}
+
+if (connectionMode === 'mysql-env' && hasPgDiscreteConfig) {
+  connectionMode = 'postgres-env';
+}
+
+let sequelize;
+
+if (connectionMode === 'postgres-url') {
+  sequelize = new Sequelize(databaseUrl, {
     dialect: 'postgres',
     protocol: 'postgres',
     // Enable Sequelize logging when SEQ_DEBUG=true
@@ -27,6 +67,20 @@ if (useDatabaseUrl) {
     // For managed Postgres (Render) require SSL. When connecting to a remote
     // DATABASE_URL we enable TLS even in non-production so clients running
     // locally against Render can connect without "SSL/TLS required" errors.
+    dialectOptions: { ssl: { require: true, rejectUnauthorized: false } }
+  });
+} else if (connectionMode === 'postgres-env') {
+  sequelize = new Sequelize(pgDatabase, pgUser, pgPassword, {
+    host: pgHost,
+    port: pgPort,
+    dialect: 'postgres',
+    logging: process.env.SEQ_DEBUG === 'true' ? (msg) => console.log('[sequelize]', msg) : false,
+    pool: {
+      max: poolMax,
+      min: poolMin,
+      acquire: poolAcquire,
+      idle: poolIdle
+    },
     dialectOptions: { ssl: { require: true, rejectUnauthorized: false } }
   });
 } else {
@@ -53,18 +107,42 @@ if (useDatabaseUrl) {
 const connectDB = async () => {
   // Diagnostic: print effective DB connection settings (avoid printing password)
   try {
+    let databaseUrlHost = null;
+    if (databaseUrl) {
+      try {
+        databaseUrlHost = new URL(databaseUrl).hostname;
+      } catch {
+        databaseUrlHost = 'invalid-url';
+      }
+    }
+
     console.log('🔎 DB config (effective):', {
-      useDatabaseUrl,
+      connectionMode,
       DB_HOST: process.env.DB_HOST,
       DB_USER: process.env.DB_USER,
       DB_NAME: process.env.DB_NAME,
+      PGHOST: pgHost || undefined,
+      PGPORT: pgHost ? pgPort : undefined,
+      PGDATABASE: pgDatabase || undefined,
       DB_POOL_MAX: poolMax,
       DB_POOL_MIN: poolMin,
       DB_POOL_ACQUIRE: poolAcquire,
       DB_POOL_IDLE: poolIdle,
       NODE_ENV: process.env.NODE_ENV,
-      DATABASE_URL: !!process.env.DATABASE_URL
+      DATABASE_URL: Boolean(rawDatabaseUrl),
+      DATABASE_URL_HOST: databaseUrlHost,
+      warnings: connectionWarnings
     });
+
+    if (connectionWarnings.length > 0) {
+      connectionWarnings.forEach((warning) => {
+        console.warn(`⚠️ ${warning}`);
+      });
+    }
+
+    if (connectionMode === 'postgres-url' && databaseUrlHost && databaseUrlHost.startsWith('dpg-') && !databaseUrlHost.includes('.')) {
+      console.warn('⚠️ DATABASE_URL host looks like an internal Render hostname. If this service cannot resolve it, use Render External Database URL or set PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE.');
+    }
   } catch (diagErr) {
     console.error('Error printing DB diagnostic info:', diagErr && diagErr.message);
   }
@@ -86,8 +164,9 @@ const connectDB = async () => {
       // - SEQ_SYNC=false -> force disable
       // WARNING: This uses ALTER to match models. Use with care.
       const seqSyncValue = process.env.SEQ_SYNC;
+      const usingPostgres = connectionMode === 'postgres-url' || connectionMode === 'postgres-env';
       const shouldSync = seqSyncValue === 'true' ||
-        (typeof seqSyncValue === 'undefined' && (process.env.NODE_ENV !== 'production' || useDatabaseUrl));
+        (typeof seqSyncValue === 'undefined' && (process.env.NODE_ENV !== 'production' || usingPostgres));
       if (shouldSync) {
         let globalSyncSucceeded = false;
         try {

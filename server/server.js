@@ -54,6 +54,8 @@ const corsAllowedOrigins = [
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
+  'https://kasi-rent-seven.vercel.app',
+  'https://kasi-rent.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
@@ -182,18 +184,7 @@ import http from 'http';
 import { initSocket } from './socket.js';
 
 const startServer = async () => {
-  try {
-    await connectDB();
-  } catch (err) {
-    console.error("⚠️  Database connection failed, starting API in degraded mode:", err.message);
-  }
-
   const server = http.createServer(app);
-  try {
-    await initSocket(server);
-  } catch (err) {
-    console.error('⚠️ Socket initialization failed:', err);
-  }
 
   // Add a graceful error handler for common listen errors
   server.on('error', (err) => {
@@ -210,7 +201,21 @@ const startServer = async () => {
     process.exit(1);
   });
 
-  server.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server running on port ${PORT}`));
+  server.listen(PORT, '0.0.0.0', async () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+
+    try {
+      await initSocket(server);
+    } catch (err) {
+      console.error('⚠️ Socket initialization failed:', err);
+    }
+
+    try {
+      await connectDB();
+    } catch (err) {
+      console.error("⚠️  Database connection failed, API is running in degraded mode:", err.message);
+    }
+  });
 };
 
 startServer();
