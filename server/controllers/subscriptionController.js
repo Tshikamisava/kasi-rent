@@ -1,3 +1,5 @@
+
+
 import Subscription from '../models/Subscription.js';
 import Payment from '../models/Payment.js';
 import { sequelize } from '../config/mysql.js';
@@ -8,7 +10,19 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const getPaystackSecretKey = () => {
-  return process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET || process.env.PAYSTACK_SECRETKEY || '';
+  const candidates = [
+    process.env.PAYSTACK_SECRET_KEY,
+    process.env.PAYSTACK_SECRET,
+    process.env.PAYSTACK_SECRETKEY,
+    process.env.PAYSTACK_TEST_SECRET_KEY,
+    process.env.PAYSTACK_LIVE_SECRET_KEY,
+  ];
+
+  const resolved = candidates
+    .map((v) => (typeof v === 'string' ? v.trim() : ''))
+    .find(Boolean);
+
+  return resolved || '';
 };
 
 const DEFAULT_BILLING_CYCLE_DAYS = Number(process.env.SUBSCRIPTION_BILLING_CYCLE_DAYS || 30);
@@ -401,7 +415,7 @@ export const checkoutSubscription = async (req, res) => {
     if (!paystackSecretKey || !String(paystackSecretKey).trim()) {
       return res.status(503).json({
         error: 'Payment gateway not configured',
-        message: 'Server is missing PAYSTACK_SECRET_KEY. Add it in server/.env and restart the API.',
+        message: 'Server is missing a Paystack secret key. Set PAYSTACK_SECRET_KEY in environment variables and restart the API.',
       });
     }
 

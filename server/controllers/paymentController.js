@@ -6,8 +6,22 @@ import crypto from 'crypto';
 dotenv.config();
 
 const getPaystackSecretKey = () => {
-  return process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET || process.env.PAYSTACK_SECRETKEY || '';
+  const candidates = [
+    process.env.PAYSTACK_SECRET_KEY,
+    process.env.PAYSTACK_SECRET,
+    process.env.PAYSTACK_SECRETKEY,
+    process.env.PAYSTACK_TEST_SECRET_KEY,
+    process.env.PAYSTACK_LIVE_SECRET_KEY,
+  ];
+
+  const resolved = candidates
+    .map((v) => (typeof v === 'string' ? v.trim() : ''))
+    .find(Boolean);
+
+  return resolved || '';
 };
+
+const getClientUrl = () => (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
 
 /**
  * Initialize Payment - Creates payment intent with Paystack
@@ -57,7 +71,7 @@ export const initializePayment = async (req, res) => {
           id: payment.id,
           amount: payment.amount,
           status: payment.status,
-          message: 'Payment gateway not configured. Please configure PAYSTACK_SECRET_KEY in environment variables.'
+          message: 'Payment gateway not configured. Please set PAYSTACK_SECRET_KEY in environment variables.'
         }
       });
     }
@@ -187,7 +201,7 @@ export const verifyPayment = async (req, res) => {
 
       const paystackData = verifyResponse.data.data;
 
-      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5174';
+      const clientUrl = getClientUrl();
 
       // Update payment status
       if (paystackData.status === 'success') {
@@ -236,12 +250,12 @@ export const verifyPayment = async (req, res) => {
       payment.gateway_response = { error: paystackError.response?.data || paystackError.message };
       await payment.save();
 
-      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5174';
+      const clientUrl = getClientUrl();
       return res.redirect(`${clientUrl}/payment/callback?status=failed&reference=${payment.id}&type=${payment.payment_type || 'payment'}`);
     }
   } catch (error) {
     console.error('Payment Verification Error:', error);
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5174';
+    const clientUrl = getClientUrl();
     return res.redirect(`${clientUrl}/payment/callback?status=failed&error=${encodeURIComponent(error.message)}`);
   }
 };
