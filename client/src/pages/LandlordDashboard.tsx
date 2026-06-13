@@ -11,6 +11,10 @@ import { PropertyForm } from "@/components/PropertyForm";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
+import { API_BASE_URL } from "@/lib/apiBase";
+import { supabase } from "@/integrations/supabase/client";
+import { getFullImageUrl } from "@/lib/utils";
+import placeholder from '@/assets/property-placeholder.png';
 
 const LandlordDashboard = () => {
   const { user, userType, setUser, setUserType } = useAuth();
@@ -58,8 +62,7 @@ const LandlordDashboard = () => {
     if (!user) return;
     
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-      const response = await fetch(`${API_BASE}/api/properties?landlord_id=${user._id}`);
+      const response = await fetch(`${API_BASE_URL}/api/properties?landlord_id=${user._id}`);
       const data = await response.json();
 
       if (!response.ok) throw new Error('Failed to fetch properties');
@@ -82,8 +85,7 @@ const LandlordDashboard = () => {
     if (!user) return;
     
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-      const response = await fetch(`${API_BASE}/api/bookings/landlord/${user._id}`);
+      const response = await fetch(`${API_BASE_URL}/api/bookings/landlord/${user._id}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -107,6 +109,40 @@ const LandlordDashboard = () => {
 
   const pendingBookings = bookings.filter(b => b.status === 'pending').length;
   const totalMonthlyRevenue = properties.reduce((sum, prop) => sum + (parseFloat(prop.price) || 0), 0);
+
+  const normalizeImageList = (imagesValue: unknown, fallbackImageUrl?: string | null) => {
+    const result: string[] = [];
+
+    if (Array.isArray(imagesValue)) {
+      imagesValue.forEach((img) => {
+        if (typeof img === 'string' && img.trim()) {
+          result.push(getFullImageUrl(img));
+        }
+      });
+    } else if (typeof imagesValue === 'string' && imagesValue.trim()) {
+      const trimmed = imagesValue.trim();
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((img) => {
+            if (typeof img === 'string' && img.trim()) {
+              result.push(getFullImageUrl(img));
+            }
+          });
+        } else {
+          result.push(getFullImageUrl(trimmed));
+        }
+      } catch (_err) {
+        result.push(getFullImageUrl(trimmed));
+      }
+    }
+
+    if (result.length === 0 && typeof fallbackImageUrl === 'string' && fallbackImageUrl.trim()) {
+      result.push(getFullImageUrl(fallbackImageUrl));
+    }
+
+    return result;
+  };
 
   const nextImage = (propertyId: string, totalImages: number) => {
     setImageIndexes(prev => ({
@@ -415,14 +451,10 @@ const LandlordDashboard = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {properties.map((property) => {
-                    const propertyImages = property.images && Array.isArray(property.images) && property.images.length > 0
-                      ? property.images
-                      : property.image_url
-                      ? [property.image_url]
-                      : [];
+                    const propertyImages = normalizeImageList(property.images, property.image_url);
                     
                     const currentIndex = imageIndexes[property.id] || 0;
-                    const currentImage = propertyImages[currentIndex];
+                    const currentImage = propertyImages[currentIndex] || placeholder;
 
                     return (
                     <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2">
@@ -434,7 +466,8 @@ const LandlordDashboard = () => {
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
-                              target.src = '/property-placeholder.png';
+                              target.onerror = null;
+                              target.src = placeholder;
                             }}
                           />
                           

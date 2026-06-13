@@ -66,14 +66,46 @@ const absolutizeLegacyRootImagePath = (value) => {
   return `${getFrontendBaseUrl()}${trimmed}`;
 };
 
+const coerceImageArray = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (typeof item === 'string' ? item.trim() : ''))
+      .filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item) => (typeof item === 'string' ? item.trim() : ''))
+          .filter(Boolean);
+      }
+    } catch (_error) {
+      // not JSON, treat as single image path
+    }
+
+    return [trimmed];
+  }
+
+  return [];
+};
+
 const normalizeLegacyPropertyImages = (property) => {
   if (!property || typeof property !== 'object') return property;
 
   const normalized = { ...property };
   normalized.image_url = absolutizeLegacyRootImagePath(property.image_url);
 
-  if (Array.isArray(property.images)) {
-    normalized.images = property.images.map((img) => absolutizeLegacyRootImagePath(img));
+  const normalizedImages = coerceImageArray(property.images).map((img) => absolutizeLegacyRootImagePath(img));
+  normalized.images = normalizedImages;
+
+  if (!normalized.image_url && normalizedImages.length > 0) {
+    normalized.image_url = normalizedImages[0];
   }
 
   return normalized;
@@ -175,10 +207,14 @@ export const createProperty = async (req, res) => {
       bathrooms: bathrooms || 0,
       property_type: property_type || 'house',
       image_url: image_url || null,
-      images: images || [],
+      images: coerceImageArray(images),
       address: address || null,
       video_url: video_url || null
     };
+
+    if (!propertyData.image_url && propertyData.images.length > 0) {
+      propertyData.image_url = propertyData.images[0];
+    }
 
     // Document fields (landlord identity document)
     const { document_url, document_filename, document_type } = req.body;
@@ -312,10 +348,14 @@ export const updateProperty = async (req, res) => {
       bathrooms: bathrooms !== undefined ? bathrooms : property.bathrooms,
       property_type: property_type || property.property_type,
       image_url: image_url || property.image_url,
-      images: images || property.images,
+      images: images !== undefined ? coerceImageArray(images) : coerceImageArray(property.images),
       address: address !== undefined ? address : property.address,
       video_url: video_url !== undefined ? video_url : property.video_url
     };
+
+    if (!updateData.image_url && updateData.images.length > 0) {
+      updateData.image_url = updateData.images[0];
+    }
 
     // document handling for update: if document provided and changed, reset verification
     const { document_url, document_filename, document_type } = req.body;

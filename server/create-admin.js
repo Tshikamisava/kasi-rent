@@ -1,4 +1,5 @@
-import mysql from 'mysql2/promise';
+import { sequelize } from './config/mysql.js';
+import User from './models/User.js';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 
@@ -13,19 +14,11 @@ dotenv.config();
  */
 
 async function createAdmin() {
-  let connection;
-  
   try {
     console.log('📌 Connecting to database...');
     
-    connection = await mysql.createConnection({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME
-    });
-
-    console.log('✅ Connected successfully');
+    await sequelize.authenticate();
+    console.log('✅ Connected successfully (PostgreSQL via Sequelize)');
     console.log('📌 Creating admin user...');
 
     const adminEmail = 'admin@kasirent.com';
@@ -33,44 +26,34 @@ async function createAdmin() {
     const adminName = 'KasiRent Admin';
     
     // Check if admin already exists
-    const [existing] = await connection.query(
-      'SELECT id, email, role FROM users WHERE email = ?',
-      [adminEmail]
-    );
+    const existing = await User.findOne({
+      where: { email: adminEmail }
+    });
 
-    if (existing.length > 0) {
+    if (existing) {
       console.log('\n⚠️  Admin user already exists!');
-      console.log('📧 Email:', adminEmail);
-      console.log('👤 Role:', existing[0].role);
+      console.log('📧 Email:', existing.email);
+      console.log('👤 Role:', existing.role);
       
       // Update to admin role if not already
-      if (existing[0].role !== 'admin') {
-        await connection.query(
-          'UPDATE users SET role = ? WHERE email = ?',
-          ['admin', adminEmail]
-        );
+      if (existing.role !== 'admin') {
+        await existing.update({ role: 'admin' });
         console.log('✅ Updated user role to admin');
       }
       
       // Update password
       const hashedPassword = await bcrypt.hash(adminPassword, 10);
-      await connection.query(
-        'UPDATE users SET password = ? WHERE email = ?',
-        [hashedPassword, adminEmail]
-      );
+      await existing.update({ password: hashedPassword });
       console.log('✅ Password updated to: #kasirent');
       
     } else {
       // Create new admin user
-      // Generate a simple admin ID (timestamp-based)
-      const userId = 'admin-' + Date.now();
-      const hashedPassword = await bcrypt.hash(adminPassword, 10);
-
-      await connection.query(
-        `INSERT INTO users (id, email, password, name, role, created_at, updated_at) 
-         VALUES (?, ?, ?, ?, 'admin', NOW(), NOW())`,
-        [userId, adminEmail, hashedPassword, adminName]
-      );
+      await User.create({
+        email: adminEmail,
+        password: adminPassword, // Will be hashed by User model hook
+        name: adminName,
+        role: 'admin'
+      });
 
       console.log('\n✅ Admin user created successfully!');
     }
@@ -93,15 +76,13 @@ async function createAdmin() {
   } catch (error) {
     console.error('\n❌ Error creating admin:');
     console.error('Message:', error.message);
-    if (error.sqlMessage) {
-      console.error('SQL:', error.sqlMessage);
+    if (error.errors && error.errors.length > 0) {
+      console.error('Details:', error.errors[0].message);
     }
     console.error('Stack:', error.stack);
   } finally {
-    if (connection) {
-      await connection.end();
-      console.log('👋 Connection closed');
-    }
+    await sequelize.close();
+    console.log('👋 Database connection closed');
   }
 }
 

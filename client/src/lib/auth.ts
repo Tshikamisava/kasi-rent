@@ -1,5 +1,7 @@
+import { API_BASE_URL } from "@/lib/apiBase";
+
 // MySQL-based authentication (no Supabase)
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5001').replace(/\/$/, '');
+const API_BASE = API_BASE_URL;
 const API_URL = `${API_BASE}/api/auth`;
 
 interface LoginData {
@@ -16,36 +18,48 @@ interface RegisterData extends LoginData {
 export const authApi = {
   async login(data: LoginData) {
     try {
-      const response = await fetch(`${API_URL}/login`, {
+      const url = `${API_URL}/login`;
+      console.log('🔐 Login attempt:', { url, apiBase: API_BASE, email: data.email });
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
+        console.error('❌ Login failed:', { status: response.status, error: result.error });
         throw new Error(result.error || 'Login failed');
       }
 
+      console.log('✅ Login successful');
       return result.user;
     } catch (error) {
       if (error instanceof TypeError) {
-        throw new Error('Cannot connect to authentication service.');
+        console.error('🌐 Network error:', error.message);
+        throw new Error('Cannot connect to authentication service. Check that the backend is running.');
       }
+      console.error('❌ Auth error:', error);
       throw error;
     }
   },
 
   async register(data: RegisterData) {
     try {
-      const response = await fetch(`${API_URL}/register`, {
+      const url = `${API_URL}/register`;
+      console.log('📝 Register attempt:', { url, apiBase: API_BASE, email: data.email });
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           name: data.name,
           email: data.email,
