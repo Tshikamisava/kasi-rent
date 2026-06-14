@@ -248,11 +248,6 @@ export const listUsers = async (req, res) => {
     
     const where = {};
 
-    const attributes = ['id', 'name', 'email'];
-    if (hasUserColumn(userColumns, 'role')) {
-      attributes.push('role');
-    }
-
     // Filter by role if specified
     if (role && hasUserColumn(userColumns, 'role') && ['landlord', 'tenant', 'agent', 'admin'].includes(role)) {
       where.role = role;
@@ -271,7 +266,7 @@ export const listUsers = async (req, res) => {
     try {
       users = await User.findAll({
         where,
-        attributes,
+        attributes: ['id', 'name', 'email'],
         limit: 50,
         order: [['name', 'ASC']],
       });
@@ -292,9 +287,15 @@ export const listUsers = async (req, res) => {
 
     console.log(`Found ${users.length} users`);
 
+    const includeRole = hasUserColumn(userColumns, 'role');
     res.json({
       success: true,
-      users,
+      users: users.map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: includeRole ? u.role : null,
+      })),
     });
   } catch (error) {
     console.error('Error listing users:', error);
