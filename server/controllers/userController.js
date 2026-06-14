@@ -85,9 +85,6 @@ export const findUserByEmail = async (req, res) => {
     const userColumns = await getExistingUserColumns();
 
     const attributes = ['id', 'name', 'email'];
-    if (hasUserColumn(userColumns, 'role')) {
-      attributes.push('role');
-    }
 
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
@@ -117,7 +114,7 @@ export const findUserByEmail = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: hasUserColumn(userColumns, 'role') ? user.role : null,
+        role: null,
       },
     });
   } catch (error) {
@@ -242,16 +239,11 @@ export const resetPassword = async (req, res) => {
  */
 export const listUsers = async (req, res) => {
   try {
-    const { role, search } = req.query;
+    const { search } = req.query;
     const userColumns = await getExistingUserColumns();
-    console.log('Listing users with search:', search, 'role:', role);
+    console.log('Listing users with search:', search);
     
     const where = {};
-
-    // Filter by role if specified
-    if (role && hasUserColumn(userColumns, 'role') && ['landlord', 'tenant', 'agent', 'admin'].includes(role)) {
-      where.role = role;
-    }
 
     // Search by name or email
     if (search) {
@@ -274,11 +266,8 @@ export const listUsers = async (req, res) => {
       if (!isMissingRoleColumnError(error)) throw error;
 
       // Hard fallback if DB/schema differs from model assumptions
-      const fallbackWhere = { ...where };
-      delete fallbackWhere.role;
-
       users = await User.findAll({
-        where: fallbackWhere,
+        where,
         attributes: ['id', 'name', 'email'],
         limit: 50,
         order: [['name', 'ASC']],
@@ -287,14 +276,13 @@ export const listUsers = async (req, res) => {
 
     console.log(`Found ${users.length} users`);
 
-    const includeRole = hasUserColumn(userColumns, 'role');
     res.json({
       success: true,
       users: users.map((u) => ({
         id: u.id,
         name: u.name,
         email: u.email,
-        role: includeRole ? u.role : null,
+        role: null,
       })),
     });
   } catch (error) {
