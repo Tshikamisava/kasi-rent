@@ -82,6 +82,8 @@ router.get('/', authenticateToken, async (req, res) => {
         email: user.email,
         role: user.role,
         phone: user.phone,
+        bio: user.bio,
+        location: user.location,
         profile_photo: user.avatar_url,
         created_at: user.created_at
       },
@@ -108,6 +110,8 @@ router.put('/', authenticateToken, async (req, res) => {
     // Update fields
     if (name) user.name = name;
     if (phone !== undefined) user.phone = phone;
+    if (bio !== undefined) user.bio = bio;
+    if (location !== undefined) user.location = location;
     if (profile_photo !== undefined) user.avatar_url = profile_photo;
 
     await user.save();
@@ -120,6 +124,8 @@ router.put('/', authenticateToken, async (req, res) => {
         email: user.email,
         role: user.role,
         phone: user.phone,
+        bio: user.bio,
+        location: user.location,
         profile_photo: user.avatar_url,
         created_at: user.created_at
       }
