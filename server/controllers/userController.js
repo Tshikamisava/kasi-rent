@@ -15,13 +15,20 @@ const getExistingUserColumns = async () => {
     cachedUserColumns = new Set(Object.keys(described || {}));
     return cachedUserColumns;
   } catch (error) {
-    console.warn('Unable to describe users table. Continuing with model defaults:', error.message);
-    return null;
+    console.warn('Unable to describe users table. Falling back to minimal safe columns:', error.message);
+    // Conservative fallback: avoid optional/problematic columns (like role)
+    cachedUserColumns = new Set(['id', 'name', 'email']);
+    return cachedUserColumns;
   }
 };
 
 const hasUserColumn = (columns, columnName) => {
-  return !columns || columns.has(columnName);
+  return Boolean(columns && columns.has(columnName));
+};
+
+const isMissingRoleColumnError = (error) => {
+  const message = String(error?.message || error?.original?.message || error?.parent?.message || '').toLowerCase();
+  return message.includes('column') && message.includes('role') && message.includes('does not exist');
 };
 
 /**
@@ -86,10 +93,19 @@ export const findUserByEmail = async (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    const user = await User.findOne({
-      where: { email },
-      attributes,
-    });
+    let user;
+    try {
+      user = await User.findOne({
+        where: { email },
+        attributes,
+      });
+    } catch (error) {
+      if (!isMissingRoleColumnError(error)) throw error;
+
+      // Hard fallback if DB/schema differs from model assumptions
+      const fallbackAttrs = ['id', 'name', 'email'];
+      user = await User.findOne({ where: { email }, attributes: fallbackAttrs });
+    }
 
     if (!user) {
       return res.status(404).json({ error: 'User not found with that email' });
@@ -251,12 +267,28 @@ export const listUsers = async (req, res) => {
       ];
     }
 
-    const users = await User.findAll({
-      where,
-      attributes,
-      limit: 50,
-      order: [['name', 'ASC']],
-    });
+    let users;
+    try {
+      users = await User.findAll({
+        where,
+        attributes,
+        limit: 50,
+        order: [['name', 'ASC']],
+      });
+    } catch (error) {
+      if (!isMissingRoleColumnError(error)) throw error;
+
+      // Hard fallback if DB/schema differs from model assumptions
+      const fallbackWhere = { ...where };
+      delete fallbackWhere.role;
+
+      users = await User.findAll({
+        where: fallbackWhere,
+        attributes: ['id', 'name', 'email'],
+        limit: 50,
+        order: [['name', 'ASC']],
+      });
+    }
 
     console.log(`Found ${users.length} users`);
 
