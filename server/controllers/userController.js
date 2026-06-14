@@ -3,6 +3,27 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { sendPasswordResetEmail } from '../utils/emailService.js';
 
+let cachedUserColumns = null;
+
+const getExistingUserColumns = async () => {
+  if (cachedUserColumns) return cachedUserColumns;
+
+  try {
+    const queryInterface = User.sequelize.getQueryInterface();
+    const tableName = User.getTableName();
+    const described = await queryInterface.describeTable(tableName);
+    cachedUserColumns = new Set(Object.keys(described || {}));
+    return cachedUserColumns;
+  } catch (error) {
+    console.warn('Unable to describe users table. Continuing with model defaults:', error.message);
+    return null;
+  }
+};
+
+const hasUserColumn = (columns, columnName) => {
+  return !columns || columns.has(columnName);
+};
+
 /**
  * Get Landlord Contact Information
  * Returns contact info for a landlord (for tenants to contact)
@@ -54,6 +75,12 @@ export const getLandlordContact = async (req, res) => {
 export const findUserByEmail = async (req, res) => {
   try {
     const { email } = req.query;
+    const userColumns = await getExistingUserColumns();
+
+    const attributes = ['id', 'name', 'email'];
+    if (hasUserColumn(userColumns, 'role')) {
+      attributes.push('role');
+    }
 
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
@@ -61,7 +88,7 @@ export const findUserByEmail = async (req, res) => {
 
     const user = await User.findOne({
       where: { email },
-      attributes: ['id', 'name', 'email', 'role'],
+      attributes,
     });
 
     if (!user) {
@@ -74,7 +101,7 @@ export const findUserByEmail = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: hasUserColumn(userColumns, 'role') ? user.role : null,
       },
     });
   } catch (error) {
@@ -200,12 +227,18 @@ export const resetPassword = async (req, res) => {
 export const listUsers = async (req, res) => {
   try {
     const { role, search } = req.query;
+    const userColumns = await getExistingUserColumns();
     console.log('Listing users with search:', search, 'role:', role);
     
     const where = {};
 
+    const attributes = ['id', 'name', 'email'];
+    if (hasUserColumn(userColumns, 'role')) {
+      attributes.push('role');
+    }
+
     // Filter by role if specified
-    if (role && ['landlord', 'tenant', 'agent'].includes(role)) {
+    if (role && hasUserColumn(userColumns, 'role') && ['landlord', 'tenant', 'agent', 'admin'].includes(role)) {
       where.role = role;
     }
 
@@ -220,7 +253,7 @@ export const listUsers = async (req, res) => {
 
     const users = await User.findAll({
       where,
-      attributes: ['id', 'name', 'email', 'role'],
+      attributes,
       limit: 50,
       order: [['name', 'ASC']],
     });
