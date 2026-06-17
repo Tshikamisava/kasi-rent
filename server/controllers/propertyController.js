@@ -52,16 +52,26 @@ const getFrontendBaseUrl = () => {
   return String(base).trim().replace(/\/+$/, '');
 };
 
+const sanitizeImagePath = (value) => {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  // Some stored URLs contain hidden line breaks (e.g. "https://...\r\n/uploads/..."),
+  // which makes the browser treat them as invalid src values.
+  return trimmed.replace(/[\r\n\t]+/g, '');
+};
+
 const absolutizeLegacyRootImagePath = (value) => {
   if (!value || typeof value !== 'string') return value;
-  const trimmed = value.trim();
+  const trimmed = sanitizeImagePath(value);
   if (!trimmed) return value;
 
   // Legacy DB data can contain root-level filenames like "/riverside-townhouse-1.jpg".
   // Some deployed frontend bundles treat these as backend paths, so return absolute
   // frontend URLs to make rendering deterministic across versions.
   const isRootRelativePublicFile = /^\/[^/]+\.[a-zA-Z0-9]+$/.test(trimmed);
-  if (!isRootRelativePublicFile) return value;
+  if (!isRootRelativePublicFile) return trimmed;
 
   return `${getFrontendBaseUrl()}${trimmed}`;
 };
@@ -70,19 +80,19 @@ const coerceImageArray = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) {
     return value
-      .map((item) => (typeof item === 'string' ? item.trim() : ''))
+      .map((item) => (typeof item === 'string' ? sanitizeImagePath(item) : ''))
       .filter(Boolean);
   }
 
   if (typeof value === 'string') {
-    const trimmed = value.trim();
+    const trimmed = sanitizeImagePath(value);
     if (!trimmed) return [];
 
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
         return parsed
-          .map((item) => (typeof item === 'string' ? item.trim() : ''))
+          .map((item) => (typeof item === 'string' ? sanitizeImagePath(item) : ''))
           .filter(Boolean);
       }
     } catch (_error) {

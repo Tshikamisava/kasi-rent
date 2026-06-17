@@ -13,7 +13,7 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function getFullImageUrl(imagePath?: string | null) {
   if (!imagePath) return '';
-  const normalizedPath = imagePath.trim();
+  const normalizedPath = imagePath.trim().replace(/[\r\n\t]+/g, '');
   if (!normalizedPath) return '';
 
   // already absolute (http, https, data URI)
