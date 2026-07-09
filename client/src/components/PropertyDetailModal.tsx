@@ -119,17 +119,17 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
         console.error("API Error:", apiError);
       }
 
-      // Fallback: Try Supabase users table
+      // Fallback: Try Supabase profiles table
       const { data: profileData, error: profileError } = await supabase
-        .from("users")
-        .select("id, name, email, phone")
+        .from("profiles")
+        .select("id, full_name, phone")
         .eq("id", property.landlord_id)
         .single();
 
       if (!profileError && profileData) {
         setLandlord({
-          name: profileData.name || "Landlord",
-          email: profileData.email || "Not available",
+          name: profileData.full_name || "Landlord",
+          email: null,
           phone: profileData.phone || null,
         });
         return;
