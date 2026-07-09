@@ -6,6 +6,8 @@ import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+const getClientUrl = () => (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
+
 // MySQL-based authentication routes
 router.post('/register', register);
 router.post('/login', login);
@@ -38,7 +40,7 @@ router.get('/google/callback',
     };
     
     // Redirect to frontend with token and user data
-    const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:5174'}/signin?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`;
+    const redirectUrl = `${getClientUrl()}/signin?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`;
     res.redirect(redirectUrl);
   }
 );
@@ -58,7 +60,7 @@ router.get('/github/callback',
       avatar_url: req.user.avatar_url
     };
     
-    const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:5174'}/signin?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`;
+    const redirectUrl = `${getClientUrl()}/signin?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`;
     res.redirect(redirectUrl);
   }
 );
@@ -78,7 +80,7 @@ router.get('/facebook/callback',
       avatar_url: req.user.avatar_url
     };
     
-    const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:5174'}/signin?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`;
+    const redirectUrl = `${getClientUrl()}/signin?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`;
     res.redirect(redirectUrl);
   }
 );

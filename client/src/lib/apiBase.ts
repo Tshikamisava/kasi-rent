@@ -28,3 +28,12 @@ function normalizeApiBase(raw?: string) {
 }
 
 export const API_BASE_URL = normalizeApiBase(import.meta.env.VITE_API_URL);
+
+// Debug logging
+if (typeof window !== 'undefined') {
+  console.log('🔍 API Config:', {
+    env: import.meta.env.VITE_API_URL,
+    resolved: API_BASE_URL,
+    isProd: import.meta.env.PROD
+  });
+}

@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, CheckCircle, XCircle, Clock, Upload, ArrowRight, ArrowLeft } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/apiBase';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const API_BASE = API_BASE_URL;
 
 interface VerificationStatus {
   id: string;

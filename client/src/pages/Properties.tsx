@@ -14,7 +14,7 @@ import { FavoriteButton } from "@/components/FavoriteButton";
 import PropertyMap from "@/components/PropertyMap";
 import { apiFetch } from '@/lib/api';
 import { formatRand } from '@/lib/currency';
-import { getFullImageUrl } from "@/lib/utils";
+import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
 import placeholder from '@/assets/property-placeholder.png';
 
 const Properties = () => {
@@ -102,11 +102,7 @@ const Properties = () => {
   }).sort((a, b) => (b.is_boosted ? 1 : 0) - (a.is_boosted ? 1 : 0));
 
   const getPropertyCardImage = (property: any) => {
-    const firstImage = Array.isArray(property?.images) && property.images.length > 0
-      ? property.images[0]
-      : null;
-    const source = firstImage || property?.image_url || null;
-    return source ? getFullImageUrl(source) : null;
+    return getPrimaryPropertyImageUrl(property?.images, property?.image_url);
   };
 
   return (

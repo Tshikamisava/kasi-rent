@@ -6,9 +6,21 @@ import { createAdapter } from '@socket.io/redis-adapter';
 
 // If REDIS_URL is provided, we use Redis for shared adapter and presence store.
 export async function initSocket(server) {
+  const allowedOrigins = [
+    ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
+    ...(process.env.CORS_ALLOWED_ORIGINS || '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+  ];
+
   const io = new Server(server, {
     cors: {
-      origin: ['http://localhost:5173', 'http://localhost:5174'],
+      origin: allowedOrigins,
       methods: ['GET', 'POST'],
     },
   });
@@ -35,7 +47,8 @@ export async function initSocket(server) {
     try {
       const token = socket.handshake.auth?.token || socket.handshake.query?.token;
       if (!token) return next(new Error('Authentication error: Missing token'));
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const jwtSecret = process.env.JWT_SECRET || 'kasirent_jwt_secret_key_2025';
+      const decoded = jwt.verify(token, jwtSecret);
       const user = await User.findByPk(decoded.id);
       if (!user) return next(new Error('Authentication error: Invalid user'));
       socket.user = user;

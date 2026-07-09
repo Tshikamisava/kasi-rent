@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin, BedDouble, Bath, Building2, Images, Wifi } from "lucide-react";
-import { getFullImageUrl } from "@/lib/utils";
+import { getPrimaryPropertyImageUrl, getPropertyImageCount } from "@/lib/propertyImages";
 import { formatRand } from '@/lib/currency';
 import placeholder from '@/assets/property-placeholder.png';
 import { useState, useEffect } from "react";
@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { PropertyDetailModal } from "@/components/PropertyDetailModal";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import PropertyMap from "@/components/PropertyMap";
+import { apiFetch } from '@/lib/api';
 
 export const FeaturedProperties = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -24,14 +25,14 @@ export const FeaturedProperties = () => {
 
   const fetchProperties = async () => {
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-      const response = await fetch(`${API_BASE}/api/properties?limit=3`);
+      const response = await apiFetch('/api/properties?limit=3');
       const data = await response.json();
 
       if (!response.ok) throw new Error('Failed to fetch properties');
-      setProperties(data || []);
+      setProperties(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching properties:", error);
+      setProperties([]);
     } finally {
       setLoading(false);
     }
@@ -95,19 +96,20 @@ export const FeaturedProperties = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {properties.map((property) => {
-            const imageCount = property.images && Array.isArray(property.images) ? property.images.length : (property.image_url ? 1 : 0);
-            const displayImage = property.images && property.images.length > 0 ? property.images[0] : property.image_url;
+            const imageCount = getPropertyImageCount(property.images, property.image_url);
+            const displayImage = getPrimaryPropertyImageUrl(property.images, property.image_url);
             
             return (
             <Card key={property.id} className="overflow-hidden group transition-transform hover:-translate-y-1 hover:shadow-lg">
               {displayImage ? (
                 <div className="h-56 md:h-80 overflow-hidden relative">
                   <img 
-                    src={getFullImageUrl(displayImage)} 
+                    src={displayImage} 
                     alt={property.title}
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
+                      target.onerror = null;
                       target.src = placeholder;
                     }}
                   />
@@ -127,7 +129,7 @@ export const FeaturedProperties = () => {
                   )}
                 </div>
               ) : (
-                <div className="h-80 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                <div className="h-56 md:h-80 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
                   <Building2 className="w-20 h-20 text-primary/40" />
                 </div>
               )}
@@ -188,15 +190,6 @@ export const FeaturedProperties = () => {
         </div>
 
         <div className="text-center mt-12">
-
-      {/* Property Detail Modal */}
-      {selectedProperty && (
-        <PropertyDetailModal
-          open={modalOpen}
-          onOpenChange={setModalOpen}
-          property={selectedProperty}
-        />
-      )}
           <Link to="/properties">
             <Button variant="outline" size="lg" className="px-8">
               View All Properties
@@ -204,6 +197,14 @@ export const FeaturedProperties = () => {
           </Link>
         </div>
       </div>
+
+      {selectedProperty && (
+        <PropertyDetailModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          property={selectedProperty}
+        />
+      )}
     </section>
   );
 };

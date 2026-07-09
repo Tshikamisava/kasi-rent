@@ -11,6 +11,8 @@ import { formatRand } from '@/lib/currency';
 import { useNavigate } from "react-router-dom";
 import { PropertyDetailModal } from "@/components/PropertyDetailModal";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
+import placeholder from '@/assets/property-placeholder.png';
 
 const Favorites = () => {
   const { user } = useAuth();
@@ -95,9 +97,7 @@ const Favorites = () => {
                 const property = favorite.property;
                 if (!property) return null;
 
-                const displayImage = property.images && property.images.length > 0 
-                  ? property.images[0] 
-                  : property.image_url;
+                const displayImage = getPrimaryPropertyImageUrl(property.images, property.image_url);
 
                 return (
                   <Card 
@@ -113,7 +113,8 @@ const Favorites = () => {
                           className="w-full h-48 object-cover"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.src = '/property-placeholder.png';
+                            target.onerror = null;
+                            target.src = placeholder;
                           }}
                         />
                       ) : (

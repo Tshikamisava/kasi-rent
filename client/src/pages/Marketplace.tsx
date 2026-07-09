@@ -4,6 +4,7 @@ import { getFullImageUrl } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { formatRand } from '@/lib/currency';
 import placeholder from '@/assets/property-placeholder.png';
+import { API_BASE_URL } from '@/lib/apiBase';
 
 const Marketplace = () => {
   const { user } = useAuth();
@@ -14,8 +15,7 @@ const Marketplace = () => {
   useEffect(() => {
     const fetchListings = async () => {
       try {
-        const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-        const res = await fetch(`${API_BASE}/api/properties?limit=8`);
+        const res = await fetch(`${API_BASE_URL}/api/properties?limit=8`);
         const data = await res.json();
         if (!res.ok) throw new Error('Failed to fetch listings');
         setListings(data || []);
@@ -46,7 +46,7 @@ const Marketplace = () => {
     setLoadingId(listing.id);
 
     try {
-      const API = (import.meta.env.VITE_API_URL || 'http://localhost:5001').replace(/\/$/, '');
+      const API = API_BASE_URL.replace(/\/$/, '');
       const body = {
         plan: 'market_monthly',
         amount: 9.99,

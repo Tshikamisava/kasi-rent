@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import MapPicker from "./MapPicker";
-import { getFullImageUrl } from "@/lib/utils";
+import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
 import placeholder from "@/assets/property-placeholder.png";
 
 type Prop = {
@@ -223,11 +223,7 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
   };
 
   const getPropertyThumb = (property: any) => {
-    const firstImage = Array.isArray(property?.images) && property.images.length > 0
-      ? property.images[0]
-      : null;
-    const source = firstImage || property?.image_url || null;
-    return source ? getFullImageUrl(source) : placeholder;
+    return getPrimaryPropertyImageUrl(property?.images, property?.image_url) || placeholder;
   };
 
   return (

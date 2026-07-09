@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { API_BASE_URL } from "@/lib/apiBase";
 
 interface FraudDetectionResult {
   isSuspicious: boolean;
@@ -42,8 +43,7 @@ export const FraudDetector = ({
   const handleAnalyze = async () => {
     setAnalyzing(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const response = await fetch(`${API_BASE}/api/fraud-detection/analyze`, {
+      const response = await fetch(`${API_BASE_URL}/api/fraud-detection/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

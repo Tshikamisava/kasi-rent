@@ -1,0 +1,32 @@
+﻿ M client/.env.example
+ M client/src/App.tsx
+ M client/src/components/FeaturedProperties.tsx
+ M client/src/components/FraudDetector.tsx
+ M client/src/components/PropertyDetailModal.tsx
+ M client/src/components/PropertyForm.tsx
+ M client/src/lib/apiBase.ts
+ M client/src/lib/auth.ts
+ M client/src/pages/AdminDashboard.tsx
+ M client/src/pages/AdvancedSearch.tsx
+ M client/src/pages/Chat.tsx
+ M client/src/pages/LandlordDashboard.tsx
+ M client/src/pages/Marketplace.tsx
+ M client/src/pages/Profile.tsx
+ M client/src/pages/SignIn.tsx
+ M client/src/pages/TenantVerification.tsx
+ M server/controllers/paymentController.js
+ M server/controllers/subscriptionController.js
+ M server/models/User.js
+ M server/routes/authRoutes.js
+ M server/server.js
+ M server/socket.js
+?? .vercel-project-help.txt
+?? .vercel-project-inspect.json
+?? .vercel-project-inspect.txt
+?? .vercel-protection-after.json
+?? .vercel-protection-before.json
+?? .vercel-protection-disable-password.txt
+?? .vercel-protection-disable-sso.txt
+?? .vercel-protection-help.txt
+?? DEPLOYMENT_FIX_GUIDE.md
+?? git-status.txt

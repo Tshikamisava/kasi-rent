@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { formatRand } from '@/lib/currency';
 import { useAuth } from "@/hooks/use-auth";
+import { API_BASE_URL } from "@/lib/apiBase";
 import { Copy, AlertTriangle, ShieldCheck, ShieldAlert, Sparkles, Zap } from "lucide-react";
 
 export const PropertyForm = ({ onSuccess, initialData, onUpdate }: { 
@@ -175,8 +176,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
         throw new Error(data.message || 'Video upload failed');
       }
 
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-      const fullUrl = `${API_BASE}${data.videoUrl}`;
+      const fullUrl = `${API_BASE_URL}${data.videoUrl}`;
       setFormData({ ...formData, video_url: fullUrl });
       
       toast({
@@ -209,8 +209,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
   const toStoredImageUrl = (url: string) => {
     if (!url) return url;
     if (/^(https?:)?\/\//i.test(url) || url.startsWith('data:')) return url;
-    const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-    return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+    return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
   const analyzeFraud = async () => {
@@ -508,8 +507,7 @@ export const PropertyForm = ({ onSuccess, initialData, onUpdate }: {
           const res = await (await import('@/lib/api')).apiFetch('/api/upload/document', { method: 'POST', body: form });
           const data = await res.json();
           if (!res.ok || !data.success) throw new Error(data.message || 'Document upload failed');
-          const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-          documentUrl = `${API_BASE}${data.documentUrl}`;
+          documentUrl = `${API_BASE_URL}${data.documentUrl}`;
           documentFilename = data.filename;
           documentType = data.originalName?.split('.').pop() || documentFile.type;
         } catch (err: any) {

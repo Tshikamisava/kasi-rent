@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { API_BASE_URL } from "@/lib/apiBase";
 import { 
   User, 
   MapPin, 
@@ -23,7 +24,7 @@ import {
   Camera
 } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const API_URL = API_BASE_URL;
 
 interface UserProfile {
   id: string;

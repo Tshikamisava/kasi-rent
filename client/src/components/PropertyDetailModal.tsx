@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MapPin, BedDouble, Bath, Phone, Mail, User, Building2, Copy, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getFullImageUrl } from "@/lib/utils";
+import { resolvePropertyImageUrls } from "@/lib/propertyImages";
 import { formatRand } from '@/lib/currency';
 import placeholder from '@/assets/property-placeholder.png';
 import { useAuth } from "@/hooks/use-auth";
@@ -46,12 +46,7 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Get all images from the property (normalized with fallback sources)
-  const propertyImages = [
-    ...(Array.isArray(property?.images) ? property.images : []),
-    property?.image_url,
-  ]
-    .filter((img): img is string => typeof img === "string" && img.trim().length > 0)
-    .map((img) => img.trim());
+  const propertyImages = resolvePropertyImageUrls(property?.images, property?.image_url);
 
   const activeImageIndex = propertyImages.length > 0
     ? Math.min(currentImageIndex, propertyImages.length - 1)
@@ -98,7 +93,6 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
       }
 
       // Try to fetch from backend API
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
       const token = user?.token || localStorage.getItem("token");
 
       if (!token) {
@@ -342,11 +336,12 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
             <div className="relative">
               <div className="h-64 md:h-96 lg:h-[600px] w-full rounded-lg overflow-hidden">
                 <img
-                  src={getFullImageUrl(propertyImages[activeImageIndex])}
+                  src={propertyImages[activeImageIndex]}
                   alt={`${property.title} - Image ${activeImageIndex + 1}`}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
+                    target.onerror = null;
                     target.src = placeholder;
                   }}
                 />
@@ -393,10 +388,13 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                       }`}
                     >
                       <img
-                        src={getFullImageUrl(img)}
+                        src={img}
                         alt={`Thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
-                        onError={(e) => (e.currentTarget.src = placeholder)}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = placeholder;
+                        }}
                       />
                     </button>
                   ))}

@@ -7,7 +7,7 @@ import { MapPin, Zap, Star, Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from '@/lib/api';
 import { formatRand } from '@/lib/currency';
-import { getFullImageUrl } from "@/lib/utils";
+import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
 import placeholder from '@/assets/property-placeholder.png';
 
 interface RecommendedProperty {
@@ -115,11 +115,7 @@ export const RecommendedProperties = ({
   };
 
   const getPropertyCardImage = (property: RecommendedProperty) => {
-    const firstImage = Array.isArray(property?.images) && property.images.length > 0
-      ? property.images[0]
-      : null;
-    const source = firstImage || property?.image_url || null;
-    return source ? getFullImageUrl(source) : null;
+    return getPrimaryPropertyImageUrl(property?.images, property?.image_url);
   };
 
   if (loading) {

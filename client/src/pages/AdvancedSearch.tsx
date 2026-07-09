@@ -9,8 +9,11 @@ import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { Search, SlidersHorizontal, Save, X } from 'lucide-react';
 import { formatRand } from '@/lib/currency';
+import { getPrimaryPropertyImageUrl } from '@/lib/propertyImages';
+import placeholder from '@/assets/property-placeholder.png';
+import { API_BASE_URL } from '@/lib/apiBase';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const API_BASE = API_BASE_URL;
 
 export default function AdvancedSearch() {
   const [filters, setFilters] = useState({
@@ -406,9 +409,13 @@ export default function AdvancedSearch() {
               {properties.map((property: any) => (
                 <Card key={property.id} className="hover:shadow-lg transition-shadow">
                   <img
-                    src={property.images?.[0] || property.image_url || '/placeholder.jpg'}
+                    src={getPrimaryPropertyImageUrl(property.images, property.image_url) || placeholder}
                     alt={property.title}
                     className="w-full h-48 object-cover rounded-t-lg"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = placeholder;
+                    }}
                   />
                   <CardContent className="p-4">
                     <h3 className="font-semibold text-lg mb-2">{property.title}</h3>

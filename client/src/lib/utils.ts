@@ -16,8 +16,35 @@ export function getFullImageUrl(imagePath?: string | null) {
   const normalizedPath = imagePath.trim().replace(/[\r\n\t]+/g, '');
   if (!normalizedPath) return '';
 
+  // Protocol-relative URLs (//example.com/...)
+  if (normalizedPath.startsWith('//')) {
+    return `https:${normalizedPath}`;
+  }
+
   // already absolute (http, https, data URI)
-  if (/^(https?:)?\/\//.test(normalizedPath) || normalizedPath.startsWith('data:')) return normalizedPath;
+  if (/^https?:\/\//i.test(normalizedPath) || normalizedPath.startsWith('data:')) {
+    // Legacy demo images may be absolutized to an old Vercel deployment
+    if (typeof window !== 'undefined') {
+      const legacyRootFile = normalizedPath.match(/^https?:\/\/[^/]+(\/[^/?#]+\.[a-zA-Z0-9]+)$/);
+      if (legacyRootFile && !legacyRootFile[1].startsWith('/uploads/')) {
+        try {
+          const parsed = new URL(normalizedPath);
+          if (/vercel\.app$/i.test(parsed.hostname) && parsed.origin !== window.location.origin) {
+            return `${window.location.origin}${legacyRootFile[1]}`;
+          }
+        } catch {
+          // fall through to return normalizedPath
+        }
+      }
+    }
+    return normalizedPath;
+  }
+
+  // Always route /uploads/ paths through the API host, even when stored as absolute URLs
+  const uploadsMatch = normalizedPath.match(/\/uploads\/[^\s?#]+/);
+  if (uploadsMatch) {
+    return `${API_BASE_URL}${uploadsMatch[0]}`;
+  }
 
   // Legacy seeded/demo images can be stored as plain filenames that live in client /public
   // e.g. "riverside-townhouse-1.jpg"

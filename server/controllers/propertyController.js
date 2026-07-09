@@ -48,7 +48,12 @@ const getSafePropertyAttributes = async () => {
 };
 
 const getFrontendBaseUrl = () => {
-  const base = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'https://kasi-rent.vercel.app';
+  const base = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'https://kasi-rent-seven.vercel.app';
+  return String(base).trim().replace(/\/+$/, '');
+};
+
+const getBackendBaseUrl = () => {
+  const base = process.env.API_BASE_URL || process.env.SERVER_URL || process.env.RENDER_EXTERNAL_URL || 'https://kasirent.onrender.com';
   return String(base).trim().replace(/\/+$/, '');
 };
 
@@ -74,6 +79,23 @@ const absolutizeLegacyRootImagePath = (value) => {
   if (!isRootRelativePublicFile) return trimmed;
 
   return `${getFrontendBaseUrl()}${trimmed}`;
+};
+
+const absolutizeUploadPath = (value) => {
+  if (!value || typeof value !== 'string') return value;
+  const trimmed = sanitizeImagePath(value);
+  if (!trimmed) return value;
+
+  const uploadPathMatch = trimmed.match(/\/uploads\/[^\s?#]+/);
+  if (uploadPathMatch) {
+    return `${getBackendBaseUrl()}${uploadPathMatch[0]}`;
+  }
+
+  return trimmed;
+};
+
+const normalizePropertyImagePath = (value) => {
+  return absolutizeUploadPath(absolutizeLegacyRootImagePath(value));
 };
 
 const coerceImageArray = (value) => {
@@ -109,9 +131,9 @@ const normalizeLegacyPropertyImages = (property) => {
   if (!property || typeof property !== 'object') return property;
 
   const normalized = { ...property };
-  normalized.image_url = absolutizeLegacyRootImagePath(property.image_url);
+  normalized.image_url = normalizePropertyImagePath(property.image_url);
 
-  const normalizedImages = coerceImageArray(property.images).map((img) => absolutizeLegacyRootImagePath(img));
+  const normalizedImages = coerceImageArray(property.images).map((img) => normalizePropertyImagePath(img));
   normalized.images = normalizedImages;
 
   if (!normalized.image_url && normalizedImages.length > 0) {

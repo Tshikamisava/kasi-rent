@@ -657,7 +657,7 @@ const Chat = () => {
               {conversations.map((c) => {
                 // Get other participants (not current user) to check online status
                 const currentUserId = user?.id || user?._id;
-                const otherParticipants = c.participants?.filter((p: any) => p.user_id !== currentUserId) || [];
+                const otherParticipants = c.participants?.filter((p: any) => String(p.user_id) !== String(currentUserId)) || [];
                 const hasOnlineUser = otherParticipants.some((p: any) => onlineUsers.has(p.user_id));
                 
                 return (
@@ -706,7 +706,7 @@ const Chat = () => {
                   {messages.map((m) => {
                     const isOnline = m.sender_id && onlineUsers.has(m.sender_id);
                     const currentUserId = user?.id || user?._id;
-                    const isMine = m.sender_id === currentUserId;
+                    const isMine = String(m.sender_id) === String(currentUserId);
                     const isEditing = editingMessageId === m.id;
                     
                     return (

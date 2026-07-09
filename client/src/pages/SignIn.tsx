@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { Mail, Lock, CheckCircle2, Shield, Sparkles, Eye, EyeOff } from "lucide-react";
 
 const SignIn = () => {
-  const { user, setUser, setUserType } = useAuth();
+  const { setUser, setUserType } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -23,8 +23,52 @@ const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    // Do not auto-redirect here; role-based redirect happens after successful sign-in
-  }, []);
+    const oauthError = params.get('error');
+    if (oauthError) {
+      toast.error('OAuth sign-in failed. Please try again.');
+      return;
+    }
+
+    const oauthToken = params.get('token');
+    const oauthUser = params.get('user');
+
+    if (!oauthToken || !oauthUser) return;
+
+    try {
+      const parsedUser = JSON.parse(oauthUser);
+      const userRole = parsedUser?.role || parsedUser?.userType || 'tenant';
+
+      setUserType(userRole);
+      setUser({
+        _id: parsedUser?._id || parsedUser?.id,
+        id: parsedUser?.id || parsedUser?._id,
+        name: parsedUser?.name || parsedUser?.email || '',
+        email: parsedUser?.email || '',
+        token: oauthToken,
+        userType: userRole,
+        role: userRole,
+        profile_photo: parsedUser?.profile_photo || parsedUser?.avatar_url || null,
+      });
+
+      toast.success('Signed in successfully!');
+
+      if (redirectTo) {
+        navigate(redirectTo, { replace: true });
+        return;
+      }
+
+      if (userRole === 'admin') {
+        navigate('/admin', { replace: true });
+      } else if (userRole === 'landlord') {
+        navigate('/dashboard/landlord', { replace: true });
+      } else {
+        navigate('/dashboard/tenant', { replace: true });
+      }
+    } catch (err) {
+      console.error('Failed to process OAuth callback params:', err);
+      toast.error('Unable to complete OAuth sign-in. Please sign in again.');
+    }
+  }, [location.search, navigate, redirectTo, setUser, setUserType]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +117,7 @@ const SignIn = () => {
           
           toast.success("Signed in successfully!");
           console.log("Navigating to dashboard...");
+          setLoading(false);
           
           // Small delay to ensure state is updated before navigation
           setTimeout(() => {

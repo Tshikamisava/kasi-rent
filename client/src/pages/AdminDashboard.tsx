@@ -11,8 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Shield, FileText, CheckCircle, XCircle, Eye, Upload, Building2, ImageIcon, Download } from 'lucide-react';
 import { formatRand } from '@/lib/currency';
+import { API_BASE_URL } from '@/lib/apiBase';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const API_BASE = API_BASE_URL;
 
 interface TenantVerification {
   id: string;

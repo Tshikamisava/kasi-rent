@@ -10,6 +10,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { apiFetch } from '@/lib/api';
 import { formatRand } from '@/lib/currency';
 import { useToast } from "@/hooks/use-toast";
+import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
+import placeholder from '@/assets/property-placeholder.png';
 
 const Bookings = () => {
   const navigate = useNavigate();
@@ -107,12 +109,16 @@ const Bookings = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {bookings.map((booking) => (
                 <Card key={booking.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  {booking.property?.image_url ? (
+                  {getPrimaryPropertyImageUrl(booking.property?.images, booking.property?.image_url) ? (
                     <div className="h-48 overflow-hidden">
                       <img
-                        src={booking.property.image_url}
+                        src={getPrimaryPropertyImageUrl(booking.property?.images, booking.property?.image_url)!}
                         alt={booking.property.title}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = placeholder;
+                        }}
                       />
                     </div>
                   ) : (
