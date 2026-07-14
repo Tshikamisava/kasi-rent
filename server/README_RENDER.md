@@ -5,9 +5,15 @@ Quick goal
 
 Required env vars (set these in Render -> Your Service -> Environment):
 - DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
+- DB_USE_POSTGRES (optional; set to true only if you intentionally want Postgres)
 - JWT_SECRET, SESSION_SECRET, CLIENT_URL, PORT
 - REDIS_URL (required for socket scaling)
 - DB_POOL_MAX, DB_POOL_MIN, DB_POOL_ACQUIRE, DB_POOL_IDLE
+
+Important
+- This backend now defaults to the MySQL `DB_*` variables when they are present.
+- If Render also injects a `DATABASE_URL` for a linked Postgres service, it will be ignored unless `DB_USE_POSTGRES=true` is set.
+- This avoids accidental connection attempts to the wrong database when deploying the frontend on Vercel and the backend on Render.
 
 Database bootstrap / schema sync
 - If `DATABASE_URL` is set (Render Postgres), the app now auto-runs `sequelize.sync({ alter: true })` on startup by default.

@@ -24,6 +24,8 @@ const pgUser = normalizeEnvValue(process.env.PGUSER);
 const pgPassword = normalizeEnvValue(process.env.PGPASSWORD);
 const pgDatabase = normalizeEnvValue(process.env.PGDATABASE);
 const hasPgDiscreteConfig = Boolean(pgHost && pgUser && pgDatabase);
+const hasMySqlConfig = Boolean(process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME);
+const forcePostgres = ['true', '1', 'yes'].includes(String(process.env.DB_USE_POSTGRES || '').trim().toLowerCase());
 
 const connectionWarnings = [];
 let connectionMode = 'mysql-env';
@@ -51,6 +53,25 @@ if (connectionMode === 'mysql-env' && hasPgDiscreteConfig) {
 }
 
 let sequelize;
+
+if (forcePostgres) {
+  if (databaseUrl) {
+    connectionMode = 'postgres-url';
+  } else if (hasPgDiscreteConfig) {
+    connectionMode = 'postgres-env';
+  } else {
+    connectionWarnings.push('DB_USE_POSTGRES=true was set but no Postgres configuration was found; falling back to MySQL env vars.');
+  }
+} else if (hasMySqlConfig) {
+  // Default to the MySQL env vars because this repository and deployment docs
+  // primarily use the MySQL-backed auth flow. Render can also expose a
+  // DATABASE_URL for a linked Postgres service; if that is present but the app
+  // should still use MySQL, keep DB_USE_POSTGRES unset/false.
+  if (rawDatabaseUrl || hasPgDiscreteConfig) {
+    connectionWarnings.push('DATABASE_URL/PG* env vars detected but ignored because DB_HOST/DB_USER/DB_NAME are present. Set DB_USE_POSTGRES=true to prefer Postgres.');
+  }
+  connectionMode = 'mysql-env';
+}
 
 if (connectionMode === 'postgres-url') {
   sequelize = new Sequelize(databaseUrl, {

@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { API_BASE_URL } from "@/lib/apiBase";
+import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
+import placeholder from "@/assets/property-placeholder.png";
 import { 
   User, 
   MapPin, 
@@ -267,6 +269,10 @@ export default function Profile() {
       default:
         return "bg-gray-500";
     }
+  };
+
+  const getDisplayImage = (imagesValue: unknown) => {
+    return getPrimaryPropertyImageUrl(imagesValue) || placeholder;
   };
 
   if (loading) {
@@ -625,9 +631,14 @@ export default function Profile() {
                 onClick={() => navigate(`/properties`)}>
                 <CardContent className="p-4">
                   <img
-                    src={property.images[0] || "/placeholder.jpg"}
+                    src={getDisplayImage(property.images)}
                     alt={property.title}
                     className="w-full h-48 object-cover rounded-lg mb-3"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = placeholder;
+                    }}
                   />
                   <h3 className="font-semibold text-lg mb-2">{property.title}</h3>
                   <p className="text-sm text-gray-600 mb-2 flex items-center gap-1">
@@ -669,9 +680,14 @@ export default function Profile() {
                 <CardContent className="p-6">
                   <div className="flex flex-col md:flex-row gap-4">
                     <img
-                      src={booking.property_images[0] || "/placeholder.jpg"}
+                      src={getDisplayImage(booking.property_images)}
                       alt={booking.property_title}
                       className="w-full md:w-48 h-32 object-cover rounded-lg"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = placeholder;
+                      }}
                     />
                     <div className="flex-1">
                       <div className="flex justify-between items-start mb-2">
