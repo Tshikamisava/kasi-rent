@@ -1,6 +1,22 @@
 import { API_BASE_URL } from "@/lib/apiBase";
 
-const allowedRegistrationDomains = new Set(['gmail.com', 'googlemail.com']);
+const defaultAllowedRegistrationDomains = new Set(['gmail.com', 'googlemail.com']);
+
+const parseAllowedRegistrationDomains = (value?: string) => {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw) return defaultAllowedRegistrationDomains;
+
+  const parsed = raw
+    .split(',')
+    .map((domain) => domain.trim().toLowerCase())
+    .filter(Boolean);
+
+  return parsed.length > 0 ? new Set(parsed) : defaultAllowedRegistrationDomains;
+};
+
+const allowedRegistrationDomains = parseAllowedRegistrationDomains(
+  import.meta.env.VITE_EMAIL_ALLOWED_DOMAINS
+);
 
 const getEmailDomain = (email: string) => {
   if (typeof email !== 'string') return '';
