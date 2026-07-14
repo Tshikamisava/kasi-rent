@@ -1,8 +1,9 @@
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { Shield, Users, Heart, TrendingUp, Target, Award, Zap } from "lucide-react";
+import { Shield, Users, Heart, TrendingUp, Target, Award, Zap, Linkedin, Mail } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
+import { teamMembers } from "@/data/teamMembers";
 
 const values = [
   {
@@ -24,24 +25,6 @@ const values = [
     icon: TrendingUp,
     title: "Growth & Opportunity",
     description: "Empowering landlords to grow their businesses while helping tenants find homes.",
-  },
-];
-
-const teamMembers = [
-  {
-    name: "Tshikamisava Mzwandie",
-    role: "Founder & CEO",
-    description: "Visionary leader committed to transforming township rental experiences.",
-  },
-  {
-    name: "Development Team",
-    role: "Technology",
-    description: "Building secure and innovative solutions for our community.",
-  },
-  {
-    name: "Support Team",
-    role: "Customer Success",
-    description: "Dedicated to ensuring every user has a seamless experience.",
   },
 ];
 
@@ -224,14 +207,39 @@ const About = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               {teamMembers.map((member, index) => (
-                <Card key={index} className="hover:shadow-xl transition-shadow">
+                <Card key={index} className="hover:shadow-2xl transition-all hover:-translate-y-1 overflow-hidden">
+                  <div className="aspect-[4/5] relative overflow-hidden bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10">
+                    <img
+                      src={member.image}
+                      alt={member.name}
+                      className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+                  </div>
                   <CardContent className="p-6 text-center">
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4">
-                      <Users className="w-12 h-12 text-white" />
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto -mt-10 mb-4 shadow-lg ring-4 ring-background">
+                      <Users className="w-7 h-7 text-white" />
                     </div>
                     <h3 className="text-xl font-bold mb-1">{member.name}</h3>
                     <p className="text-primary font-medium mb-3">{member.role}</p>
-                    <p className="text-muted-foreground">{member.description}</p>
+                    <p className="text-muted-foreground">{member.bio}</p>
+                    <div className="mt-5 flex justify-center gap-3">
+                      <a
+                        href={member.linkedin || '#'}
+                        className="w-10 h-10 rounded-full bg-primary/10 hover:bg-primary hover:text-white flex items-center justify-center transition-colors"
+                        aria-label="LinkedIn"
+                      >
+                        <Linkedin className="w-5 h-5" />
+                      </a>
+                      <a
+                        href={member.email ? `mailto:${member.email}` : '#'}
+                        className="w-10 h-10 rounded-full bg-primary/10 hover:bg-primary hover:text-white flex items-center justify-center transition-colors"
+                        aria-label="Email"
+                      >
+                        <Mail className="w-5 h-5" />
+                      </a>
+                    </div>
                   </CardContent>
                 </Card>
               ))}

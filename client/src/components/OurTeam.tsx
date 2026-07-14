@@ -1,32 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Linkedin, Mail } from "lucide-react";
-
-const teamMembers = [
-  {
-    name: "Tshikamisava Mmbengwa",
-    role: "Co-Founder & CEO",
-    bio: "Passionate about transforming township rentals and empowering communities",
-    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    linkedin: "https://www.linkedin.com/in/tshikamisava-mmbengwa-394b11260/",
-    email: "tshika@kasirent.com",
-  },
-  {
-    name: "Team Member 2",
-    role: "Co-Founder & CTO",
-    bio: "Building technology that bridges the gap in the rental market",
-    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    linkedin: "#",
-    email: "team2@kasirent.com",
-  },
-  {
-    name: "Team Member 3",
-    role: "Head of Operations",
-    bio: "Ensuring smooth operations and excellent customer experience",
-    image: "https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-    linkedin: "#",
-    email: "team3@kasirent.com",
-  },
-];
+import { teamMembers } from "@/data/teamMembers";
 
 export const OurTeam = () => {
   return (
@@ -41,13 +15,13 @@ export const OurTeam = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {teamMembers.map((member, index) => (
-            <Card key={index} className="overflow-hidden border-border hover:border-primary/50 transition-all hover:shadow-lg animate-fade-in-up">
-              <div className="aspect-square bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center overflow-hidden">
+            <Card key={index} className="overflow-hidden border-border hover:border-primary/50 transition-all hover:shadow-2xl hover:-translate-y-1 animate-fade-in-up group">
+              <div className="aspect-square bg-gradient-to-br from-primary/20 via-secondary/10 to-accent/20 flex items-center justify-center overflow-hidden relative">
                 {member.image ? (
                   <img 
                     src={member.image} 
                     alt={member.name}
-                    className="w-full h-full object-cover rounded-full"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     onError={(e) => {
                       // graceful fallback to initials when the image fails to load
                       const parent = e.currentTarget.parentElement!;
@@ -59,6 +33,7 @@ export const OurTeam = () => {
                     {member.name.charAt(0)}
                   </div>
                 )}
+                <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
               </div>
               <CardContent className="p-6 text-center">
                 <h3 className="text-xl font-semibold mb-1">{member.name}</h3>
