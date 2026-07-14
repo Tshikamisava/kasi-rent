@@ -9,6 +9,8 @@ Required env vars (set these in Render -> Your Service -> Environment):
 - JWT_SECRET, SESSION_SECRET, CLIENT_URL, PORT
 - REDIS_URL (required for socket scaling)
 - DB_POOL_MAX, DB_POOL_MIN, DB_POOL_ACQUIRE, DB_POOL_IDLE
+- EMAIL_ALLOWED_DOMAINS (optional; default safe list is gmail.com,googlemail.com)
+- ENABLE_MX_CHECK (optional; set to true if you want DNS MX verification on signup)
 
 Important
 - This backend now defaults to the MySQL `DB_*` variables when they are present.
@@ -31,6 +33,12 @@ Example:
 - `CLIENT_URL=https://kasi-rent.vercel.app`
 - `CORS_ALLOWED_ORIGINS=https://kasi-rent-seven.vercel.app`
 - `CORS_ALLOW_VERCEL_PREVIEWS=true`
+
+Email registration safety
+- Registration now rejects disposable/temp email domains and only allows approved domains by default.
+- Safe default allowlist: `gmail.com,googlemail.com`
+- Override with `EMAIL_ALLOWED_DOMAINS` if you want to permit additional business-approved domains.
+- Optional extra hardening: set `ENABLE_MX_CHECK=true` to verify the domain can receive mail.
 
 Install runtime deps (already applied locally):
 ```bash

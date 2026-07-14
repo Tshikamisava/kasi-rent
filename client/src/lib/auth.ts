@@ -1,5 +1,20 @@
 import { API_BASE_URL } from "@/lib/apiBase";
 
+const allowedRegistrationDomains = new Set(['gmail.com', 'googlemail.com']);
+
+const getEmailDomain = (email: string) => {
+  if (typeof email !== 'string') return '';
+  const parts = email.trim().toLowerCase().split('@');
+  return parts.length === 2 ? parts[1] : '';
+};
+
+const isAllowedRegistrationEmail = (email: string) => {
+  const domain = getEmailDomain(email);
+  return Boolean(domain && allowedRegistrationDomains.has(domain));
+};
+
+const allowedRegistrationDomainsLabel = Array.from(allowedRegistrationDomains).join(', ');
+
 // MySQL-based authentication (no Supabase)
 const API_BASE = API_BASE_URL;
 const API_URL = `${API_BASE}/api/auth`;
@@ -51,6 +66,10 @@ export const authApi = {
 
   async register(data: RegisterData) {
     try {
+      if (!isAllowedRegistrationEmail(data.email)) {
+        throw new Error(`Only approved email domains are allowed for registration (${allowedRegistrationDomainsLabel})`);
+      }
+
       const url = `${API_URL}/register`;
       console.log('📝 Register attempt:', { url, apiBase: API_BASE, email: data.email });
       
@@ -200,6 +219,14 @@ export const onAuthStateChange = (callback: (event: string, session: any) => voi
 
 export const register = async (email: string, password: string, name: string, phone?: string, userType?: string) => {
   try {
+    if (!isAllowedRegistrationEmail(email)) {
+      return {
+        user: null,
+        session: null,
+        error: `Only approved email domains are allowed for registration (${allowedRegistrationDomainsLabel})`,
+      };
+    }
+
     const response = await fetch(`${API_URL}/register`, {
       method: 'POST',
       headers: {

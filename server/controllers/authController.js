@@ -1,7 +1,7 @@
 import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { isAcceptableEmail, isValidEmailFormat } from '../utils/emailValidator.js';
+import { getAllowedEmailDomains, isAcceptableEmail, isAllowedEmailDomain, isValidEmailFormat } from '../utils/emailValidator.js';
 
 /**
  * Generate JWT Token
@@ -40,7 +40,12 @@ export const register = async (req, res) => {
 
     const acceptable = await isAcceptableEmail(email);
     if (!acceptable) {
-      return res.status(400).json({ success: false, error: 'Disposable or invalid email addresses are not allowed' });
+      const allowedDomains = getAllowedEmailDomains();
+      const allowedDomainsLabel = allowedDomains.length > 0 ? allowedDomains.join(', ') : 'approved email providers';
+      const domainMessage = isAllowedEmailDomain(email)
+        ? 'Disposable or invalid email addresses are not allowed'
+        : `Only approved email domains are allowed for registration (${allowedDomainsLabel})`;
+      return res.status(400).json({ success: false, error: domainMessage });
     }
 
     if (password.length < 6) {
