@@ -11,13 +11,13 @@ const socialLinks = [
 ];
 
 const contactInfo = [
-  { icon: Mail, label: "Email", value: "hello@kasirent.com", href: "mailto:hello@kasirent.com" },
+  { icon: Mail, label: "Email", value: "sitholeclarence9@gmail.com", href: "mailto:sitholeclarence9@gmail.com" },
   { icon: Phone, label: "Phone", value: "+27 123 456 789", href: "tel:+27123456789" },
   { icon: MapPin, label: "Location", value: "Johannesburg, South Africa", href: "#" },
 ];
 
 export const ConnectWithUs = () => {
-  const [email, setEmail] = useState("sitholeclarence9@gmail.com");
+  const [email, setEmail] = useState("");
   const { toast } = useToast();
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
@@ -37,7 +37,7 @@ export const ConnectWithUs = () => {
       description: `${trimmedEmail} is ready for newsletter subscription.`,
     });
 
-    window.location.href = `mailto:hello@kasirent.com?subject=${encodeURIComponent(
+    window.location.href = `mailto:sitholeclarence9@gmail.com?subject=${encodeURIComponent(
       "Newsletter Subscription"
     )}&body=${encodeURIComponent(
       `Please subscribe this email address to the KasiRent newsletter:\n\n${trimmedEmail}`
