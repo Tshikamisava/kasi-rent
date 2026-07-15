@@ -1,5 +1,7 @@
-import { Facebook, Instagram, Twitter, Linkedin, Mail, Phone, MapPin } from "lucide-react";
+import { useState } from "react";
+import { Facebook, Instagram, Twitter, Linkedin, Mail, Phone, MapPin, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const socialLinks = [
   { icon: Facebook, label: "Facebook", url: "https://facebook.com/kasirent", color: "hover:text-[#1877F2]" },
@@ -15,6 +17,33 @@ const contactInfo = [
 ];
 
 export const ConnectWithUs = () => {
+  const [email, setEmail] = useState("sitholeclarence9@gmail.com");
+  const { toast } = useToast();
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      toast({
+        title: "Email required",
+        description: "Please enter an email address to subscribe.",
+      });
+      return;
+    }
+
+    toast({
+      title: "Newsletter signup ready",
+      description: `${trimmedEmail} is ready for newsletter subscription.`,
+    });
+
+    window.location.href = `mailto:hello@kasirent.com?subject=${encodeURIComponent(
+      "Newsletter Subscription"
+    )}&body=${encodeURIComponent(
+      `Please subscribe this email address to the KasiRent newsletter:\n\n${trimmedEmail}`
+    )}`;
+  };
+
   return (
     <section className="py-20 bg-background">
       <div className="container mx-auto px-6">
@@ -70,16 +99,19 @@ export const ConnectWithUs = () => {
             <div className="mt-12 text-center">
               <h4 className="text-xl font-semibold mb-4">Subscribe to Our Newsletter</h4>
               <p className="text-muted-foreground mb-6">Get the latest updates on properties and platform features</p>
-              <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+              <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={handleNewsletterSubmit}>
                 <input
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   className="flex-1 px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <Button size="lg" className="whitespace-nowrap">
+                <Button size="lg" className="whitespace-nowrap" type="submit">
+                  <Send className="w-4 h-4 mr-2" />
                   Subscribe
                 </Button>
-              </div>
+              </form>
             </div>
           </div>
         </div>
