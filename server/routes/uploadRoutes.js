@@ -1,5 +1,5 @@
 import express from 'express';
-import { upload, compressImage } from '../config/upload.js';
+import { upload, compressImage, copyUploadToClientPublic } from '../config/upload.js';
 import { docUpload, finalizeDocument } from '../config/docUpload.js';
 import { videoUpload } from '../config/videoUpload.js';
 import { isCloudinaryConfigured, uploadPropertyImageToCloudinary } from '../config/cloudinary.js';
@@ -114,6 +114,7 @@ router.post('/single', upload.single('image'), async (req, res) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const filename = 'property-' + uniqueSuffix + '.jpg';
     const compressedPath = await compressImage(req.file.path, filename);
+    copyUploadToClientPublic(compressedPath, filename);
 
     let imageUrl = `/uploads/properties/${filename}`;
     if (isCloudinaryConfigured) {
@@ -164,6 +165,7 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
       const filename = 'property-' + uniqueSuffix + '.jpg';
 
       const compressedPath = await compressImage(file.path, filename);
+      copyUploadToClientPublic(compressedPath, filename);
       let imageUrl = `/uploads/properties/${filename}`;
 
       if (isCloudinaryConfigured) {

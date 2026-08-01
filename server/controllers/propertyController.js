@@ -3,6 +3,7 @@ import { Op } from 'sequelize';
 import User from '../models/User.js';
 import Subscription from '../models/Subscription.js';
 import { geocodeAddress } from '../utils/geocoding.js';
+import { getRequestBaseUrl, normalizePropertyImagePath as normalizePropertyImageUrl } from '../utils/propertyImageUrls.js';
 
 let cachedPropertyColumns = null;
 
@@ -81,21 +82,17 @@ const absolutizeLegacyRootImagePath = (value) => {
   return `${getFrontendBaseUrl()}${trimmed}`;
 };
 
-const absolutizeUploadPath = (value) => {
+const absolutizeUploadPath = (value, req) => {
   if (!value || typeof value !== 'string') return value;
   const trimmed = sanitizeImagePath(value);
   if (!trimmed) return value;
 
-  const uploadPathMatch = trimmed.match(/\/uploads\/[^\s?#]+/);
-  if (uploadPathMatch) {
-    return `${getBackendBaseUrl()}${uploadPathMatch[0]}`;
-  }
-
-  return trimmed;
+  const requestBaseUrl = getRequestBaseUrl(req, getBackendBaseUrl());
+  return normalizePropertyImageUrl(trimmed, requestBaseUrl, getFrontendBaseUrl());
 };
 
-const normalizePropertyImagePath = (value) => {
-  return absolutizeUploadPath(absolutizeLegacyRootImagePath(value));
+const normalizePropertyImagePath = (value, req) => {
+  return absolutizeUploadPath(value, req);
 };
 
 const coerceImageArray = (value) => {
@@ -127,13 +124,13 @@ const coerceImageArray = (value) => {
   return [];
 };
 
-const normalizeLegacyPropertyImages = (property) => {
+const normalizeLegacyPropertyImages = (property, req) => {
   if (!property || typeof property !== 'object') return property;
 
   const normalized = { ...property };
-  normalized.image_url = normalizePropertyImagePath(property.image_url);
+  normalized.image_url = normalizePropertyImagePath(property.image_url, req);
 
-  const normalizedImages = coerceImageArray(property.images).map((img) => normalizePropertyImagePath(img));
+  const normalizedImages = coerceImageArray(property.images).map((img) => normalizePropertyImagePath(img, req));
   normalized.images = normalizedImages;
 
   if (!normalized.image_url && normalizedImages.length > 0) {
@@ -200,7 +197,7 @@ export const getProperties = async (req, res) => {
       console.warn('Boost lookup failed, returning unordered results:', boostErr.message);
     }
 
-    result = result.map((property) => normalizeLegacyPropertyImages(property));
+    result = result.map((property) => normalizeLegacyPropertyImages(property, req));
 
     res.json(result);
   } catch (error) {

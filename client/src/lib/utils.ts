@@ -23,26 +23,40 @@ export function getFullImageUrl(imagePath?: string | null) {
 
   // already absolute (http, https, data URI)
   if (/^https?:\/\//i.test(normalizedPath) || normalizedPath.startsWith('data:')) {
-    // Legacy demo images may be absolutized to an old Vercel deployment
-    if (typeof window !== 'undefined') {
-      const legacyRootFile = normalizedPath.match(/^https?:\/\/[^/]+(\/[^/?#]+\.[a-zA-Z0-9]+)$/);
-      if (legacyRootFile && !legacyRootFile[1].startsWith('/uploads/')) {
-        try {
-          const parsed = new URL(normalizedPath);
+    try {
+      const parsed = new URL(normalizedPath);
+      const isUploadUrl = /\/uploads\/[^?]+/i.test(parsed.pathname);
+      const isLegacyRenderHost = /render\.com$|onrender\.com$|render\.app$/i.test(parsed.hostname);
+
+      if (isUploadUrl && isLegacyRenderHost) {
+        if (typeof window !== 'undefined') {
+          return `${window.location.origin}${parsed.pathname}`;
+        }
+        return `${API_BASE_URL}${parsed.pathname}`;
+      }
+
+      // Legacy demo images may be absolutized to an old Vercel deployment
+      if (typeof window !== 'undefined') {
+        const legacyRootFile = normalizedPath.match(/^https?:\/\/[^/]+(\/[^/?#]+\.[a-zA-Z0-9]+)$/);
+        if (legacyRootFile && !legacyRootFile[1].startsWith('/uploads/')) {
           if (/vercel\.app$/i.test(parsed.hostname) && parsed.origin !== window.location.origin) {
             return `${window.location.origin}${legacyRootFile[1]}`;
           }
-        } catch {
-          // fall through to return normalizedPath
         }
       }
+    } catch {
+      // fall through to return normalizedPath
     }
     return normalizedPath;
   }
 
-  // Always route /uploads/ paths through the API host, even when stored as absolute URLs
+  // Resolve upload paths against the current frontend origin for Vercel deployments,
+  // while keeping the API host for local development.
   const uploadsMatch = normalizedPath.match(/\/uploads\/[^\s?#]+/);
   if (uploadsMatch) {
+    if (typeof window !== 'undefined' && /vercel\.app$/i.test(window.location.hostname)) {
+      return `${window.location.origin}${uploadsMatch[0]}`;
+    }
     return `${API_BASE_URL}${uploadsMatch[0]}`;
   }
 

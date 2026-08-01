@@ -115,6 +115,22 @@ export const compressImage = async (tempFilePath, filename) => {
   }
 };
 
+export const copyUploadToClientPublic = (sourcePath, filename) => {
+  try {
+    const clientPublicDir = path.join(__dirname, '../../client/public/uploads/properties');
+    if (!fs.existsSync(clientPublicDir)) {
+      fs.mkdirSync(clientPublicDir, { recursive: true });
+    }
+
+    const targetPath = path.join(clientPublicDir, filename);
+    fs.copyFileSync(sourcePath, targetPath);
+    return targetPath;
+  } catch (error) {
+    console.warn('Could not mirror upload to client public assets:', error.message);
+    return null;
+  }
+};
+
 // Helper function to delete file
 export const deleteFile = (filename) => {
   const filePath = path.join(uploadsDir, filename);
