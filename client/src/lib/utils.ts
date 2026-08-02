@@ -26,13 +26,11 @@ export function getFullImageUrl(imagePath?: string | null) {
     try {
       const parsed = new URL(normalizedPath);
       const isUploadUrl = /\/uploads\/[^?]+/i.test(parsed.pathname);
-      const isLegacyRenderHost = /render\.com$|onrender\.com$|render\.app$/i.test(parsed.hostname);
 
-      if (isUploadUrl && isLegacyRenderHost) {
-        if (typeof window !== 'undefined') {
-          return `${window.location.origin}${parsed.pathname}`;
-        }
-        return `${API_BASE_URL}${parsed.pathname}`;
+      // Preserve absolute upload URLs from the API/backend. Relative /uploads paths
+      // are still resolved against the current frontend origin for Vercel deployments.
+      if (isUploadUrl) {
+        return normalizedPath;
       }
 
       // Legacy demo images may be absolutized to an old Vercel deployment
