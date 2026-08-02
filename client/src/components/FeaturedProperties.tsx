@@ -164,6 +164,12 @@ export const FeaturedProperties = () => {
                       {imageCount}
                     </div>
                   )}
+
+                  {cardImageOverrides[String(property?.id)] && (
+                    <div className="absolute bottom-2 left-2 bg-black/70 text-white text-[11px] font-medium px-2 py-1 rounded-full shadow">
+                      Fallback image
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="h-56 md:h-80 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
