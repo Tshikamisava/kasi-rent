@@ -27,7 +27,11 @@ function normalizeApiBase(raw?: string) {
   }
 }
 
-export const API_BASE_URL = normalizeApiBase(import.meta.env.VITE_API_URL);
+const runtimeApiBase = typeof window !== 'undefined' && window.location.hostname.endsWith('vercel.app')
+  ? PROD_API_FALLBACK
+  : undefined;
+
+export const API_BASE_URL = normalizeApiBase(runtimeApiBase || import.meta.env.VITE_API_URL);
 
 // Debug logging
 if (typeof window !== 'undefined') {
