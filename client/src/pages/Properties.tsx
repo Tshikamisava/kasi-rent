@@ -15,6 +15,7 @@ import PropertyMap from "@/components/PropertyMap";
 import { apiFetch } from '@/lib/api';
 import { formatRand } from '@/lib/currency';
 import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
+import { getFallbackImageForPropertyType, isRenderPlaceholderSvg } from "@/lib/propertyImageFallback";
 import placeholder from '@/assets/property-placeholder.png';
 
 const Properties = () => {
@@ -29,6 +30,7 @@ const Properties = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [propertyTypeFilter, setPropertyTypeFilter] = useState("all");
   const [priceRangeFilter, setPriceRangeFilter] = useState("all");
+  const [cardImageOverrides, setCardImageOverrides] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const verifiedParam = searchParams.get("verified");
@@ -102,8 +104,41 @@ const Properties = () => {
   }).sort((a, b) => (b.is_boosted ? 1 : 0) - (a.is_boosted ? 1 : 0));
 
   const getPropertyCardImage = (property: any) => {
-    return getPrimaryPropertyImageUrl(property?.images, property?.image_url);
+    return cardImageOverrides[String(property?.id)] || getPrimaryPropertyImageUrl(property?.images, property?.image_url);
   };
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const probePropertyImages = async () => {
+      const updates: Record<string, string> = {};
+
+      for (const property of filteredProperties) {
+        const id = String(property?.id || '');
+        if (!id || cardImageOverrides[id]) continue;
+
+        const primary = getPrimaryPropertyImageUrl(property?.images, property?.image_url);
+        if (!primary) {
+          updates[id] = getFallbackImageForPropertyType(property?.property_type);
+          continue;
+        }
+
+        if (await isRenderPlaceholderSvg(primary)) {
+          updates[id] = getFallbackImageForPropertyType(property?.property_type);
+        }
+      }
+
+      if (!isCancelled && Object.keys(updates).length > 0) {
+        setCardImageOverrides((prev) => ({ ...prev, ...updates }));
+      }
+    };
+
+    probePropertyImages();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [filteredProperties, cardImageOverrides]);
 
   return (
     <div className="min-h-screen">
@@ -208,7 +243,7 @@ const Properties = () => {
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.onerror = null;
-                          target.src = placeholder;
+                          target.src = getFallbackImageForPropertyType(property?.property_type) || placeholder;
                         }}
                       />
                       {/* Favorite Button */}
