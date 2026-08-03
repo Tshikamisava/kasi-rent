@@ -1,7 +1,11 @@
 import { useEffect, useState, useRef } from "react";
 import MapPicker from "./MapPicker";
 import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
-import { getFallbackImageForPropertyType, resolveCardImageUrl } from "@/lib/propertyImageFallback";
+import {
+  getFallbackImageForPropertyType,
+  isRenderPlaceholderSvg,
+  resolveCardImageUrl,
+} from "@/lib/propertyImageFallback";
 import placeholder from "@/assets/property-placeholder.png";
 
 type Prop = {
@@ -228,6 +232,46 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
     return resolveCardImageUrl(primary, property?.property_type, property?.image_missing) || placeholder;
   };
 
+  const PropertyThumb = ({ property }: { property: any }) => {
+    const fallbackSrc = getFallbackImageForPropertyType(property?.property_type) || placeholder;
+    const [thumbSrc, setThumbSrc] = useState<string>(getPropertyThumb(property));
+
+    useEffect(() => {
+      let active = true;
+      const initial = getPropertyThumb(property);
+      setThumbSrc(initial);
+
+      (async () => {
+        if (!initial) {
+          if (active) setThumbSrc(fallbackSrc);
+          return;
+        }
+
+        const isPlaceholder = await isRenderPlaceholderSvg(initial);
+        if (active && isPlaceholder) {
+          setThumbSrc(fallbackSrc);
+        }
+      })();
+
+      return () => {
+        active = false;
+      };
+    }, [property?.id, property?.image_url, property?.images, property?.image_missing, property?.property_type, fallbackSrc]);
+
+    return (
+      <img
+        src={thumbSrc || fallbackSrc}
+        alt={property?.title}
+        className="w-16 h-12 rounded object-cover flex-shrink-0"
+        onError={(e) => {
+          const target = e.target as HTMLImageElement;
+          target.onerror = null;
+          target.src = fallbackSrc;
+        }}
+      />
+    );
+  };
+
   return (
     <div className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 relative">
@@ -446,7 +490,6 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
             if (meters >= 1000) distanceText = `${(meters/1000).toFixed(1)} km`;
             else distanceText = `${Math.round(meters)} m`;
           }
-          const thumb = getPropertyThumb(p);
           return (
             <button
               key={String(p.id)}
@@ -461,16 +504,7 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
               }}
               className="w-full text-left p-3 rounded-lg bg-card hover:shadow flex gap-3 items-center"
             >
-              <img
-                src={thumb}
-                alt={p.title}
-                className="w-16 h-12 rounded object-cover flex-shrink-0"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.onerror = null;
-                  target.src = getFallbackImageForPropertyType(p?.property_type) || placeholder;
-                }}
-              />
+              <PropertyThumb property={p} />
               <div className="flex-1">
                 <div className="font-medium">{p.title || locStr}</div>
                 <div className="text-sm text-muted-foreground">{locStr}</div>
