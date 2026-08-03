@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import MapPicker from "./MapPicker";
 import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
+import { getFallbackImageForPropertyType, resolveCardImageUrl } from "@/lib/propertyImageFallback";
 import placeholder from "@/assets/property-placeholder.png";
 
 type Prop = {
@@ -223,7 +224,8 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
   };
 
   const getPropertyThumb = (property: any) => {
-    return getPrimaryPropertyImageUrl(property?.images, property?.image_url) || placeholder;
+    const primary = getPrimaryPropertyImageUrl(property?.images, property?.image_url);
+    return resolveCardImageUrl(primary, property?.property_type, property?.image_missing) || placeholder;
   };
 
   return (
@@ -466,7 +468,7 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.onerror = null;
-                  target.src = placeholder;
+                  target.src = getFallbackImageForPropertyType(p?.property_type) || placeholder;
                 }}
               />
               <div className="flex-1">

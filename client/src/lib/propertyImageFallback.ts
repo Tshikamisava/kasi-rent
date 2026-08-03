@@ -34,9 +34,10 @@ export function shouldUseFallbackImage(
   if (imageMissing === true) return true;
   if (imageMissing === false) return false;
 
-  // Backward-compatible fallback for deployments where image_missing
-  // is not yet returned by the backend API.
-  return isRenderUploadImageUrl(imageUrl);
+  // Only fall back when the backend explicitly reports a missing image.
+  // When no explicit signal is available, prefer the original URL so cards
+  // continue to render real uploads instead of switching to placeholder art.
+  return false;
 }
 
 export function resolveCardImageUrl(
