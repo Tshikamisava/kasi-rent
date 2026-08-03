@@ -27,15 +27,24 @@ export function shouldProbeRenderUploadImage(url?: string | null) {
   return isRenderUploadImageUrl(url);
 }
 
+export function shouldUseFallbackImage(
+  imageUrl: string | null | undefined,
+  imageMissing?: boolean | null
+) {
+  if (imageMissing === true) return true;
+  if (imageMissing === false) return false;
+
+  // Backward-compatible fallback for deployments where image_missing
+  // is not yet returned by the backend API.
+  return isRenderUploadImageUrl(imageUrl);
+}
+
 export function resolveCardImageUrl(
   imageUrl: string | null | undefined,
-  propertyType?: string | null
+  propertyType?: string | null,
+  imageMissing?: boolean | null
 ) {
-  if (!imageUrl) return getFallbackImageForPropertyType(propertyType);
-
-  // Render is currently returning generated SVG placeholders for many
-  // missing uploads. Prefer deterministic local fallback for card previews.
-  if (isRenderUploadImageUrl(imageUrl)) {
+  if (!imageUrl || shouldUseFallbackImage(imageUrl, imageMissing)) {
     return getFallbackImageForPropertyType(propertyType);
   }
 

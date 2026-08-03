@@ -2,8 +2,15 @@ import Property from '../models/Property.js';
 import { Op } from 'sequelize';
 import User from '../models/User.js';
 import Subscription from '../models/Subscription.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { geocodeAddress } from '../utils/geocoding.js';
 import { getRequestBaseUrl, normalizePropertyImagePath as normalizePropertyImageUrl } from '../utils/propertyImageUrls.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const propertyUploadsDir = path.join(__dirname, '..', 'uploads', 'properties');
 
 let cachedPropertyColumns = null;
 
@@ -124,6 +131,25 @@ const coerceImageArray = (value) => {
   return [];
 };
 
+const getUploadFilename = (value) => {
+  if (typeof value !== 'string') return null;
+  const clean = sanitizeImagePath(value);
+  if (!clean) return null;
+
+  const match = clean.match(/\/uploads\/properties\/([^?#]+)/i);
+  if (!match || !match[1]) return null;
+
+  return path.basename(match[1]);
+};
+
+const isMissingUploadImage = (value) => {
+  const filename = getUploadFilename(value);
+  if (!filename) return false;
+
+  const fullPath = path.join(propertyUploadsDir, filename);
+  return !fs.existsSync(fullPath);
+};
+
 const normalizeLegacyPropertyImages = (property, req) => {
   if (!property || typeof property !== 'object') return property;
 
@@ -136,6 +162,9 @@ const normalizeLegacyPropertyImages = (property, req) => {
   if (!normalized.image_url && normalizedImages.length > 0) {
     normalized.image_url = normalizedImages[0];
   }
+
+  normalized.image_missing = isMissingUploadImage(normalized.image_url);
+  normalized.images_missing = normalizedImages.map((img) => isMissingUploadImage(img));
 
   return normalized;
 };

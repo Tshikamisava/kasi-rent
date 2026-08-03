@@ -15,7 +15,7 @@ import PropertyMap from "@/components/PropertyMap";
 import { apiFetch } from '@/lib/api';
 import { formatRand } from '@/lib/currency';
 import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
-import { getFallbackImageForPropertyType, isRenderUploadImageUrl, resolveCardImageUrl } from "@/lib/propertyImageFallback";
+import { getFallbackImageForPropertyType, resolveCardImageUrl, shouldUseFallbackImage } from "@/lib/propertyImageFallback";
 import placeholder from '@/assets/property-placeholder.png';
 
 const Properties = () => {
@@ -104,7 +104,7 @@ const Properties = () => {
 
   const getPropertyCardImage = (property: any) => {
     const primary = getPrimaryPropertyImageUrl(property?.images, property?.image_url);
-    return resolveCardImageUrl(primary, property?.property_type);
+    return resolveCardImageUrl(primary, property?.property_type, property?.image_missing);
   };
 
   return (
@@ -229,7 +229,10 @@ const Properties = () => {
                         </div>
                       )}
 
-                      {isRenderUploadImageUrl(getPrimaryPropertyImageUrl(property?.images, property?.image_url)) && (
+                      {shouldUseFallbackImage(
+                        getPrimaryPropertyImageUrl(property?.images, property?.image_url),
+                        property?.image_missing
+                      ) && (
                         <div className="absolute bottom-2 left-2 bg-black/70 text-white text-[11px] font-medium px-2 py-1 rounded-full shadow">
                           Fallback image
                         </div>

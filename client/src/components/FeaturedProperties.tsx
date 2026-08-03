@@ -12,7 +12,7 @@ import { PropertyDetailModal } from "@/components/PropertyDetailModal";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import PropertyMap from "@/components/PropertyMap";
 import { apiFetch } from '@/lib/api';
-import { getFallbackImageForPropertyType, isRenderUploadImageUrl, resolveCardImageUrl } from '@/lib/propertyImageFallback';
+import { getFallbackImageForPropertyType, resolveCardImageUrl, shouldUseFallbackImage } from '@/lib/propertyImageFallback';
 
 export const FeaturedProperties = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -99,7 +99,7 @@ export const FeaturedProperties = () => {
           {properties.map((property) => {
             const imageCount = getPropertyImageCount(property.images, property.image_url);
             const primaryImage = getPrimaryPropertyImageUrl(property.images, property.image_url);
-            const displayImage = resolveCardImageUrl(primaryImage, property?.property_type);
+            const displayImage = resolveCardImageUrl(primaryImage, property?.property_type, property?.image_missing);
             
             return (
             <Card key={property.id} className="overflow-hidden group transition-transform hover:-translate-y-1 hover:shadow-lg">
@@ -130,7 +130,7 @@ export const FeaturedProperties = () => {
                     </div>
                   )}
 
-                  {isRenderUploadImageUrl(primaryImage) && (
+                  {shouldUseFallbackImage(primaryImage, property?.image_missing) && (
                     <div className="absolute bottom-2 left-2 bg-black/70 text-white text-[11px] font-medium px-2 py-1 rounded-full shadow">
                       Fallback image
                     </div>
