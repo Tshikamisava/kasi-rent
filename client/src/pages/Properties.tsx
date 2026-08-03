@@ -240,6 +240,17 @@ const Properties = () => {
                         src={getPropertyCardImage(property) || placeholder}
                         alt={property.title}
                         className="w-full h-full object-cover"
+                        onLoad={(e) => {
+                          const target = e.currentTarget as HTMLImageElement;
+                          const src = target.currentSrc || target.src || '';
+                          const isRenderUpload = /kasirent\.onrender\.com\/uploads\/properties\//i.test(src);
+                          const looksLikeServerPlaceholder = target.naturalWidth === 1200 && target.naturalHeight === 800;
+
+                          if (isRenderUpload && looksLikeServerPlaceholder) {
+                            target.onerror = null;
+                            target.src = getFallbackImageForPropertyType(property?.property_type) || placeholder;
+                          }
+                        }}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.onerror = null;
