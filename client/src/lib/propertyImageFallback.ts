@@ -7,6 +7,11 @@ import defaultFallback from '@/assets/landlord-property.jpg';
 const renderUploadsRegex = /^https?:\/\/kasirent\.onrender\.com\/uploads\/properties\//i;
 const placeholderProbeCache = new Map<string, boolean>();
 
+export function isRenderUploadImageUrl(url?: string | null) {
+  if (!url) return false;
+  return renderUploadsRegex.test(url);
+}
+
 export function getFallbackImageForPropertyType(propertyType?: string | null) {
   const type = String(propertyType || '').trim().toLowerCase();
 
@@ -19,8 +24,22 @@ export function getFallbackImageForPropertyType(propertyType?: string | null) {
 }
 
 export function shouldProbeRenderUploadImage(url?: string | null) {
-  if (!url) return false;
-  return renderUploadsRegex.test(url);
+  return isRenderUploadImageUrl(url);
+}
+
+export function resolveCardImageUrl(
+  imageUrl: string | null | undefined,
+  propertyType?: string | null
+) {
+  if (!imageUrl) return getFallbackImageForPropertyType(propertyType);
+
+  // Render is currently returning generated SVG placeholders for many
+  // missing uploads. Prefer deterministic local fallback for card previews.
+  if (isRenderUploadImageUrl(imageUrl)) {
+    return getFallbackImageForPropertyType(propertyType);
+  }
+
+  return imageUrl;
 }
 
 export async function isRenderPlaceholderSvg(url: string): Promise<boolean> {

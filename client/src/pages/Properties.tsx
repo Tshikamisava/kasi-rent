@@ -15,7 +15,7 @@ import PropertyMap from "@/components/PropertyMap";
 import { apiFetch } from '@/lib/api';
 import { formatRand } from '@/lib/currency';
 import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
-import { getFallbackImageForPropertyType, isRenderPlaceholderSvg } from "@/lib/propertyImageFallback";
+import { getFallbackImageForPropertyType, isRenderUploadImageUrl, resolveCardImageUrl } from "@/lib/propertyImageFallback";
 import placeholder from '@/assets/property-placeholder.png';
 
 const Properties = () => {
@@ -30,7 +30,6 @@ const Properties = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [propertyTypeFilter, setPropertyTypeFilter] = useState("all");
   const [priceRangeFilter, setPriceRangeFilter] = useState("all");
-  const [cardImageOverrides, setCardImageOverrides] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const verifiedParam = searchParams.get("verified");
@@ -104,41 +103,9 @@ const Properties = () => {
   }).sort((a, b) => (b.is_boosted ? 1 : 0) - (a.is_boosted ? 1 : 0));
 
   const getPropertyCardImage = (property: any) => {
-    return cardImageOverrides[String(property?.id)] || getPrimaryPropertyImageUrl(property?.images, property?.image_url);
+    const primary = getPrimaryPropertyImageUrl(property?.images, property?.image_url);
+    return resolveCardImageUrl(primary, property?.property_type);
   };
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    const probePropertyImages = async () => {
-      const updates: Record<string, string> = {};
-
-      for (const property of filteredProperties) {
-        const id = String(property?.id || '');
-        if (!id || cardImageOverrides[id]) continue;
-
-        const primary = getPrimaryPropertyImageUrl(property?.images, property?.image_url);
-        if (!primary) {
-          updates[id] = getFallbackImageForPropertyType(property?.property_type);
-          continue;
-        }
-
-        if (await isRenderPlaceholderSvg(primary)) {
-          updates[id] = getFallbackImageForPropertyType(property?.property_type);
-        }
-      }
-
-      if (!isCancelled && Object.keys(updates).length > 0) {
-        setCardImageOverrides((prev) => ({ ...prev, ...updates }));
-      }
-    };
-
-    probePropertyImages();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [filteredProperties, cardImageOverrides]);
 
   return (
     <div className="min-h-screen">
@@ -240,17 +207,6 @@ const Properties = () => {
                         src={getPropertyCardImage(property) || placeholder}
                         alt={property.title}
                         className="w-full h-full object-cover"
-                        onLoad={(e) => {
-                          const target = e.currentTarget as HTMLImageElement;
-                          const src = target.currentSrc || target.src || '';
-                          const isRenderUpload = /kasirent\.onrender\.com\/uploads\/properties\//i.test(src);
-                          const looksLikeServerPlaceholder = target.naturalWidth === 1200 && target.naturalHeight === 800;
-
-                          if (isRenderUpload && looksLikeServerPlaceholder) {
-                            target.onerror = null;
-                            target.src = getFallbackImageForPropertyType(property?.property_type) || placeholder;
-                          }
-                        }}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.onerror = null;
@@ -273,7 +229,7 @@ const Properties = () => {
                         </div>
                       )}
 
-                      {cardImageOverrides[String(property?.id)] && (
+                      {isRenderUploadImageUrl(getPrimaryPropertyImageUrl(property?.images, property?.image_url)) && (
                         <div className="absolute bottom-2 left-2 bg-black/70 text-white text-[11px] font-medium px-2 py-1 rounded-full shadow">
                           Fallback image
                         </div>

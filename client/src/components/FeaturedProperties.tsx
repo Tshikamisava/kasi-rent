@@ -12,14 +12,13 @@ import { PropertyDetailModal } from "@/components/PropertyDetailModal";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import PropertyMap from "@/components/PropertyMap";
 import { apiFetch } from '@/lib/api';
-import { getFallbackImageForPropertyType, isRenderPlaceholderSvg } from '@/lib/propertyImageFallback';
+import { getFallbackImageForPropertyType, isRenderUploadImageUrl, resolveCardImageUrl } from '@/lib/propertyImageFallback';
 
 export const FeaturedProperties = () => {
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [cardImageOverrides, setCardImageOverrides] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchProperties();
@@ -39,41 +38,6 @@ export const FeaturedProperties = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    const probePropertyImages = async () => {
-      const updates: Record<string, string> = {};
-
-      for (const property of properties) {
-        const id = String(property?.id || '');
-        if (!id || cardImageOverrides[id]) continue;
-
-        const primary = getPrimaryPropertyImageUrl(property?.images, property?.image_url);
-        if (!primary) {
-          updates[id] = getFallbackImageForPropertyType(property?.property_type);
-          continue;
-        }
-
-        if (await isRenderPlaceholderSvg(primary)) {
-          updates[id] = getFallbackImageForPropertyType(property?.property_type);
-        }
-      }
-
-      if (!isCancelled && Object.keys(updates).length > 0) {
-        setCardImageOverrides((prev) => ({ ...prev, ...updates }));
-      }
-    };
-
-    if (properties.length > 0) {
-      probePropertyImages();
-    }
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [properties, cardImageOverrides]);
 
   if (loading) {
     return (
@@ -134,7 +98,8 @@ export const FeaturedProperties = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {properties.map((property) => {
             const imageCount = getPropertyImageCount(property.images, property.image_url);
-            const displayImage = cardImageOverrides[String(property?.id)] || getPrimaryPropertyImageUrl(property.images, property.image_url);
+            const primaryImage = getPrimaryPropertyImageUrl(property.images, property.image_url);
+            const displayImage = resolveCardImageUrl(primaryImage, property?.property_type);
             
             return (
             <Card key={property.id} className="overflow-hidden group transition-transform hover:-translate-y-1 hover:shadow-lg">
@@ -144,17 +109,6 @@ export const FeaturedProperties = () => {
                     src={displayImage} 
                     alt={property.title}
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    onLoad={(e) => {
-                      const target = e.currentTarget as HTMLImageElement;
-                      const src = target.currentSrc || target.src || '';
-                      const isRenderUpload = /kasirent\.onrender\.com\/uploads\/properties\//i.test(src);
-                      const looksLikeServerPlaceholder = target.naturalWidth === 1200 && target.naturalHeight === 800;
-
-                      if (isRenderUpload && looksLikeServerPlaceholder) {
-                        target.onerror = null;
-                        target.src = getFallbackImageForPropertyType(property?.property_type) || placeholder;
-                      }
-                    }}
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.onerror = null;
@@ -176,7 +130,7 @@ export const FeaturedProperties = () => {
                     </div>
                   )}
 
-                  {cardImageOverrides[String(property?.id)] && (
+                  {isRenderUploadImageUrl(primaryImage) && (
                     <div className="absolute bottom-2 left-2 bg-black/70 text-white text-[11px] font-medium px-2 py-1 rounded-full shadow">
                       Fallback image
                     </div>
