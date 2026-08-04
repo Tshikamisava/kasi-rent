@@ -13,7 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 import { API_BASE_URL } from "@/lib/apiBase";
 import { supabase } from "@/integrations/supabase/client";
-import { getFullImageUrl } from "@/lib/utils";
+import { getFullImageUrl } from '@/lib/utils';
+import { getFallbackImageForPropertyType } from '@/lib/propertyImageFallback';
 import placeholder from '@/assets/property-placeholder.png';
 
 const LandlordDashboard = () => {
@@ -454,7 +455,7 @@ const LandlordDashboard = () => {
                     const propertyImages = normalizeImageList(property.images, property.image_url);
                     
                     const currentIndex = imageIndexes[property.id] || 0;
-                    const currentImage = propertyImages[currentIndex] || placeholder;
+                    const currentImage = propertyImages[currentIndex] || getFallbackImageForPropertyType(property.property_type) || placeholder;
 
                     return (
                     <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2">
@@ -467,7 +468,7 @@ const LandlordDashboard = () => {
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.onerror = null;
-                              target.src = placeholder;
+                              target.src = getFallbackImageForPropertyType(property.property_type) || placeholder;
                             }}
                           />
                           
