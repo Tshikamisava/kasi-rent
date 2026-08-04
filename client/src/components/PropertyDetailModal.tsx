@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, BedDouble, Bath, Phone, Mail, User, Copy, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, BedDouble, Bath, Phone, Mail, User, Copy, Calendar, ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { resolvePropertyImageUrls } from "@/lib/propertyImages";
 import { getFallbackImageForPropertyType } from "@/lib/propertyImageFallback";
@@ -46,6 +46,7 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
   const [submitting, setSubmitting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activeImageFailed, setActiveImageFailed] = useState(false);
+  const [showFullscreen, setShowFullscreen] = useState(false);
 
   // Get all images from the property (normalized with fallback sources)
   const propertyImages = resolvePropertyImageUrls(property?.images, property?.image_url);
@@ -64,6 +65,24 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
     setCurrentImageIndex((prev) => (prev - 1 + propertyImages.length) % propertyImages.length);
   };
 
+  // Keyboard navigation
+  useEffect(() => {
+    if (!open || propertyImages.length <= 1) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        nextImage();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        prevImage();
+      } else if (e.key === 'Escape') {
+        setShowFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, propertyImages.length, currentImageIndex]);
+
   // Debug logging
   useEffect(() => {
     console.log('PropertyDetailModal - open:', open, 'property:', property);
@@ -79,6 +98,7 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
     if (!open) return;
     setCurrentImageIndex(0);
     setActiveImageFailed(false);
+    setShowFullscreen(false);
   }, [open, property?.id]);
 
   useEffect(() => {
@@ -338,61 +358,82 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
           </div>
           {/* Property Image Gallery */}
           {propertyImages.length > 0 && !activeImageFailed ? (
-            <div className="relative">
-              <div className="h-64 md:h-96 lg:h-[600px] w-full rounded-lg overflow-hidden">
-                <img
-                  src={propertyImages[activeImageIndex]}
-                  alt={`${property.title} - Image ${activeImageIndex + 1}`}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer"
-                  onLoad={(e) => {
-                    const img = e.target as HTMLImageElement;
-                    if (img.naturalWidth === 1200 && img.naturalHeight === 800) {
-                      setActiveImageFailed(true);
-                    }
-                  }}
-                  onError={() => setActiveImageFailed(true)}
-                />
+            <>
+              <div className="relative group">
+                <div className="h-64 md:h-96 lg:h-[600px] w-full rounded-lg overflow-hidden bg-black/5">
+                  <img
+                    src={propertyImages[activeImageIndex]}
+                    alt={`${property.title} - Image ${activeImageIndex + 1}`}
+                    className="w-full h-full object-cover transition-opacity duration-300"
+                    onLoad={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      if (img.naturalWidth === 1200 && img.naturalHeight === 800) {
+                        setActiveImageFailed(true);
+                      }
+                    }}
+                    onError={() => setActiveImageFailed(true)}
+                  />
+                </div>
+                
+                {/* Navigation Arrows (only for multiple images) */}
+                {propertyImages.length > 1 && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 opacity-70 hover:opacity-100 transition-opacity"
+                      onClick={prevImage}
+                      title="Previous image (←)"
+                    >
+                      <ChevronLeft className="h-6 w-6" />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-70 hover:opacity-100 transition-opacity"
+                      onClick={nextImage}
+                      title="Next image (→)"
+                    >
+                      <ChevronRight className="h-6 w-6" />
+                    </Button>
+                  </>
+                )}
+                
+                {/* Image Counter & Fullscreen Button (always show) */}
+                <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                  {propertyImages.length > 1 && (
+                    <div className="bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium">
+                      {activeImageIndex + 1} / {propertyImages.length}
+                    </div>
+                  )}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="bg-black/70 hover:bg-black/80"
+                    onClick={() => setShowFullscreen(true)}
+                    title="Full screen view"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              
-              {/* Navigation Arrows */}
-              {propertyImages.length > 1 && (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-80 hover:opacity-100"
-                    onClick={prevImage}
-                  >
-                    <ChevronLeft className="h-6 w-6" />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-80 hover:opacity-100"
-                    onClick={nextImage}
-                  >
-                    <ChevronRight className="h-6 w-6" />
-                  </Button>
-                  
-                  {/* Image Counter */}
-                  <div className="absolute bottom-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
-                    {activeImageIndex + 1} / {propertyImages.length}
-                  </div>
-                </>
-              )}
               
               {/* Thumbnail Navigation */}
               {propertyImages.length > 1 && (
-                <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
+                <div className="flex gap-2 mt-4 overflow-x-auto pb-2 scroll-smooth">
                   {propertyImages.map((img, index) => (
                     <button
                       key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`flex-shrink-0 h-20 w-28 rounded overflow-hidden border-2 transition-all ${
+                      onClick={() => {
+                        setCurrentImageIndex(index);
+                        setActiveImageFailed(false);
+                      }}
+                      className={`flex-shrink-0 h-20 w-28 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                         index === activeImageIndex
                           ? 'border-primary ring-2 ring-primary scale-105'
-                          : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105'
+                          : 'border-gray-200 opacity-70 hover:opacity-100 hover:scale-105'
                       }`}
+                      title={`View image ${index + 1}`}
                     >
                       <img
                         src={img}
@@ -407,7 +448,73 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                   ))}
                 </div>
               )}
-            </div>
+              
+              {/* Fullscreen Lightbox Modal */}
+              {showFullscreen && (
+                <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4" onClick={() => setShowFullscreen(false)}>
+                  <div className="w-full h-full flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                    {/* Close Button */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-4 right-4 text-white hover:bg-white/20"
+                      onClick={() => setShowFullscreen(false)}
+                      title="Close (Esc)"
+                    >
+                      <X className="h-6 w-6" />
+                    </Button>
+                    
+                    {/* Main Image */}
+                    <img
+                      src={propertyImages[activeImageIndex]}
+                      alt={`${property.title} - Full view`}
+                      className="max-w-[90vw] max-h-[80vh] object-contain rounded-lg"
+                    />
+                    
+                    {/* Navigation */}
+                    {propertyImages.length > 1 && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12"
+                          onClick={prevImage}
+                          title="Previous (←)"
+                        >
+                          <ChevronLeft className="h-8 w-8" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12"
+                          onClick={nextImage}
+                          title="Next (→)"
+                        >
+                          <ChevronRight className="h-8 w-8" />
+                        </Button>
+                        
+                        {/* Counter & Indicators */}
+                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4">
+                          <div className="text-white text-lg font-semibold">{activeImageIndex + 1} / {propertyImages.length}</div>
+                          <div className="flex gap-2">
+                            {propertyImages.map((_, index) => (
+                              <button
+                                key={index}
+                                onClick={() => setCurrentImageIndex(index)}
+                                className={`h-2 rounded-full transition-all ${
+                                  index === activeImageIndex ? 'bg-white w-8' : 'bg-white/40 w-2 hover:bg-white/60'
+                                }`}
+                                title={`Go to image ${index + 1}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <div className="h-64 md:h-96 lg:h-[600px] w-full rounded-lg overflow-hidden">
               <img
