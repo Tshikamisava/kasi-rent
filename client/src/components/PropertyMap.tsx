@@ -4,7 +4,6 @@ import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
 import {
   getFallbackImageForPropertyType,
   isRenderUploadImageUrl,
-  isRenderPlaceholderSvg,
   resolveCardImageUrl,
 } from "@/lib/propertyImageFallback";
 import placeholder from "@/assets/property-placeholder.png";
@@ -235,22 +234,14 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
 
   const PropertyThumb = ({ property }: { property: any }) => {
     const fallbackSrc = getFallbackImageForPropertyType(property?.property_type) || placeholder;
-    const initialSrc = getPropertyThumb(property) || fallbackSrc;
-    const [thumbSrc, setThumbSrc] = useState<string>(initialSrc);
+    const [thumbSrc, setThumbSrc] = useState<string>(getPropertyThumb(property) || fallbackSrc);
 
     useEffect(() => {
       if (property?.image_missing === true) {
         setThumbSrc(fallbackSrc);
         return;
       }
-      const src = getPropertyThumb(property) || fallbackSrc;
-      if (isRenderUploadImageUrl(src)) {
-        // Probe the URL: server returns SVG (200) for missing files, which browsers
-        // accept as valid images and never fire onError for.
-        isRenderPlaceholderSvg(src).then((isSvg) => setThumbSrc(isSvg ? fallbackSrc : src));
-      } else {
-        setThumbSrc(src);
-      }
+      setThumbSrc(getPropertyThumb(property) || fallbackSrc);
     }, [property?.id, property?.image_url, property?.images, property?.image_missing, property?.property_type, fallbackSrc]);
 
     return (
@@ -258,11 +249,15 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
         src={thumbSrc}
         alt={property?.title}
         className="w-16 h-12 rounded object-cover flex-shrink-0"
-        onError={(e) => {
-          const target = e.target as HTMLImageElement;
-          target.onerror = null;
-          target.src = fallbackSrc;
+        onLoad={(e) => {
+          const img = e.target as HTMLImageElement;
+          // Server returns an SVG placeholder (1200×800) for missing files via HTTP 200,
+          // so onError never fires — detect by dimensions and switch to fallback via state.
+          if (img.naturalWidth === 1200 && img.naturalHeight === 800 && isRenderUploadImageUrl(img.src)) {
+            setThumbSrc(fallbackSrc);
+          }
         }}
+        onError={() => setThumbSrc(fallbackSrc)}
       />
     );
   };
