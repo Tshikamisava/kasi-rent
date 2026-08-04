@@ -3,7 +3,7 @@ import MapPicker from "./MapPicker";
 import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
 import {
   getFallbackImageForPropertyType,
-  isRenderPlaceholderSvg,
+  isRenderUploadImageUrl,
   resolveCardImageUrl,
 } from "@/lib/propertyImageFallback";
 import placeholder from "@/assets/property-placeholder.png";
@@ -237,25 +237,14 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
     const [thumbSrc, setThumbSrc] = useState<string>(getPropertyThumb(property));
 
     useEffect(() => {
-      let active = true;
       const initial = getPropertyThumb(property);
-      setThumbSrc(initial);
+      // Backend on production currently may omit image_missing while returning
+      // Render upload placeholder images. For mini map cards, prefer deterministic
+      // property-type fallback unless backend explicitly reports image exists.
+      const shouldForceFallback =
+        property?.image_missing !== false && isRenderUploadImageUrl(initial);
 
-      (async () => {
-        if (!initial) {
-          if (active) setThumbSrc(fallbackSrc);
-          return;
-        }
-
-        const isPlaceholder = await isRenderPlaceholderSvg(initial);
-        if (active && isPlaceholder) {
-          setThumbSrc(fallbackSrc);
-        }
-      })();
-
-      return () => {
-        active = false;
-      };
+      setThumbSrc(shouldForceFallback ? fallbackSrc : (initial || fallbackSrc));
     }, [property?.id, property?.image_url, property?.images, property?.image_missing, property?.property_type, fallbackSrc]);
 
     return (
