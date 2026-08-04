@@ -12,9 +12,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, BedDouble, Bath, Phone, Mail, User, Building2, Copy, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, BedDouble, Bath, Phone, Mail, User, Copy, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { resolvePropertyImageUrls } from "@/lib/propertyImages";
+import { getFallbackImageForPropertyType } from "@/lib/propertyImageFallback";
 import { formatRand } from '@/lib/currency';
 import placeholder from '@/assets/property-placeholder.png';
 import { useAuth } from "@/hooks/use-auth";
@@ -44,6 +45,7 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
   });
   const [submitting, setSubmitting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [activeImageFailed, setActiveImageFailed] = useState(false);
 
   // Get all images from the property (normalized with fallback sources)
   const propertyImages = resolvePropertyImageUrls(property?.images, property?.image_url);
@@ -53,10 +55,12 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
     : 0;
 
   const nextImage = () => {
+    setActiveImageFailed(false);
     setCurrentImageIndex((prev) => (prev + 1) % propertyImages.length);
   };
 
   const prevImage = () => {
+    setActiveImageFailed(false);
     setCurrentImageIndex((prev) => (prev - 1 + propertyImages.length) % propertyImages.length);
   };
 
@@ -74,6 +78,7 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
   useEffect(() => {
     if (!open) return;
     setCurrentImageIndex(0);
+    setActiveImageFailed(false);
   }, [open, property?.id]);
 
   useEffect(() => {
@@ -332,18 +337,14 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
             </div>
           </div>
           {/* Property Image Gallery */}
-          {propertyImages.length > 0 ? (
+          {propertyImages.length > 0 && !activeImageFailed ? (
             <div className="relative">
               <div className="h-64 md:h-96 lg:h-[600px] w-full rounded-lg overflow-hidden">
                 <img
                   src={propertyImages[activeImageIndex]}
                   alt={`${property.title} - Image ${activeImageIndex + 1}`}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.onerror = null;
-                    target.src = placeholder;
-                  }}
+                  onError={() => setActiveImageFailed(true)}
                 />
               </div>
               
@@ -402,8 +403,13 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
               )}
             </div>
           ) : (
-            <div className="h-96 md:h-[600px] w-full rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-              <Building2 className="w-24 h-24 text-primary/40" />
+            <div className="h-64 md:h-96 lg:h-[600px] w-full rounded-lg overflow-hidden">
+              <img
+                src={getFallbackImageForPropertyType(property?.property_type) || placeholder}
+                alt={property?.title}
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).src = placeholder; }}
+              />
             </div>
           )}
 

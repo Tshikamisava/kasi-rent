@@ -140,7 +140,8 @@ app.get('/uploads/properties/:filename', (req, res) => {
     return res.sendFile(requestedImage);
   }
 
-  return res.sendFile(placeholderUploadImage);
+  // Return 404 so browser <img> onError fires; client shows type-based fallback
+  return res.status(404).sendFile(placeholderUploadImage);
 });
 
 app.use('/uploads', express.static(uploadsRoot));
