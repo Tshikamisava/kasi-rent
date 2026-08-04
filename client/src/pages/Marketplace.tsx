@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getFullImageUrl } from '@/lib/utils';
+import { getFallbackImageForPropertyType } from '@/lib/propertyImageFallback';
 import { useAuth } from '@/hooks/use-auth';
 import { formatRand } from '@/lib/currency';
 import placeholder from '@/assets/property-placeholder.png';
@@ -35,7 +36,7 @@ const Marketplace = () => {
       ? listing.images[0]
       : null;
     const source = firstImage || listing?.image || listing?.image_url || null;
-    return source ? getFullImageUrl(source) : placeholder;
+    return source ? getFullImageUrl(source) : (getFallbackImageForPropertyType(listing?.property_type) || placeholder);
   };
 
   const handleSubscribe = async (listing: any) => {
@@ -120,7 +121,7 @@ const Marketplace = () => {
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.onerror = null;
-                      target.src = placeholder;
+                      target.src = getFallbackImageForPropertyType(l?.property_type) || placeholder;
                     }}
                   />
                 </div>
