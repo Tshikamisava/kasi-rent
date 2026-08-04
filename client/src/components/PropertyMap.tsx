@@ -3,6 +3,8 @@ import MapPicker from "./MapPicker";
 import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
 import {
   getFallbackImageForPropertyType,
+  isRenderUploadImageUrl,
+  isRenderPlaceholderSvg,
   resolveCardImageUrl,
 } from "@/lib/propertyImageFallback";
 import placeholder from "@/assets/property-placeholder.png";
@@ -237,11 +239,18 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
     const [thumbSrc, setThumbSrc] = useState<string>(initialSrc);
 
     useEffect(() => {
-      // Only skip the real URL when the server explicitly says the image is missing.
-      // null/undefined means unknown — prefer the real URL so images that exist on the
-      // backend are shown (consistent with how large property cards behave).
-      const src = property?.image_missing === true ? fallbackSrc : (getPropertyThumb(property) || fallbackSrc);
-      setThumbSrc(src);
+      if (property?.image_missing === true) {
+        setThumbSrc(fallbackSrc);
+        return;
+      }
+      const src = getPropertyThumb(property) || fallbackSrc;
+      if (isRenderUploadImageUrl(src)) {
+        // Probe the URL: server returns SVG (200) for missing files, which browsers
+        // accept as valid images and never fire onError for.
+        isRenderPlaceholderSvg(src).then((isSvg) => setThumbSrc(isSvg ? fallbackSrc : src));
+      } else {
+        setThumbSrc(src);
+      }
     }, [property?.id, property?.image_url, property?.images, property?.image_missing, property?.property_type, fallbackSrc]);
 
     return (

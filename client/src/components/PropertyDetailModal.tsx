@@ -344,6 +344,12 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                   src={propertyImages[activeImageIndex]}
                   alt={`${property.title} - Image ${activeImageIndex + 1}`}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer"
+                  onLoad={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    if (img.naturalWidth === 1200 && img.naturalHeight === 800) {
+                      setActiveImageFailed(true);
+                    }
+                  }}
                   onError={() => setActiveImageFailed(true)}
                 />
               </div>

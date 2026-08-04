@@ -465,6 +465,12 @@ const LandlordDashboard = () => {
                             src={currentImage}
                             alt={property.title}
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            onLoad={(e) => {
+                              const img = e.target as HTMLImageElement;
+                              if (img.naturalWidth === 1200 && img.naturalHeight === 800) {
+                                img.src = getFallbackImageForPropertyType(property.property_type) || placeholder;
+                              }
+                            }}
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.onerror = null;
