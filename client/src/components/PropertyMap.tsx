@@ -3,7 +3,6 @@ import MapPicker from "./MapPicker";
 import { getPrimaryPropertyImageUrl } from "@/lib/propertyImages";
 import {
   getFallbackImageForPropertyType,
-  isRenderUploadImageUrl,
   resolveCardImageUrl,
 } from "@/lib/propertyImageFallback";
 import placeholder from "@/assets/property-placeholder.png";
@@ -234,22 +233,20 @@ const PropertyMap = ({ properties }: { properties: Prop[] }) => {
 
   const PropertyThumb = ({ property }: { property: any }) => {
     const fallbackSrc = getFallbackImageForPropertyType(property?.property_type) || placeholder;
-    const [thumbSrc, setThumbSrc] = useState<string>(getPropertyThumb(property));
+    const initialSrc = getPropertyThumb(property) || fallbackSrc;
+    const [thumbSrc, setThumbSrc] = useState<string>(initialSrc);
 
     useEffect(() => {
-      const initial = getPropertyThumb(property);
-      // Backend on production currently may omit image_missing while returning
-      // Render upload placeholder images. For mini map cards, prefer deterministic
-      // property-type fallback unless backend explicitly reports image exists.
-      const shouldForceFallback =
-        property?.image_missing !== false && isRenderUploadImageUrl(initial);
-
-      setThumbSrc(shouldForceFallback ? fallbackSrc : (initial || fallbackSrc));
+      // Only skip the real URL when the server explicitly says the image is missing.
+      // null/undefined means unknown — prefer the real URL so images that exist on the
+      // backend are shown (consistent with how large property cards behave).
+      const src = property?.image_missing === true ? fallbackSrc : (getPropertyThumb(property) || fallbackSrc);
+      setThumbSrc(src);
     }, [property?.id, property?.image_url, property?.images, property?.image_missing, property?.property_type, fallbackSrc]);
 
     return (
       <img
-        src={thumbSrc || fallbackSrc}
+        src={thumbSrc}
         alt={property?.title}
         className="w-16 h-12 rounded object-cover flex-shrink-0"
         onError={(e) => {
