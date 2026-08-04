@@ -381,18 +381,20 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 opacity-70 hover:opacity-100 transition-opacity"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-black/60 hover:bg-black/80 opacity-90 hover:opacity-100 transition-all h-12 w-12"
                       onClick={prevImage}
                       title="Previous image (←)"
+                      aria-label="Previous image"
                     >
                       <ChevronLeft className="h-6 w-6" />
                     </Button>
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-70 hover:opacity-100 transition-opacity"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-black/60 hover:bg-black/80 opacity-90 hover:opacity-100 transition-all h-12 w-12"
                       onClick={nextImage}
                       title="Next image (→)"
+                      aria-label="Next image"
                     >
                       <ChevronRight className="h-6 w-6" />
                     </Button>
