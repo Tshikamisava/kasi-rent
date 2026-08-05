@@ -107,6 +107,7 @@ const SignIn = () => {
           setUserType(userRole);
           setUser({
             _id: result.user.id,
+            id: result.user.id,
             name: result.user.user_metadata?.name || result.user.email || "",
             email: result.user.email || "",
             token: result.session?.access_token || "",

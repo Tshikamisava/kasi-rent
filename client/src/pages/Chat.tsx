@@ -343,30 +343,25 @@ const Chat = () => {
         return;
       }
 
-      // Create conversation with that user
+      // Create or reuse existing conversation with that user
       const otherUserId = userRes.user.id || userRes.user._id;
       const createRes = await api('/api/chats', token, { 
         method: 'POST', 
         body: JSON.stringify({ participantIds: [otherUserId], type: 'private' }) 
       });
       
-      toast({ title: 'Conversation created', description: `Chat started with ${userRes.user.name || userRes.user.email}` });
-      setConversations((prev) => [createRes, ...prev]);
+      const isExisting = conversations.some((c) => c.id === createRes.id);
+      toast({ title: isExisting ? 'Conversation opened' : 'Conversation created', description: `Chatting with ${userRes.user.name || userRes.user.email}` });
+      
+      // Add to list if new, then select it
+      if (!isExisting) setConversations((prev) => [createRes, ...prev]);
+      selectConversation(createRes);
     } catch (err: any) {
       console.error(err);
-      // Check if it's a "user not found" error (404)
       if (err.message && err.message.includes('User not found')) {
-        toast({ 
-          title: 'User not found', 
-          description: `No user registered with email: ${participantEmail}`, 
-          variant: 'destructive' 
-        });
+        toast({ title: 'User not found', description: `No user registered with email: ${participantEmail}`, variant: 'destructive' });
       } else {
-        toast({ 
-          title: 'Failed to create conversation', 
-          description: err.message || 'An error occurred', 
-          variant: 'destructive' 
-        });
+        toast({ title: 'Failed to create conversation', description: err.message || 'An error occurred', variant: 'destructive' });
       }
     }
   };
@@ -397,10 +392,12 @@ const Chat = () => {
         body: JSON.stringify({ participantIds: [userId], type: 'private' }) 
       });
       
-      toast({ title: 'Conversation created', description: `Chat started with ${userName}` });
-      setConversations((prev) => [createRes, ...prev]);
+      const isExisting = conversations.some((c) => c.id === createRes.id);
+      if (!isExisting) setConversations((prev) => [createRes, ...prev]);
       setShowUserBrowser(false);
       setSearchQuery('');
+      selectConversation(createRes);
+      toast({ title: isExisting ? 'Conversation opened' : 'Conversation created', description: `Chatting with ${userName}` });
     } catch (err) {
       console.error(err);
       toast({ title: 'Failed to create conversation', variant: 'destructive' });
