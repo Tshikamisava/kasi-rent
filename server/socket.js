@@ -76,8 +76,13 @@ export async function initSocket(server) {
 
     socket.on('join_conversation', async ({ conversationId }) => {
       try {
-        const participant = await ConversationParticipant.findOne({ where: { conversation_id: conversationId, user_id: user.id } });
-        if (!participant) return socket.emit('error', { message: 'Not a participant' });
+        let participant = await ConversationParticipant.findOne({ where: { conversation_id: conversationId, user_id: user.id } });
+        if (!participant) {
+          // Auto-repair: re-add user if conversation exists (handles stale/missing records)
+          const convo = await Conversation.findByPk(conversationId);
+          if (!convo) return socket.emit('error', { message: 'Conversation not found' });
+          [participant] = await ConversationParticipant.findOrCreate({ where: { conversation_id: conversationId, user_id: user.id }, defaults: { role: 'participant' } });
+        }
         socket.join(`conversation_${conversationId}`);
       } catch (err) {
         console.error('join_conversation error:', err);
@@ -95,8 +100,13 @@ export async function initSocket(server) {
     socket.on('send_message', async (payload, ack) => {
       try {
         const { conversationId, content, contentType = 'text', attachmentUrl } = payload;
-        const participant = await ConversationParticipant.findOne({ where: { conversation_id: conversationId, user_id: user.id } });
-        if (!participant) return ack?.({ error: 'Not a participant' });
+        let participant = await ConversationParticipant.findOne({ where: { conversation_id: conversationId, user_id: user.id } });
+        if (!participant) {
+          // Auto-repair: add user if conversation exists
+          const convo = await Conversation.findByPk(conversationId);
+          if (!convo) return ack?.({ error: 'Conversation not found' });
+          [participant] = await ConversationParticipant.findOrCreate({ where: { conversation_id: conversationId, user_id: user.id }, defaults: { role: 'participant' } });
+        }
 
         const message = await Message.create({ conversation_id: conversationId, sender_id: user.id, content, content_type: contentType, attachment_url: attachmentUrl });
         await Conversation.update({ last_message_at: new Date() }, { where: { id: conversationId } });

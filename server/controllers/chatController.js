@@ -1,26 +1,24 @@
 import { Conversation, ConversationParticipant, Message, Attachment, User } from '../models/index.js';
+import { Op } from 'sequelize';
 
 export const listConversations = async (req, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
   try {
+    // Find only conversations where this user is a participant (SQL-level filter)
+    const participantRows = await ConversationParticipant.findAll({ where: { user_id: userId } });
+    const convoIds = participantRows.map((p) => p.conversation_id);
+
+    if (convoIds.length === 0) return res.json([]);
+
     const convos = await Conversation.findAll({
-      include: [
-        { 
-          model: ConversationParticipant, 
-          as: 'participants',
-          required: true,
-          separate: true,
-        }
-      ],
+      where: { id: { [Op.in]: convoIds } },
+      include: [{ model: ConversationParticipant, as: 'participants', separate: true }],
       order: [['last_message_at', 'DESC']],
     });
 
-    // Filter conversations where user is a participant
-    const filtered = convos.filter((c) => c.participants?.some((p) => p.user_id === userId));
-
-    res.json(filtered);
+    res.json(convos);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to list conversations' });
@@ -34,10 +32,26 @@ export const createConversation = async (req, res) => {
   if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
   try {
+    // For private chats, reuse an existing conversation between the same two users
+    if (type === 'private' && participantIds.length === 1) {
+      const otherId = participantIds[0];
+      const myConvoIds = (await ConversationParticipant.findAll({ where: { user_id: userId } })).map((p) => p.conversation_id);
+      const otherConvoIds = (await ConversationParticipant.findAll({ where: { user_id: otherId } })).map((p) => p.conversation_id);
+      const shared = myConvoIds.filter((id) => otherConvoIds.includes(id));
+
+      if (shared.length > 0) {
+        const existing = await Conversation.findOne({
+          where: { id: shared[0], type: 'private' },
+          include: [{ model: ConversationParticipant, as: 'participants', separate: true }],
+        });
+        if (existing) return res.status(200).json(existing);
+      }
+    }
+
     const convo = await Conversation.create({ type, title, property_id });
 
     // Add current user as participant
-    await ConversationParticipant.create({ conversation_id: convo.id, user_id: userId, role: 'participant' });
+    await ConversationParticipant.findOrCreate({ where: { conversation_id: convo.id, user_id: userId }, defaults: { role: 'participant' } });
 
     // Add other participants
     for (const pid of participantIds) {
@@ -46,7 +60,13 @@ export const createConversation = async (req, res) => {
       }
     }
 
-    res.status(201).json(convo);
+    // Return conversation with participants loaded
+    const result = await Conversation.findOne({
+      where: { id: convo.id },
+      include: [{ model: ConversationParticipant, as: 'participants', separate: true }],
+    });
+
+    res.status(201).json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to create conversation' });
