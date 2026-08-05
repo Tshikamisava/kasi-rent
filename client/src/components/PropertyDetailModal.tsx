@@ -45,29 +45,35 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
   });
   const [submitting, setSubmitting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [activeImageFailed, setActiveImageFailed] = useState(false);
+  const [failedImageIndices, setFailedImageIndices] = useState<Set<number>>(new Set());
   const [showFullscreen, setShowFullscreen] = useState(false);
 
   // Get all images from the property (normalized with fallback sources)
   const propertyImages = resolvePropertyImageUrls(property?.images, property?.image_url);
+  const fallbackSrc = getFallbackImageForPropertyType(property?.property_type);
+  // Swap SVG/broken images with type-based fallback, keeping the full array length
+  const displayImages = propertyImages.length > 0
+    ? propertyImages.map((url, i) => failedImageIndices.has(i) ? fallbackSrc : url)
+    : [fallbackSrc];
 
-  const activeImageIndex = propertyImages.length > 0
-    ? Math.min(currentImageIndex, propertyImages.length - 1)
+  const activeImageIndex = displayImages.length > 0
+    ? Math.min(currentImageIndex, displayImages.length - 1)
     : 0;
 
+  const markImageFailed = (index: number) =>
+    setFailedImageIndices(prev => new Set([...prev, index]));
+
   const nextImage = () => {
-    setActiveImageFailed(false);
-    setCurrentImageIndex((prev) => (prev + 1) % propertyImages.length);
+    setCurrentImageIndex((prev) => (prev + 1) % displayImages.length);
   };
 
   const prevImage = () => {
-    setActiveImageFailed(false);
-    setCurrentImageIndex((prev) => (prev - 1 + propertyImages.length) % propertyImages.length);
+    setCurrentImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
   };
 
   // Keyboard navigation
   useEffect(() => {
-    if (!open || propertyImages.length <= 1) return;
+    if (!open || displayImages.length <= 1) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') {
         e.preventDefault();
@@ -81,7 +87,7 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, propertyImages.length, currentImageIndex]);
+  }, [open, displayImages.length, currentImageIndex]);
 
   // Debug logging
   useEffect(() => {
@@ -97,15 +103,15 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
   useEffect(() => {
     if (!open) return;
     setCurrentImageIndex(0);
-    setActiveImageFailed(false);
+    setFailedImageIndices(new Set());
     setShowFullscreen(false);
   }, [open, property?.id]);
 
   useEffect(() => {
-    if (currentImageIndex >= propertyImages.length && propertyImages.length > 0) {
+    if (currentImageIndex >= displayImages.length && displayImages.length > 0) {
       setCurrentImageIndex(0);
     }
-  }, [currentImageIndex, propertyImages.length]);
+  }, [currentImageIndex, displayImages.length]);
 
   const fetchLandlordInfo = async () => {
     try {
@@ -357,26 +363,26 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
             </div>
           </div>
           {/* Property Image Gallery */}
-          {propertyImages.length > 0 && !activeImageFailed ? (
+          {displayImages.length > 0 ? (
             <>
               <div className="relative group">
                 <div className="h-64 md:h-96 lg:h-[600px] w-full rounded-lg overflow-hidden bg-black/5">
                   <img
-                    src={propertyImages[activeImageIndex]}
+                    src={displayImages[activeImageIndex]}
                     alt={`${property.title} - Image ${activeImageIndex + 1}`}
                     className="w-full h-full object-cover transition-opacity duration-300"
                     onLoad={(e) => {
                       const img = e.target as HTMLImageElement;
                       if (img.naturalWidth === 1200 && img.naturalHeight === 800) {
-                        setActiveImageFailed(true);
+                        markImageFailed(activeImageIndex);
                       }
                     }}
-                    onError={() => setActiveImageFailed(true)}
+                    onError={() => markImageFailed(activeImageIndex)}
                   />
                 </div>
                 
                 {/* Navigation Arrows (only for multiple images) */}
-                {propertyImages.length > 1 && (
+                {displayImages.length > 1 && (
                   <>
                     <Button
                       variant="secondary"
@@ -403,9 +409,9 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                 
                 {/* Image Counter & Fullscreen Button (always show) */}
                 <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                  {propertyImages.length > 1 && (
+                  {displayImages.length > 1 && (
                     <div className="bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium">
-                      {activeImageIndex + 1} / {propertyImages.length}
+                      {activeImageIndex + 1} / {displayImages.length}
                     </div>
                   )}
                   <Button
@@ -421,14 +427,13 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
               </div>
               
               {/* Thumbnail Navigation */}
-              {propertyImages.length > 1 && (
+              {displayImages.length > 1 && (
                 <div className="flex gap-2 mt-4 overflow-x-auto pb-2 scroll-smooth">
-                  {propertyImages.map((img, index) => (
+                  {displayImages.map((img, index) => (
                     <button
                       key={index}
                       onClick={() => {
                         setCurrentImageIndex(index);
-                        setActiveImageFailed(false);
                       }}
                       className={`flex-shrink-0 h-20 w-28 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                         index === activeImageIndex
@@ -468,13 +473,13 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                     
                     {/* Main Image */}
                     <img
-                      src={propertyImages[activeImageIndex]}
+                      src={displayImages[activeImageIndex]}
                       alt={`${property.title} - Full view`}
                       className="max-w-[90vw] max-h-[80vh] object-contain rounded-lg"
                     />
                     
                     {/* Navigation */}
-                    {propertyImages.length > 1 && (
+                    {displayImages.length > 1 && (
                       <>
                         <Button
                           variant="ghost"
@@ -497,9 +502,9 @@ export const PropertyDetailModal = ({ open, onOpenChange, property }: PropertyDe
                         
                         {/* Counter & Indicators */}
                         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4">
-                          <div className="text-white text-lg font-semibold">{activeImageIndex + 1} / {propertyImages.length}</div>
+                          <div className="text-white text-lg font-semibold">{activeImageIndex + 1} / {displayImages.length}</div>
                           <div className="flex gap-2">
-                            {propertyImages.map((_, index) => (
+                            {displayImages.map((_, index) => (
                               <button
                                 key={index}
                                 onClick={() => setCurrentImageIndex(index)}
